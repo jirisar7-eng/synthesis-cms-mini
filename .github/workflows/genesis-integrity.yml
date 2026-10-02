@@ -93,3 +93,12 @@ jobs:
 
       - name: Verify complete committed Command Capsule parent lineage
         run: node scripts/governance/verify_capsule_lineage.mjs --verify-all
+
+      - name: Check detached Command Capsule baseline verifier syntax
+        run: node --check scripts/governance/verify_capsule_file_baseline.mjs
+
+      - name: Run detached Command Capsule baseline verifier self-tests
+        run: node scripts/governance/verify_capsule_file_baseline.mjs --self-test
+
+      - name: Verify committed Command Capsule full-file baseline
+        run: node scripts/governance/verify_capsule_file_baseline.mjs --verify-all
