@@ -1,0 +1,56 @@
+{
+  "record_type": "GENESIS_ANCHOR",
+  "project_id": "SYNTHESIS_CMS_MINI",
+  "repository_full_name": "jirisar7-eng/synthesis-cms-mini",
+  "repository_id": 1401215700,
+  "initial_repository_commit": "a727bd6ac1979586833145f8503ac88fd2ce8623",
+  "verified_initial_license_blob_sha": "0ad25db4bd1d86c452db3f9602ccdbe172438f52",
+  "owner_identity": {
+    "login": "jirisar7-eng",
+    "id": 263165555,
+    "role": "OWNER_AUTHORITY"
+  },
+  "task_id": "SYN-MINI-GOV-GENESIS-001",
+  "command_id": "CMD-SYN-MINI-GOV-GENESIS-001-002-BOOTSTRAP-GENESIS",
+  "capsule_id": "CAP-SYN-MINI-GOV-GENESIS-001-20261002-001",
+  "capsule_schema_version": "1.0.0",
+  "parent_capsules": [],
+  "initial_actor_registry": [
+    {
+      "actor_id": "jirisar7-eng",
+      "github_id": 263165555,
+      "role": "OWNER"
+    },
+    {
+      "actor_id": "ai-studio-agent",
+      "role": "ENGINEERING_AGENT"
+    }
+  ],
+  "hash_algorithm": "SHA-256",
+  "immutable_history_policy": "APPEND_ONLY_STRICT",
+  "append_only_correction_policy": "SUPERSEDE_WITH_NEW_CAPSULE",
+  "one_command_one_capsule_policy": "ENFORCED",
+  "initial_governance_state": "GENESIS_BOOTSTRAP",
+  "previous_diagnostic_command_reference": {
+    "command_id": "CMD-SYN-MINI-GOV-GENESIS-001-001-DISCOVER-VERIFY",
+    "status": "PRE_GENESIS_VERIFIED_HISTORICAL_RECORD",
+    "sealed_capsule": false
+  },
+  "initial_verified_project_state": {
+    "base_main_sha": "a727bd6ac1979586833145f8503ac88fd2ce8623",
+    "root_files": [
+      "LICENSE"
+    ],
+    "license": "AGPL-3.0",
+    "license_blob_sha": "0ad25db4bd1d86c452db3f9602ccdbe172438f52",
+    "main_protection_ruleset_id": 24351135,
+    "main_protection_ruleset_name": "SYN-MINI-MAIN-PROTECTION",
+    "main_protection_ruleset_enforcement": "active"
+  },
+  "explicitly_pending_future_validators_and_ci": {
+    "capsule_validator": "PENDING",
+    "contract_registry": "PENDING",
+    "governance_ci": "PENDING",
+    "technical_ci": "PENDING"
+  }
+}
