@@ -172,7 +172,7 @@ export function parseStrictIJson(rawText, maxDepth = 50, maxLength = 1024 * 1024
   function parseObject(depth) {
     pos++;
     skipWhitespace();
-    const obj = {};
+    const obj = Object.create(null);
     const seenKeys = new Set();
     if (pos < rawText.length && rawText[pos] === '}') {
       pos++;
@@ -192,7 +192,12 @@ export function parseStrictIJson(rawText, maxDepth = 50, maxLength = 1024 * 1024
       }
       pos++;
       const val = parseValue(depth);
-      obj[key] = val;
+      Object.defineProperty(obj, key, {
+        value: val,
+        writable: true,
+        enumerable: true,
+        configurable: true
+      });
       skipWhitespace();
       if (pos < rawText.length && rawText[pos] === ',') {
         pos++;
@@ -545,6 +550,123 @@ export function runSelfTests(repoRoot) {
     return { valid: true };
   });
 
+  // POSITIVE H (PARSER_A): "__proto__" is preserved as an own property with null prototype
+  assertPositive('POSITIVE H (PARSER_A): "__proto__" is preserved as an own property with null prototype', () => {
+    const raw = '{"__proto__": {"injected": "val"}, "normal": 123}';
+    const parsed = parseStrictIJson(raw);
+    if (Object.getPrototypeOf(parsed) !== null) {
+      return { valid: false, error: 'Parsed object prototype is not null' };
+    }
+    if (!Object.hasOwn(parsed, '__proto__')) {
+      return { valid: false, error: '__proto__ is not an own property' };
+    }
+    if (!Object.keys(parsed).includes('__proto__')) {
+      return { valid: false, error: '__proto__ not present in Object.keys' };
+    }
+    if (parsed.__proto__.injected !== 'val') {
+      return { valid: false, error: 'Value of __proto__ was not preserved' };
+    }
+    return { valid: true };
+  });
+
+  // POSITIVE I (PARSER_B): "constructor", "prototype", "toString", "valueOf" are ordinary own properties
+  assertPositive('POSITIVE I (PARSER_B): "constructor" and "toString" are preserved as ordinary own properties', () => {
+    const raw = '{"constructor": "custom_ctor", "prototype": "custom_proto", "toString": "custom_str", "valueOf": 42}';
+    const parsed = parseStrictIJson(raw);
+    if (!Object.hasOwn(parsed, 'constructor') || parsed.constructor !== 'custom_ctor') {
+      return { valid: false, error: 'constructor own property not preserved' };
+    }
+    if (!Object.hasOwn(parsed, 'prototype') || parsed.prototype !== 'custom_proto') {
+      return { valid: false, error: 'prototype own property not preserved' };
+    }
+    if (!Object.hasOwn(parsed, 'toString') || parsed.toString !== 'custom_str') {
+      return { valid: false, error: 'toString own property not preserved' };
+    }
+    if (!Object.hasOwn(parsed, 'valueOf') || parsed.valueOf !== 42) {
+      return { valid: false, error: 'valueOf own property not preserved' };
+    }
+    return { valid: true };
+  });
+
+  // POSITIVE J (PARSER_C): Parsing does not mutate Object.prototype or any global prototype
+  assertPositive('POSITIVE J (PARSER_C): Parsing does not mutate Object.prototype or any global prototype', () => {
+    const beforeObjProto = Object.getOwnPropertyNames(Object.prototype);
+    const raw = '{"__proto__": {"polluted": true, "admin": true}, "constructor": {"prototype": {"polluted": true}}}';
+    const parsed = parseStrictIJson(raw);
+    if (Object.prototype.polluted !== undefined || Object.prototype.admin !== undefined) {
+      return { valid: false, error: 'Object.prototype was polluted!' };
+    }
+    if (({}).polluted !== undefined || ({}).admin !== undefined) {
+      return { valid: false, error: 'Plain object prototype was polluted!' };
+    }
+    const afterObjProto = Object.getOwnPropertyNames(Object.prototype);
+    if (beforeObjProto.length !== afterObjProto.length) {
+      return { valid: false, error: 'Object.prototype property count changed' };
+    }
+    return { valid: true };
+  });
+
+  // POSITIVE K (PARSER_D): Nested JSON objects and objects inside arrays remain protected with null prototype
+  assertPositive('POSITIVE K (PARSER_D): Nested JSON objects and objects inside arrays remain protected with null prototype', () => {
+    const raw = '{"outer": {"nested": {"__proto__": {"deep": 1}}}, "list": [{"__proto__": "in_arr"}]}';
+    const parsed = parseStrictIJson(raw);
+    if (Object.getPrototypeOf(parsed.outer) !== null) {
+      return { valid: false, error: 'parsed.outer prototype is not null' };
+    }
+    if (Object.getPrototypeOf(parsed.outer.nested) !== null) {
+      return { valid: false, error: 'parsed.outer.nested prototype is not null' };
+    }
+    if (Object.getPrototypeOf(parsed.list[0]) !== null) {
+      return { valid: false, error: 'parsed.list[0] prototype is not null' };
+    }
+    if (!Object.hasOwn(parsed.outer.nested, '__proto__')) {
+      return { valid: false, error: 'nested __proto__ is not an own property' };
+    }
+    if (!Object.hasOwn(parsed.list[0], '__proto__') || parsed.list[0].__proto__ !== 'in_arr') {
+      return { valid: false, error: 'array object __proto__ not preserved' };
+    }
+    return { valid: true };
+  });
+
+  // POSITIVE L (PARSER_E): Escaped "__proto__" (\u005f\u005fproto\u005f\u005f) is preserved as an own property
+  assertPositive('POSITIVE L (PARSER_E): Escaped "__proto__" is preserved correctly as an own property', () => {
+    const raw = '{"\u005f\u005fproto\u005f\u005f": "escaped_proto_val"}';
+    const parsed = parseStrictIJson(raw);
+    if (!Object.hasOwn(parsed, '__proto__')) {
+      return { valid: false, error: 'Escaped __proto__ not preserved as own property' };
+    }
+    if (parsed.__proto__ !== 'escaped_proto_val') {
+      return { valid: false, error: `Expected escaped_proto_val, got ${parsed.__proto__}` };
+    }
+    return { valid: true };
+  });
+
+  // POSITIVE M (PARSER_G): Canonicalization includes "__proto__" and sorts keys correctly
+  assertPositive('POSITIVE M (PARSER_G): Canonicalization includes "__proto__" and sorts keys correctly', () => {
+    const raw = '{"b": 2, "__proto__": "proto_val", "a": 1}';
+    const parsed = parseStrictIJson(raw);
+    const canonical = canonicalizeRfc8785(parsed);
+    const expected = '{"__proto__":"proto_val","a":1,"b":2}';
+    if (canonical !== expected) {
+      return { valid: false, error: `Expected ${expected}, got ${canonical}` };
+    }
+    return { valid: true };
+  });
+
+  // POSITIVE N (PARSER_H): Changing the value of "__proto__" changes the canonical payload SHA-256
+  assertPositive('POSITIVE N (PARSER_H): Changing the value of "__proto__" changes the canonical payload SHA-256', () => {
+    const raw1 = '{"task_id":"SYN-MINI","__proto__":"version_1"}';
+    const raw2 = '{"task_id":"SYN-MINI","__proto__":"version_2"}';
+    const parsed1 = parseStrictIJson(raw1);
+    const parsed2 = parseStrictIJson(raw2);
+    const hash1 = computePayloadSha256(parsed1).sha256Hex;
+    const hash2 = computePayloadSha256(parsed2).sha256Hex;
+    if (hash1 === hash2) {
+      return { valid: false, error: 'Changing __proto__ value failed to change SHA-256 hash!' };
+    }
+    return { valid: true };
+  });
+
   // NEGATIVE TESTS
   // 1. Change one payload field without updating the hash
   assertNegative('1. Modified payload field without hash update causes mismatch', () => {
@@ -709,6 +831,16 @@ export function runSelfTests(repoRoot) {
     }
     return { valid: false, error: 'CLI_SURPLUS_ARGUMENTS_REJECTED' };
   }, 'CLI_SURPLUS_ARGUMENTS_REJECTED');
+
+  // 16. Raw and escaped-equivalent duplicate "__proto__" keys rejected (PARSER_F)
+  assertNegative('16. Raw and escaped-equivalent duplicate "__proto__" keys rejected', () => {
+    try {
+      parseStrictIJson('{"__proto__": 1, "\u005f\u005fproto\u005f\u005f": 2}');
+      return { valid: true };
+    } catch (e) {
+      return { valid: false, error: e.message };
+    }
+  }, 'Duplicate object key detected: "__proto__"');
 
   return {
     positivePassed,
