@@ -10,6 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import child_process from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -57,6 +58,14 @@ export function loadSchema(repoRoot) {
   return JSON.parse(content.toString('utf-8'));
 }
 
+export function parseCapsuleJson(rawContent) {
+  try {
+    return { ok: true, data: JSON.parse(rawContent) };
+  } catch (err) {
+    return { ok: false, error: `JSON_PARSE_ERROR: ${err.message}` };
+  }
+}
+
 export function validateSchemaKeywords(schema, jsonPath = '$') {
   if (typeof schema !== 'object' || schema === null) return;
   for (const key of Object.keys(schema)) {
@@ -67,6 +76,8 @@ export function validateSchemaKeywords(schema, jsonPath = '$') {
       for (const [propName, propSchema] of Object.entries(schema.properties)) {
         validateSchemaKeywords(propSchema, `${jsonPath}.properties.${propName}`);
       }
+    } else if (key === 'additionalProperties' && typeof schema.additionalProperties === 'object' && schema.additionalProperties !== null) {
+      validateSchemaKeywords(schema.additionalProperties, `${jsonPath}.additionalProperties`);
     } else if (key === 'items') {
       validateSchemaKeywords(schema.items, `${jsonPath}.items`);
     } else if (key === 'allOf') {
@@ -77,6 +88,29 @@ export function validateSchemaKeywords(schema, jsonPath = '$') {
       validateSchemaKeywords(schema.then, `${jsonPath}.then`);
     }
   }
+}
+
+export function isValidIsoDateTime(str) {
+  if (typeof str !== 'string') return false;
+  const m = str.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(Z|([+-])(\d{2}):(\d{2}))$/);
+  if (!m) return false;
+  const year = parseInt(m[1], 10);
+  const month = parseInt(m[2], 10);
+  const day = parseInt(m[3], 10);
+  const hour = parseInt(m[4], 10);
+  const min = parseInt(m[5], 10);
+  const sec = parseInt(m[6], 10);
+  if (month < 1 || month > 12) return false;
+  if (hour > 23 || min > 59 || sec > 59) return false;
+  const isLeap = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+  const daysInMonth = [0, 31, isLeap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (day < 1 || day > daysInMonth[month]) return false;
+  if (m[8] && m[8] !== 'Z') {
+    const tzHour = parseInt(m[10], 10);
+    const tzMin = parseInt(m[11], 10);
+    if (tzHour > 23 || tzMin > 59) return false;
+  }
+  return true;
 }
 
 export function validateInstance(schema, instance, jsonPath = '$', depth = 0) {
@@ -143,12 +177,10 @@ export function validateInstance(schema, instance, jsonPath = '$', depth = 0) {
   // 6. format
   if (schema.format && typeof instance === 'string') {
     if (schema.format === 'date-time') {
-      // Must be valid ISO date-time
-      const isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
-      if (!isoRegex.test(instance) || isNaN(Date.parse(instance))) {
+      if (!isValidIsoDateTime(instance)) {
         return {
           valid: false,
-          error: `Format mismatch at ${jsonPath}: "${instance}" is not a valid ISO-8601 date-time`
+          error: `Format mismatch at ${jsonPath}: "${instance}" is not a valid ISO-8601 calendar date-time`
         };
       }
     }
@@ -177,7 +209,6 @@ export function validateInstance(schema, instance, jsonPath = '$', depth = 0) {
       }
     }
 
-    const definedProps = schema.properties ? Object.keys(schema.properties) : [];
     for (const key of Object.keys(instance)) {
       if (schema.properties && key in schema.properties) {
         const subRes = validateInstance(schema.properties[key], instance[key], `${jsonPath}.${key}`, depth + 1);
@@ -187,6 +218,9 @@ export function validateInstance(schema, instance, jsonPath = '$', depth = 0) {
           valid: false,
           error: `Unexpected additional property "${key}" at ${jsonPath} (additionalProperties: false)`
         };
+      } else if (typeof schema.additionalProperties === 'object' && schema.additionalProperties !== null) {
+        const subRes = validateInstance(schema.additionalProperties, instance[key], `${jsonPath}.${key}`, depth + 1);
+        if (!subRes.valid) return subRes;
       }
     }
   }
@@ -306,8 +340,8 @@ export function buildSampleProvisionalCapsule() {
     payload: {
       schema_version: '1.0.0',
       capsule_type: 'COMMAND_CAPSULE',
-      capsule_id: 'CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-003',
-      command_id: 'CMD-SYN-MINI-GOV-CAPSULE-SCHEMA-001-003-VALIDATE-INSTANCES',
+      capsule_id: 'CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-004',
+      command_id: 'CMD-SYN-MINI-GOV-CAPSULE-SCHEMA-001-004-HARDEN-INSTANCE-VALIDATOR',
       task_id: 'SYN-MINI-GOV-CAPSULE-SCHEMA-001',
       project_id: 'SYNTHESIS_CMS_MINI',
       roadmap_step: '2/60 — COMMAND CAPSULE SCHEMA',
@@ -344,8 +378,8 @@ export function buildSampleProvisionalCapsule() {
         },
         parent_capsules: [
           {
-            capsule_id: 'CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-002',
-            command_id: 'CMD-SYN-MINI-GOV-CAPSULE-SCHEMA-001-002-HARDEN-CRYPTO-CONTRACT',
+            capsule_id: 'CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-003',
+            command_id: 'CMD-SYN-MINI-GOV-CAPSULE-SCHEMA-001-003-VALIDATE-INSTANCES',
             payload_sha256: null,
             relationship_type: 'LINEAR_PARENT'
           }
@@ -365,7 +399,9 @@ export function buildSampleProvisionalCapsule() {
         expected_changed_files: ['scripts/governance/validate_command_capsule.mjs'],
         actual_changed_files: ['scripts/governance/validate_command_capsule.mjs'],
         commit_sha: null,
-        source_blob_shas: {}
+        source_blob_shas: {
+          'scripts/governance/validate_command_capsule.mjs': '1171fbab2c694617821ddf92006a876ed08086ea'
+        }
       },
       verification_states: {
         syntax_verification: 'PASS',
@@ -383,7 +419,7 @@ export function buildSampleProvisionalCapsule() {
         incomplete_work: [],
         next_safe_step: 'Verify task branch remote checkpoint',
         stateless_recovery_context: {
-          verified_task_head: '113579bf49aaa5bffa6da68b0a9f4cf8a1d50119',
+          verified_task_head: '20b8c26f88c4479d4a5028988152bce5314640db',
           expected_clean_worktree: true,
           last_authoritative_remote_sync: '2026-10-02T02:00:00Z'
         }
@@ -470,6 +506,24 @@ export function runSelfTests(repoRoot) {
     return validateCapsuleComplete(schema, c);
   });
 
+  assertPositive('POSITIVE D: Valid source_blob_shas additionalProperties matching lowercase 40-hex SHA', () => {
+    const c = buildSampleProvisionalCapsule();
+    c.payload.changes_and_evidence.source_blob_shas = {
+      'file1.txt': '1171fbab2c694617821ddf92006a876ed08086ea',
+      'path/to/file2.json': 'a'.repeat(40)
+    };
+    return validateCapsuleComplete(schema, c);
+  });
+
+  assertPositive('POSITIVE E: Valid leap-day and timezone-offset date-times', () => {
+    const c = buildSampleProvisionalCapsule();
+    c.payload.execution_metadata.execution_timestamp = '2024-02-29T12:00:00Z';
+    const res1 = validateCapsuleComplete(schema, c);
+    if (!res1.valid) return res1;
+    c.payload.execution_metadata.execution_timestamp = '2026-10-02T10:00:00+02:00';
+    return validateCapsuleComplete(schema, c);
+  });
+
   // 2. NEGATIVE TESTS
   assertNegative('1. Missing payload', () => {
     const c = buildSampleProvisionalCapsule();
@@ -539,7 +593,7 @@ export function runSelfTests(repoRoot) {
     return validateCapsuleComplete(schema, c);
   }, 'Unexpected additional property "unauthorized_extra_field"');
 
-  assertNegative('11. Invalid execution timestamp', () => {
+  assertNegative('11. Invalid execution timestamp format', () => {
     const c = buildSampleProvisionalCapsule();
     c.payload.execution_metadata.execution_timestamp = 'not-a-datetime';
     return validateCapsuleComplete(schema, c);
@@ -551,14 +605,13 @@ export function runSelfTests(repoRoot) {
     return validateCapsuleComplete(schema, c);
   }, 'Pattern mismatch');
 
-  assertNegative('13. Malformed capsule JSON text parsing', () => {
-    try {
-      JSON.parse('{ malformed json');
-      return { valid: true };
-    } catch (e) {
-      return { valid: false, error: `Malformed JSON parse error: ${e.message}` };
+  assertNegative('13. Malformed capsule JSON text parsing via production parseCapsuleJson', () => {
+    const parsed = parseCapsuleJson('{ malformed json');
+    if (!parsed.ok) {
+      return { valid: false, error: parsed.error };
     }
-  }, 'Malformed JSON parse error');
+    return { valid: true };
+  }, 'JSON_PARSE_ERROR');
 
   assertNegative('14. Unsupported schema assertion keyword', () => {
     const badSchema = JSON.parse(JSON.stringify(schema));
@@ -587,6 +640,46 @@ export function runSelfTests(repoRoot) {
     return validateCapsuleComplete(schema, c);
   }, 'Capsule cannot reference itself as parent');
 
+  assertNegative('17. Invalid source_blob_shas value failing additionalProperties schema', () => {
+    const c = buildSampleProvisionalCapsule();
+    c.payload.changes_and_evidence.source_blob_shas = {
+      'file1.txt': 'invalid-sha'
+    };
+    return validateCapsuleComplete(schema, c);
+  }, 'Pattern mismatch');
+
+  assertNegative('18. Unsupported assertion keyword inside nested additionalProperties schema', () => {
+    const badSchema = JSON.parse(JSON.stringify(schema));
+    badSchema.properties.payload.properties.changes_and_evidence.properties.source_blob_shas.additionalProperties = {
+      type: 'string',
+      unsupportedNestedKey: 123
+    };
+    const c = buildSampleProvisionalCapsule();
+    return validateInstance(badSchema, c);
+  }, 'Unsupported schema assertion keyword "unsupportedNestedKey"');
+
+  assertNegative('19. Impossible calendar date rejected (2026-02-30)', () => {
+    const c = buildSampleProvisionalCapsule();
+    c.payload.execution_metadata.execution_timestamp = '2026-02-30T02:00:00Z';
+    return validateCapsuleComplete(schema, c);
+  }, 'Format mismatch');
+
+  assertNegative('20. Strict CLI argument rejection for unsupported or surplus arguments', () => {
+    const testCases = [
+      ['--self-test', '--unexpected'],
+      ['--help', '--unexpected'],
+      ['capsule.json', '--unexpected'],
+      ['--unknown']
+    ];
+    for (const testArgs of testCases) {
+      const run = child_process.spawnSync(process.execPath, [__filename, ...testArgs], { encoding: 'utf-8' });
+      if (run.status === 0) {
+        return { valid: true }; // Should not succeed!
+      }
+    }
+    return { valid: false, error: 'CLI_STRICT_ARGUMENTS_REJECTED' };
+  }, 'CLI_STRICT_ARGUMENTS_REJECTED');
+
   return {
     positivePassed,
     negativePassed,
@@ -602,15 +695,27 @@ function main() {
   const args = process.argv.slice(2);
   const repoRoot = path.resolve(__dirname, '..', '..');
 
-  if (args.length === 0 || args.includes('--help')) {
+  if (args.length !== 1) {
+    console.error(`Error: Expected exactly 1 argument, got ${args.length}: [${args.join(', ')}]`);
+    console.error(`Usage:`);
+    console.error(`  node scripts/governance/validate_command_capsule.mjs --self-test`);
+    console.error(`  node scripts/governance/validate_command_capsule.mjs --help`);
+    console.error(`  node scripts/governance/validate_command_capsule.mjs <path-to-capsule.json>`);
+    process.exit(1);
+  }
+
+  const arg = args[0];
+
+  if (arg === '--help' || arg === '-h') {
     console.log(`Synthesis CMS mini — Command Capsule Validator`);
     console.log(`Usage:`);
     console.log(`  node scripts/governance/validate_command_capsule.mjs --self-test`);
+    console.log(`  node scripts/governance/validate_command_capsule.mjs --help`);
     console.log(`  node scripts/governance/validate_command_capsule.mjs <path-to-capsule.json>`);
-    process.exit(args.length === 0 ? 1 : 0);
+    process.exit(0);
   }
 
-  if (args.includes('--self-test')) {
+  if (arg === '--self-test') {
     console.log(`Running Command Capsule Validator self-tests...`);
     const results = runSelfTests(repoRoot);
     console.log(`POSITIVE_TESTS_PASSED: ${results.positivePassed}`);
@@ -619,14 +724,19 @@ function main() {
     console.log(`SCHEMA_INSTANCE_VALIDATION_STATUS: ${results.failedTests === 0 ? 'PASS' : 'FAIL'}`);
     console.log(`CRYPTOGRAPHIC_VERIFICATION_STATUS: CRYPTOGRAPHIC_SEAL_NOT_VERIFIED`);
 
-    if (results.failedTests > 0 || results.positivePassed < 3 || results.negativePassed < 16) {
+    if (results.failedTests > 0 || results.positivePassed < 5 || results.negativePassed < 20) {
       process.exit(1);
     }
     process.exit(0);
   }
 
+  if (arg.startsWith('--')) {
+    console.error(`Error: Unsupported option "${arg}". Only --self-test and --help are supported.`);
+    process.exit(1);
+  }
+
   // Validate single file
-  const filePath = args[0];
+  const filePath = arg;
   if (!fs.existsSync(filePath)) {
     console.error(`Error: File not found: ${filePath}`);
     process.exit(1);
@@ -634,8 +744,13 @@ function main() {
 
   try {
     const schema = loadSchema(repoRoot);
-    const content = fs.readFileSync(filePath, 'utf-8');
-    const capsule = JSON.parse(content);
+    const rawContent = fs.readFileSync(filePath, 'utf-8');
+    const parsed = parseCapsuleJson(rawContent);
+    if (!parsed.ok) {
+      console.error(`VALIDATION FAILED [JSON_PARSE]: ${parsed.error}`);
+      process.exit(1);
+    }
+    const capsule = parsed.data;
     const res = validateCapsuleComplete(schema, capsule);
     if (res.valid) {
       console.log(`SCHEMA_INSTANCE_VALIDATION_STATUS: PASS`);
