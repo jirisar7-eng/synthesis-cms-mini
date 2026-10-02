@@ -1,0 +1,637 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://synthesis.mini/schemas/command-capsule.v1.json",
+  "title": "Synthesis CMS mini \u2014 Command Capsule Schema",
+  "description": "Cryptographic and structural specification for immutable command capsules and execution seals in Synthesis CMS mini.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "capsule_type",
+    "payload",
+    "seal"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "capsule_type": {
+      "type": "string",
+      "enum": [
+        "COMMAND_CAPSULE",
+        "BOOTSTRAP_CAPSULE",
+        "REPAIR_CAPSULE"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "description": "Immutable payload cryptographically hashed and sealed via canonical RFC 8785 serialization.",
+      "required": [
+        "capsule_id",
+        "command_id",
+        "task_id",
+        "project_id",
+        "roadmap_step",
+        "actors",
+        "execution_metadata",
+        "repository_baseline",
+        "scope_boundary",
+        "lineage",
+        "contracts_and_dependencies",
+        "changes_and_evidence",
+        "verification_states",
+        "recovery_and_next_steps"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "capsule_id": {
+          "type": "string",
+          "pattern": "^CAP-[A-Z0-9_-]+$"
+        },
+        "command_id": {
+          "type": "string",
+          "pattern": "^CMD-[A-Z0-9_-]+$"
+        },
+        "task_id": {
+          "type": "string",
+          "pattern": "^[A-Z0-9_-]+$"
+        },
+        "project_id": {
+          "type": "string",
+          "const": "SYNTHESIS_CMS_MINI"
+        },
+        "roadmap_step": {
+          "type": "string",
+          "pattern": "^[0-9]{1,2}/60.*$"
+        },
+        "actors": {
+          "type": "object",
+          "required": [
+            "owner",
+            "command_author",
+            "executor",
+            "verifier"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "owner": {
+              "type": "string",
+              "minLength": 1
+            },
+            "command_author": {
+              "type": "string",
+              "minLength": 1
+            },
+            "executor": {
+              "type": "string",
+              "minLength": 1
+            },
+            "verifier": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "execution_metadata": {
+          "type": "object",
+          "required": [
+            "execution_timestamp",
+            "development_phase",
+            "execution_mode"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "execution_timestamp": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "development_phase": {
+              "type": "string",
+              "enum": [
+                "DISCOVER",
+                "VERIFY",
+                "PLAN",
+                "IMPLEMENT",
+                "TEST",
+                "SECURITY_REVIEW",
+                "REMOTE_VERIFY",
+                "GOVERNANCE",
+                "DEPLOY",
+                "RECOVERY_READ_ONLY",
+                "HANDOFF"
+              ]
+            },
+            "execution_mode": {
+              "type": "string",
+              "enum": [
+                "DIAGNOSTIC",
+                "VERIFY",
+                "PLAN",
+                "IMPLEMENT",
+                "TEST",
+                "REVIEW",
+                "GOVERNANCE",
+                "DEPENDENCY",
+                "DATA",
+                "DEPLOY",
+                "RECOVERY_READ_ONLY",
+                "HANDOFF",
+                "RESTRICTED_GENESIS_BOOTSTRAP",
+                "RESTRICTED_GOVERNANCE_BOOTSTRAP"
+              ]
+            }
+          }
+        },
+        "repository_baseline": {
+          "type": "object",
+          "required": [
+            "repository_name",
+            "repository_id",
+            "base_main_sha",
+            "source_branch",
+            "expected_target_branch"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "repository_name": {
+              "type": "string",
+              "const": "jirisar7-eng/synthesis-cms-mini"
+            },
+            "repository_id": {
+              "type": "integer",
+              "const": 1401215700
+            },
+            "base_main_sha": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "source_branch": {
+              "type": "string",
+              "minLength": 1
+            },
+            "expected_target_branch": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "scope_boundary": {
+          "type": "object",
+          "required": [
+            "permitted_read_paths",
+            "permitted_write_paths",
+            "protected_paths",
+            "forbidden_operations",
+            "max_write_files_limit",
+            "max_read_files_limit"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "permitted_read_paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "permitted_write_paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "protected_paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "forbidden_operations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "max_write_files_limit": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "max_read_files_limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "lineage": {
+          "type": "object",
+          "required": [
+            "genesis_anchor_reference",
+            "parent_capsules",
+            "typed_lineage_references"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "genesis_anchor_reference": {
+              "type": "object",
+              "required": [
+                "path",
+                "pinned_sha256"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "const": ".synthesis/lineage/genesis.json"
+                },
+                "pinned_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            },
+            "parent_capsules": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "capsule_id",
+                  "command_id",
+                  "payload_sha256",
+                  "relationship_type"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "capsule_id": {
+                    "type": "string",
+                    "pattern": "^CAP-[A-Z0-9_-]+$"
+                  },
+                  "command_id": {
+                    "type": "string",
+                    "pattern": "^CMD-[A-Z0-9_-]+$"
+                  },
+                  "payload_sha256": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "relationship_type": {
+                    "type": "string",
+                    "enum": [
+                      "LINEAR_PARENT",
+                      "DIAGNOSTIC_PARENT",
+                      "REPAIR_TARGET",
+                      "SUPERSEDES",
+                      "BRANCH_MERGE_PARENT"
+                    ]
+                  }
+                }
+              }
+            },
+            "typed_lineage_references": {
+              "type": "object",
+              "required": [
+                "superseded_capsules",
+                "repaired_capsules",
+                "diagnostic_predecessors"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "superseded_capsules": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "repaired_capsules": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "diagnostic_predecessors": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "contracts_and_dependencies": {
+          "type": "object",
+          "required": [
+            "affected_contracts",
+            "affected_capabilities",
+            "declared_dependencies"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "affected_contracts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "affected_capabilities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "declared_dependencies": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "changes_and_evidence": {
+          "type": "object",
+          "required": [
+            "expected_changed_files",
+            "actual_changed_files",
+            "commit_sha",
+            "source_blob_shas"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "expected_changed_files": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "actual_changed_files": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "commit_sha": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "source_blob_shas": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              }
+            }
+          }
+        },
+        "verification_states": {
+          "type": "object",
+          "description": "Multi-dimensional verification states. Must not be collapsed into one single pass flag.",
+          "required": [
+            "syntax_verification",
+            "behavioral_test_verification",
+            "security_review",
+            "remote_sha_verification",
+            "ci_verification",
+            "pull_request_status",
+            "merge_status",
+            "deployment_status"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "syntax_verification": {
+              "type": "string",
+              "enum": [
+                "NOT_RUN",
+                "PENDING",
+                "PASS",
+                "FAIL"
+              ]
+            },
+            "behavioral_test_verification": {
+              "type": "string",
+              "enum": [
+                "NOT_RUN",
+                "PENDING",
+                "PASS",
+                "FAIL"
+              ]
+            },
+            "security_review": {
+              "type": "string",
+              "enum": [
+                "NOT_RUN",
+                "PENDING",
+                "PASS",
+                "NEEDS_REVIEW",
+                "FAIL"
+              ]
+            },
+            "remote_sha_verification": {
+              "type": "string",
+              "enum": [
+                "NOT_RUN",
+                "PENDING",
+                "PASS",
+                "FAIL"
+              ]
+            },
+            "ci_verification": {
+              "type": "string",
+              "enum": [
+                "NOT_CONFIGURED",
+                "NOT_VERIFIED",
+                "PENDING",
+                "PASS",
+                "FAIL"
+              ]
+            },
+            "pull_request_status": {
+              "type": "string",
+              "enum": [
+                "NOT_CREATED",
+                "OPEN",
+                "MERGED",
+                "CLOSED"
+              ]
+            },
+            "merge_status": {
+              "type": "string",
+              "enum": [
+                "NOT_MERGED",
+                "MERGED"
+              ]
+            },
+            "deployment_status": {
+              "type": "string",
+              "enum": [
+                "NOT_DEPLOYED",
+                "STAGING",
+                "PRODUCTION"
+              ]
+            }
+          }
+        },
+        "recovery_and_next_steps": {
+          "type": "object",
+          "required": [
+            "global_governance_health",
+            "blockers",
+            "incomplete_work",
+            "next_safe_step",
+            "stateless_recovery_context"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "global_governance_health": {
+              "type": "string",
+              "enum": [
+                "BOOTSTRAP_NOT_YET_ACTIVE",
+                "DEGRADED",
+                "PASS",
+                "BLOCKED_BY_GOVERNANCE_DRIFT"
+              ]
+            },
+            "blockers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "incomplete_work": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "next_safe_step": {
+              "type": "string",
+              "minLength": 1
+            },
+            "stateless_recovery_context": {
+              "type": "object",
+              "description": "Structured facts sufficient for stateless AI recovery without historical chat context.",
+              "required": [
+                "verified_task_head",
+                "expected_clean_worktree",
+                "last_authoritative_remote_sync"
+              ],
+              "additionalProperties": true,
+              "properties": {
+                "verified_task_head": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "expected_clean_worktree": {
+                  "type": "boolean"
+                },
+                "last_authoritative_remote_sync": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "seal": {
+      "type": "object",
+      "description": "Cryptographic execution seal calculated from canonical RFC 8785 payload bytes.",
+      "required": [
+        "status",
+        "hash_algorithm",
+        "canonicalization_algorithm",
+        "payload_sha256",
+        "sealed_at",
+        "sealed_by",
+        "seal_signature"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "PROVISIONAL",
+            "SEALED"
+          ]
+        },
+        "hash_algorithm": {
+          "type": "string",
+          "const": "SHA-256"
+        },
+        "canonicalization_algorithm": {
+          "type": "string",
+          "const": "RFC-8785"
+        },
+        "payload_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "sealed_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "sealed_by": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "seal_signature": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "seal": {
+            "properties": {
+              "status": {
+                "const": "SEALED"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "seal": {
+            "properties": {
+              "payload_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "sealed_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "sealed_by": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
