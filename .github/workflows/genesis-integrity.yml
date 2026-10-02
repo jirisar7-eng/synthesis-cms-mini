@@ -37,3 +37,9 @@ jobs:
 
       - name: Run validator behavioral self-tests
         run: node scripts/governance/verify_genesis.mjs --self-test
+
+      - name: Check Command Capsule validator syntax
+        run: node --check scripts/governance/validate_command_capsule.mjs
+
+      - name: Run Command Capsule structural validator self-tests
+        run: node scripts/governance/validate_command_capsule.mjs --self-test
