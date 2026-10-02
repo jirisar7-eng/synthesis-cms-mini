@@ -134,7 +134,7 @@ export function validateInstance(schema, instance, jsonPath = '$', depth = 0) {
   }
 
   // 2. const
-  if ('const' in schema) {
+  if (Object.hasOwn(schema, 'const')) {
     if (instance !== schema.const) {
       return {
         valid: false,
@@ -196,11 +196,11 @@ export function validateInstance(schema, instance, jsonPath = '$', depth = 0) {
     }
   }
 
-  // 8. Object validation: required, properties, additionalProperties
+  // 8. Object validation: required, properties, additionalProperties (Strict own-property semantics)
   if (typeof instance === 'object' && instance !== null && !Array.isArray(instance)) {
     if (schema.required) {
       for (const reqProp of schema.required) {
-        if (!(reqProp in instance) || instance[reqProp] === undefined) {
+        if (!Object.hasOwn(instance, reqProp) || instance[reqProp] === undefined) {
           return {
             valid: false,
             error: `Missing required property "${reqProp}" at ${jsonPath}`
@@ -210,7 +210,7 @@ export function validateInstance(schema, instance, jsonPath = '$', depth = 0) {
     }
 
     for (const key of Object.keys(instance)) {
-      if (schema.properties && key in schema.properties) {
+      if (schema.properties && Object.hasOwn(schema.properties, key)) {
         const subRes = validateInstance(schema.properties[key], instance[key], `${jsonPath}.${key}`, depth + 1);
         if (!subRes.valid) return subRes;
       } else if (schema.additionalProperties === false) {
@@ -524,6 +524,22 @@ export function runSelfTests(repoRoot) {
     return validateCapsuleComplete(schema, c);
   });
 
+  // POSITIVE F (POSITIVE B): additionalProperties schema map may legitimately have keys named constructor, toString, __proto__, proto with valid schema values
+  assertPositive('POSITIVE F: additionalProperties map with special keys (constructor, toString, __proto__, proto) having valid values', () => {
+    const c = buildSampleProvisionalCapsule();
+    const shas = c.payload.changes_and_evidence.source_blob_shas;
+    shas['constructor'] = 'a'.repeat(40);
+    shas['toString'] = 'b'.repeat(40);
+    shas['proto'] = 'c'.repeat(40);
+    Object.defineProperty(shas, '__proto__', {
+      value: 'd'.repeat(40),
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+    return validateCapsuleComplete(schema, c);
+  });
+
   // 2. NEGATIVE TESTS
   assertNegative('1. Missing payload', () => {
     const c = buildSampleProvisionalCapsule();
@@ -679,6 +695,85 @@ export function runSelfTests(repoRoot) {
     }
     return { valid: false, error: 'CLI_STRICT_ARGUMENTS_REJECTED' };
   }, 'CLI_STRICT_ARGUMENTS_REJECTED');
+
+  // 21. Extra own property "constructor" at root rejected (NEGATIVE A)
+  assertNegative('21. Extra own property "constructor" at root rejected (NEGATIVE A)', () => {
+    const c = buildSampleProvisionalCapsule();
+    Object.defineProperty(c, 'constructor', {
+      value: 'malicious',
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+    return validateCapsuleComplete(schema, c);
+  }, 'Unexpected additional property "constructor"');
+
+  // 22. Extra own property "toString" at root rejected (NEGATIVE B)
+  assertNegative('22. Extra own property "toString" at root rejected (NEGATIVE B)', () => {
+    const c = buildSampleProvisionalCapsule();
+    Object.defineProperty(c, 'toString', {
+      value: () => 'malicious',
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+    return validateCapsuleComplete(schema, c);
+  }, 'Unexpected additional property "toString"');
+
+  // 23. Extra own property "__proto__" at root rejected (NEGATIVE C)
+  assertNegative('23. Extra own property "__proto__" at root rejected (NEGATIVE C)', () => {
+    const c = buildSampleProvisionalCapsule();
+    Object.defineProperty(c, '__proto__', {
+      value: { polluted: true },
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+    return validateCapsuleComplete(schema, c);
+  }, 'Unexpected additional property "__proto__"');
+
+  // 24. Extra own property "proto" at root rejected (NEGATIVE C variant)
+  assertNegative('24. Extra own property "proto" at root rejected (NEGATIVE C variant)', () => {
+    const c = buildSampleProvisionalCapsule();
+    Object.defineProperty(c, 'proto', {
+      value: { polluted: true },
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+    return validateCapsuleComplete(schema, c);
+  }, 'Unexpected additional property "proto"');
+
+  // 25. Nested object additionalProperties: false rejects own property "constructor" (NEGATIVE D)
+  assertNegative('25. Nested object additionalProperties: false rejects own property "constructor" (NEGATIVE D)', () => {
+    const c = buildSampleProvisionalCapsule();
+    Object.defineProperty(c.payload, 'constructor', {
+      value: 'nested_ctor',
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+    return validateCapsuleComplete(schema, c);
+  }, 'Unexpected additional property "constructor"');
+
+  // 26. Inherited prototype property cannot satisfy missing required own property payload.task_id (NEGATIVE E)
+  assertNegative('26. Inherited prototype property cannot satisfy missing required own property payload.task_id (NEGATIVE E)', () => {
+    const c = buildSampleProvisionalCapsule();
+    delete c.payload.task_id;
+    const protoWithTaskId = Object.create(Object.prototype);
+    protoWithTaskId.task_id = 'SYN-MINI-INHERITED-TASK-ID';
+    Object.setPrototypeOf(c.payload, protoWithTaskId);
+    return validateCapsuleComplete(schema, c);
+  }, 'Missing required property "task_id"');
+
+  // 27. Inherited property cannot satisfy nested required field lineage.genesis_anchor_reference.pinned_sha256 (NEGATIVE F)
+  assertNegative('27. Inherited property cannot satisfy nested required field lineage.genesis_anchor_reference.pinned_sha256 (NEGATIVE F)', () => {
+    const c = buildSampleProvisionalCapsule();
+    delete c.payload.lineage.genesis_anchor_reference.pinned_sha256;
+    const protoWithSha = { pinned_sha256: 'b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60' };
+    Object.setPrototypeOf(c.payload.lineage.genesis_anchor_reference, protoWithSha);
+    return validateCapsuleComplete(schema, c);
+  }, 'Missing required property "pinned_sha256"');
 
   return {
     positivePassed,
