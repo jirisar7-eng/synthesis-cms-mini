@@ -43,3 +43,9 @@ jobs:
 
       - name: Run Command Capsule structural validator self-tests
         run: node scripts/governance/validate_command_capsule.mjs --self-test
+
+      - name: Check cryptographic Command Capsule verifier syntax
+        run: node --check scripts/governance/verify_capsule_seal.mjs
+
+      - name: Run cryptographic Command Capsule verifier self-tests
+        run: node scripts/governance/verify_capsule_seal.mjs --self-test
