@@ -49,3 +49,11 @@ jobs:
 
       - name: Run cryptographic Command Capsule verifier self-tests
         run: node scripts/governance/verify_capsule_seal.mjs --self-test
+
+      - name: Verify actual committed Command Capsule files
+        run: |
+          for file in .synthesis/task-capsules/*.json; do
+            [ -f "$file" ] || continue
+            node scripts/governance/validate_command_capsule.mjs "$file"
+            node scripts/governance/verify_capsule_seal.mjs --verify "$file"
+          done
