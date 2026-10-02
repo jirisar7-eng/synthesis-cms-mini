@@ -341,7 +341,7 @@ export function verifyManifestCapsuleRecord(repoRoot, record, schema) {
 }
 
 // ============================================================
-// DIRECTORY COVERAGE ENFORCEMENT
+// DIRECTORY COVERAGE ENFORCEMENT (FAIL-CLOSED)
 // ============================================================
 
 export function verifyDirectoryCoverage(repoRoot, manifest) {
@@ -350,16 +350,41 @@ export function verifyDirectoryCoverage(repoRoot, manifest) {
     return { valid: false, stage: 'CAPSULE_DIR_MISSING', error: 'Directory .synthesis/task-capsules does not exist' };
   }
 
+  // Hardened check B: verify the capsule directory itself is a nonsymlink directory
+  const dirStat = fs.lstatSync(capsuleDir);
+  if (dirStat.isSymbolicLink()) {
+    return {
+      valid: false,
+      stage: 'CAPSULE_DIR_SYMLINK_REJECTED',
+      error: 'Directory .synthesis/task-capsules is a symbolic link, which is not permitted.'
+    };
+  }
+  if (!dirStat.isDirectory()) {
+    return {
+      valid: false,
+      stage: 'CAPSULE_DIR_NOT_DIRECTORY',
+      error: 'Path .synthesis/task-capsules is not a directory.'
+    };
+  }
+
+  // Hardened check A: Inspect ALL filesystem entries without skipping dot-prefixed items
   const entries = fs.readdirSync(capsuleDir, { withFileTypes: true });
   const actualCapsulePaths = new Set();
 
   for (const entry of entries) {
-    if (entry.name.startsWith('.')) continue;
     if (entry.isSymbolicLink()) {
-      return { valid: false, stage: 'UNSAFE_SYMLINK_IN_DIR', error: `Unsafe symlink in capsule directory: ${entry.name}` };
+      return {
+        valid: false,
+        stage: 'UNSAFE_SYMLINK_IN_DIR',
+        error: `Unsafe symlink in capsule directory: ${entry.name}`
+      };
     }
     if (!entry.isFile() || !entry.name.endsWith('.json')) {
-      return { valid: false, stage: 'UNEXPECTED_ENTRY_IN_DIR', error: `Unexpected non-JSON entry in capsule directory: ${entry.name}` };
+      return {
+        valid: false,
+        stage: 'UNEXPECTED_ENTRY_IN_DIR',
+        error: `Unexpected entry in capsule directory: ${entry.name}`
+      };
     }
     const relPath = `.synthesis/task-capsules/${entry.name}`;
     actualCapsulePaths.add(relPath);
@@ -553,7 +578,6 @@ export function runSelfTests(repoRoot) {
     try {
       const capPath = path.join(repoRoot, '.synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010.json');
       const rawText = fs.readFileSync(capPath, 'utf8');
-      // replace "jirisar7-eng" with same length "jirisar7-tam"
       const tampered = rawText.replace('"sealed_by": "jirisar7-eng"', '"sealed_by": "jirisar7-tam"');
       const tmpCapRel = '.synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010.json';
       const tmpCapFull = path.join(tmpDir, tmpCapRel);
@@ -574,7 +598,6 @@ export function runSelfTests(repoRoot) {
     try {
       const capPath = path.join(repoRoot, '.synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-013.json');
       const rawText = fs.readFileSync(capPath, 'utf8');
-      // replace "2026-10-02T15:00:00Z" with same length "2026-10-02T15:00:01Z"
       const tampered = rawText.replace('"sealed_at": "2026-10-02T15:00:00Z"', '"sealed_at": "2026-10-02T15:00:01Z"');
       const tmpCapRel = '.synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-013.json';
       const tmpCapFull = path.join(tmpDir, tmpCapRel);
@@ -595,7 +618,6 @@ export function runSelfTests(repoRoot) {
     try {
       const capPath = path.join(repoRoot, '.synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010.json');
       const rawText = fs.readFileSync(capPath, 'utf8');
-      // replace "seal_signature": null with "seal_signature": "x"
       const tampered = rawText.replace('"seal_signature": null', '"seal_signature": "x" ');
       const tmpCapRel = '.synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010.json';
       const tmpCapFull = path.join(tmpDir, tmpCapRel);
@@ -717,6 +739,85 @@ export function runSelfTests(repoRoot) {
     }
   }, 'CAPSULE_NOT_SEALED');
 
+  // NEGATIVE L: Place unexpected .hidden.json file in directory -> Coverage rejection
+  assertNegative('NEGATIVE L: Hidden JSON file (.hidden.json) in capsule directory rejected', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'syn-mini-test-'));
+    try {
+      const capDir = path.join(tmpDir, '.synthesis/task-capsules');
+      fs.mkdirSync(capDir, { recursive: true });
+      fs.writeFileSync(path.join(capDir, '.hidden.json'), '{}', 'utf8');
+
+      const manRes = verifyManifestIntegrity(repoRoot);
+      return verifyDirectoryCoverage(tmpDir, manRes.manifest);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }, 'UNRECORDED_CAPSULE_DETECTED');
+
+  // NEGATIVE M: Place unexpected .hidden-note file in directory -> Unexpected entry rejection
+  assertNegative('NEGATIVE M: Hidden non-JSON file (.hidden-note) in capsule directory rejected', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'syn-mini-test-'));
+    try {
+      const capDir = path.join(tmpDir, '.synthesis/task-capsules');
+      fs.mkdirSync(capDir, { recursive: true });
+      fs.writeFileSync(path.join(capDir, '.hidden-note'), 'secret note', 'utf8');
+
+      const manRes = verifyManifestIntegrity(repoRoot);
+      return verifyDirectoryCoverage(tmpDir, manRes.manifest);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }, 'UNEXPECTED_ENTRY_IN_DIR');
+
+  // NEGATIVE N: Place hidden symbolic link in directory -> Unsafe symlink rejection
+  assertNegative('NEGATIVE N: Hidden symbolic link (.hidden-link) in capsule directory rejected', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'syn-mini-test-'));
+    try {
+      const capDir = path.join(tmpDir, '.synthesis/task-capsules');
+      fs.mkdirSync(capDir, { recursive: true });
+      const targetPath = path.join(tmpDir, 'target.txt');
+      fs.writeFileSync(targetPath, 'target', 'utf8');
+      fs.symlinkSync(targetPath, path.join(capDir, '.hidden-link'));
+
+      const manRes = verifyManifestIntegrity(repoRoot);
+      return verifyDirectoryCoverage(tmpDir, manRes.manifest);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }, 'UNSAFE_SYMLINK_IN_DIR');
+
+  // NEGATIVE O: Capsule directory itself is a symbolic link -> Directory symlink rejection
+  assertNegative('NEGATIVE O: Capsule directory as a symbolic link rejected', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'syn-mini-test-'));
+    try {
+      const realDir = path.join(tmpDir, 'real-capsules');
+      fs.mkdirSync(realDir, { recursive: true });
+      const synDir = path.join(tmpDir, '.synthesis');
+      fs.mkdirSync(synDir, { recursive: true });
+      fs.symlinkSync(realDir, path.join(synDir, 'task-capsules'));
+
+      const manRes = verifyManifestIntegrity(repoRoot);
+      return verifyDirectoryCoverage(tmpDir, manRes.manifest);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }, 'CAPSULE_DIR_SYMLINK_REJECTED');
+
+  // NEGATIVE P: Capsule directory is a regular file -> Not a directory rejection
+  assertNegative('NEGATIVE P: Capsule directory as a regular file rejected', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'syn-mini-test-'));
+    try {
+      const synDir = path.join(tmpDir, '.synthesis');
+      fs.mkdirSync(synDir, { recursive: true });
+      fs.writeFileSync(path.join(synDir, 'task-capsules'), 'not a directory', 'utf8');
+
+      const manRes = verifyManifestIntegrity(repoRoot);
+      return verifyDirectoryCoverage(tmpDir, manRes.manifest);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }, 'CAPSULE_DIR_NOT_DIRECTORY');
+
   return {
     positivePassed,
     negativePassed,
@@ -757,7 +858,7 @@ function main() {
     console.log(`FAILED_TESTS: ${results.failedTests}`);
     console.log(`BASELINE_VERIFICATION_STATUS: ${results.failedTests === 0 ? 'PASS' : 'FAIL'}`);
 
-    if (results.failedTests > 0 || results.positivePassed < 6 || results.negativePassed < 11) {
+    if (results.failedTests > 0 || results.positivePassed < 6 || results.negativePassed < 16) {
       process.exit(1);
     }
     process.exit(0);
