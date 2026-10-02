@@ -1,0 +1,39 @@
+name: Genesis Integrity
+
+on:
+  push:
+    branches:
+      - main
+      - 'task/**'
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  genesis-integrity:
+    name: Verify Genesis Integrity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+
+      - name: Verify Node.js version
+        run: node --version
+
+      - name: Check validator syntax
+        run: node --check scripts/governance/verify_genesis.mjs
+
+      - name: Verify Genesis anchor
+        run: node scripts/governance/verify_genesis.mjs
+
+      - name: Run validator behavioral self-tests
+        run: node scripts/governance/verify_genesis.mjs --self-test
