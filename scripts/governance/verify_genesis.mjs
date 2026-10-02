@@ -4,7 +4,7 @@
  * Synthesis CMS mini — Genesis Anchor Integrity Validator
  * 
  * Task: SYN-MINI-GOV-GENESIS-001
- * Command: CMD-SYN-MINI-GOV-GENESIS-001-003-INTEGRITY-VALIDATOR
+ * Command: CMD-SYN-MINI-GOV-GENESIS-001-004-HARDEN-SELFTEST
  * Roadmap Step: 1/60
  * 
  * Standalone Node.js ESM script with zero external dependencies.
@@ -57,6 +57,15 @@ export function validateGenesisHash(rawBuffer) {
     throw new Error(`HASH_MISMATCH: Genesis SHA-256 mismatch. Expected ${PINNED_GENESIS_SHA256}, got ${actualHash}`);
   }
   return actualHash;
+}
+
+export function parseGenesisJson(rawBytes) {
+  const str = typeof rawBytes === 'string' ? rawBytes : rawBytes.toString('utf-8');
+  try {
+    return JSON.parse(str);
+  } catch (err) {
+    throw new Error(`JSON_PARSE_ERROR: Failed to parse genesis.json: ${err.message}`);
+  }
 }
 
 export function validateGenesisStructure(genesis) {
@@ -162,14 +171,7 @@ export function verifyGenesisFile(filePath) {
   const rawBytes = readFileSync(filePath);
   validateLineEndings(rawBytes);
   const hash = validateGenesisHash(rawBytes);
-
-  let parsed;
-  try {
-    parsed = JSON.parse(rawBytes.toString('utf-8'));
-  } catch (err) {
-    throw new Error(`JSON_PARSE_ERROR: Failed to parse genesis.json: ${err.message}`);
-  }
-
+  const parsed = parseGenesisJson(rawBytes);
   validateGenesisStructure(parsed);
   return { hash, parsed };
 }
@@ -179,7 +181,7 @@ export function runSelfTests() {
   const repoRoot = locateRepositoryRoot();
   const genesisPath = join(repoRoot, '.synthesis', 'lineage', 'genesis.json');
   const validBytes = readFileSync(genesisPath);
-  const validJson = JSON.parse(validBytes.toString('utf-8'));
+  const validJson = parseGenesisJson(validBytes);
 
   let passed = 0;
   let failed = 0;
@@ -195,12 +197,12 @@ export function runSelfTests() {
     }
   }
 
+  // 1. Original Genesis: PASS (exercises complete production verifyGenesisFile)
   runCase('1. Original Genesis: PASS', () => {
-    validateLineEndings(validBytes);
-    validateGenesisHash(validBytes);
-    validateGenesisStructure(validJson);
+    verifyGenesisFile(genesisPath);
   });
 
+  // 2. Single-byte content mutation: REJECT
   runCase('2. Single-byte content mutation: REJECT', () => {
     const mutated = Buffer.from(validBytes);
     mutated[10] = mutated[10] === 32 ? 33 : 32;
@@ -214,6 +216,7 @@ export function runSelfTests() {
     if (!threw) throw new Error('Expected single-byte mutation to throw HASH_MISMATCH');
   });
 
+  // 3. Wrong project identity: REJECT
   runCase('3. Wrong project identity: REJECT', () => {
     const invalidObj = { ...validJson, project_id: 'WRONG_PROJECT' };
     let threw = false;
@@ -226,6 +229,7 @@ export function runSelfTests() {
     if (!threw) throw new Error('Expected wrong project identity to throw INVARIANT_VIOLATION');
   });
 
+  // 4. Wrong repository identity: REJECT
   runCase('4. Wrong repository identity: REJECT', () => {
     const invalidObj = { ...validJson, repository_full_name: 'wrong/repo' };
     let threw = false;
@@ -238,6 +242,7 @@ export function runSelfTests() {
     if (!threw) throw new Error('Expected wrong repository identity to throw INVARIANT_VIOLATION');
   });
 
+  // 5. Nonempty Genesis parent array: REJECT
   runCase('5. Nonempty Genesis parent array: REJECT', () => {
     const invalidObj = { ...validJson, parent_capsules: ['CAP-FAKE-PARENT-001'] };
     let threw = false;
@@ -250,17 +255,20 @@ export function runSelfTests() {
     if (!threw) throw new Error('Expected nonempty parent_capsules to throw INVARIANT_VIOLATION');
   });
 
+  // 6. Malformed JSON: REJECT (exercises production parseGenesisJson error boundary)
   runCase('6. Malformed JSON: REJECT', () => {
-    const badJsonStr = '{"record_type": "GENESIS_ANCHOR", unclosed...';
+    const badJsonBytes = Buffer.from('{"record_type": "GENESIS_ANCHOR", unclosed...', 'utf-8');
     let threw = false;
     try {
-      JSON.parse(badJsonStr);
+      parseGenesisJson(badJsonBytes);
     } catch (e) {
       threw = true;
+      if (!e.message.includes('JSON_PARSE_ERROR')) throw e;
     }
-    if (!threw) throw new Error('Expected malformed JSON to throw error');
+    if (!threw) throw new Error('Expected malformed JSON to throw JSON_PARSE_ERROR');
   });
 
+  // 7. Invalid initial commit identity: REJECT
   runCase('7. Invalid initial commit identity: REJECT', () => {
     const invalidObj = { ...validJson, initial_repository_commit: '0000000000000000000000000000000000000000' };
     let threw = false;
@@ -273,6 +281,7 @@ export function runSelfTests() {
     if (!threw) throw new Error('Expected invalid initial commit to throw INVARIANT_VIOLATION');
   });
 
+  // 8. Wrong line-ending format (CRLF): REJECT
   runCase('8. Wrong line-ending format (CRLF): REJECT', () => {
     const crlfContent = validBytes.toString('utf-8').replace(/\n/g, '\r\n');
     let threw = false;
