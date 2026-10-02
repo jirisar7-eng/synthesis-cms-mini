@@ -8,6 +8,7 @@
  */
 
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import child_process from 'node:child_process';
@@ -319,6 +320,17 @@ export function verifyCapsuleSeal(schema, capsule) {
   const seal = capsule.seal;
   const payload = capsule.payload;
 
+  // Unverified digital signatures policy: fail closed on non-null seal_signature
+  if (seal.seal_signature !== null) {
+    return {
+      valid: false,
+      stage: 'UNVERIFIED_SIGNATURE_REJECTED',
+      error: 'Digital signature verification is not implemented; seal_signature must be null.',
+      payloadHashMatch: false,
+      isSealed: false
+    };
+  }
+
   // Handle PROVISIONAL capsule
   if (seal.status === 'PROVISIONAL') {
     return {
@@ -536,6 +548,30 @@ export function runSelfTests(repoRoot) {
     const res = verifyCapsuleSeal(schema, c);
     if (!res.valid || !res.payloadHashMatch) {
       return { valid: false, error: res.error || 'Expected payloadHashMatch true' };
+    }
+    return { valid: true };
+  });
+
+  // POSITIVE REAL 010: Actual committed root capsule 010 passes
+  assertPositive('POSITIVE REAL 010: Actual committed root capsule 010 passes verification', () => {
+    const capPath = path.join(repoRoot, '.synthesis', 'task-capsules', 'CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010.json');
+    const raw = fs.readFileSync(capPath, 'utf-8');
+    const parsed = parseStrictIJson(raw);
+    const res = verifyCapsuleSeal(schema, parsed);
+    if (!res.valid || !res.payloadHashMatch) {
+      return { valid: false, error: res.error || 'Expected valid root capsule 010' };
+    }
+    return { valid: true };
+  });
+
+  // POSITIVE REAL 013: Actual committed child capsule 013 passes
+  assertPositive('POSITIVE REAL 013: Actual committed child capsule 013 passes verification', () => {
+    const capPath = path.join(repoRoot, '.synthesis', 'task-capsules', 'CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-013.json');
+    const raw = fs.readFileSync(capPath, 'utf-8');
+    const parsed = parseStrictIJson(raw);
+    const res = verifyCapsuleSeal(schema, parsed);
+    if (!res.valid || !res.payloadHashMatch) {
+      return { valid: false, error: res.error || 'Expected valid child capsule 013' };
     }
     return { valid: true };
   });
@@ -841,6 +877,54 @@ export function runSelfTests(repoRoot) {
       return { valid: false, error: e.message };
     }
   }, 'Duplicate object key detected: "__proto__"');
+
+  // 17. Structurally valid SEALED capsule with matching hash but non-null seal_signature rejected (FAIL-CLOSED)
+  assertNegative('17. Structurally valid SEALED capsule with non-null seal_signature rejected (UNVERIFIED_SIGNATURE_REJECTED)', () => {
+    const c = buildSampleProvisionalCapsule();
+    c.seal.status = 'SEALED';
+    c.seal.sealed_at = '2026-10-02T02:00:00Z';
+    c.seal.sealed_by = 'jirisar7-eng';
+    c.payload.lineage.parent_capsules[0].payload_sha256 = 'b'.repeat(64);
+    c.seal.payload_sha256 = computePayloadSha256(c.payload).sha256Hex;
+    c.seal.seal_signature = 'dummy-sig';
+    return verifyCapsuleSeal(schema, c);
+  }, 'Digital signature verification is not implemented; seal_signature must be null.');
+
+  // 18. Structurally valid PROVISIONAL capsule with non-null seal_signature rejected (FAIL-CLOSED)
+  assertNegative('18. Structurally valid PROVISIONAL capsule with non-null seal_signature rejected (UNVERIFIED_SIGNATURE_REJECTED)', () => {
+    const c = buildSampleProvisionalCapsule();
+    c.seal.seal_signature = 'dummy-sig';
+    return verifyCapsuleSeal(schema, c);
+  }, 'Digital signature verification is not implemented; seal_signature must be null.');
+
+  // 19. Production CLI execution rejects disposable fixture with non-null signature with nonzero exit status
+  assertNegative('19. CLI execution rejects synthetic fixture with non-null signature (nonzero exit code)', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'syn-mini-seal-sig-test-'));
+    const fixturePath = path.join(tmpDir, 'capsule-with-signature.json');
+    try {
+      const c = buildSampleProvisionalCapsule();
+      c.seal.status = 'SEALED';
+      c.seal.sealed_at = '2026-10-02T02:00:00Z';
+      c.seal.sealed_by = 'jirisar7-eng';
+      c.payload.lineage.parent_capsules[0].payload_sha256 = 'b'.repeat(64);
+      c.seal.payload_sha256 = computePayloadSha256(c.payload).sha256Hex;
+      c.seal.seal_signature = 'unverified-signature-claim-string';
+      fs.writeFileSync(fixturePath, JSON.stringify(c, null, 2), 'utf-8');
+
+      const run = child_process.spawnSync(process.execPath, [__filename, '--verify', fixturePath], { encoding: 'utf-8' });
+      if (run.status === 0) {
+        return { valid: true };
+      }
+      if (run.stderr.includes('UNVERIFIED_SIGNATURE_REJECTED') || run.stdout.includes('UNVERIFIED_SIGNATURE_REJECTED')) {
+        return { valid: false, error: 'UNVERIFIED_SIGNATURE_REJECTED' };
+      }
+      return { valid: false, error: `CLI exited nonzero with stderr: ${run.stderr}` };
+    } finally {
+      if (fs.existsSync(tmpDir)) {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    }
+  }, 'UNVERIFIED_SIGNATURE_REJECTED');
 
   return {
     positivePassed,
