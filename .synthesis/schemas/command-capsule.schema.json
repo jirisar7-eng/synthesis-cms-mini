@@ -5,29 +5,17 @@
   "description": "Cryptographic and structural specification for immutable command capsules and execution seals in Synthesis CMS mini.",
   "type": "object",
   "required": [
-    "schema_version",
-    "capsule_type",
     "payload",
     "seal"
   ],
   "additionalProperties": false,
   "properties": {
-    "schema_version": {
-      "type": "string",
-      "const": "1.0.0"
-    },
-    "capsule_type": {
-      "type": "string",
-      "enum": [
-        "COMMAND_CAPSULE",
-        "BOOTSTRAP_CAPSULE",
-        "REPAIR_CAPSULE"
-      ]
-    },
     "payload": {
       "type": "object",
       "description": "Immutable payload cryptographically hashed and sealed via canonical RFC 8785 serialization.",
       "required": [
+        "schema_version",
+        "capsule_type",
         "capsule_id",
         "command_id",
         "task_id",
@@ -45,6 +33,18 @@
       ],
       "additionalProperties": false,
       "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1.0.0"
+        },
+        "capsule_type": {
+          "type": "string",
+          "enum": [
+            "COMMAND_CAPSULE",
+            "BOOTSTRAP_CAPSULE",
+            "REPAIR_CAPSULE"
+          ]
+        },
         "capsule_id": {
           "type": "string",
           "pattern": "^CAP-[A-Z0-9_-]+$"
@@ -214,11 +214,11 @@
             },
             "max_write_files_limit": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 0
             },
             "max_read_files_limit": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 0
             }
           }
         },
@@ -245,7 +245,7 @@
                 },
                 "pinned_sha256": {
                   "type": "string",
-                  "pattern": "^[0-9a-f]{64}$"
+                  "const": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
                 }
               }
             },
@@ -376,7 +376,8 @@
                 "string",
                 "null"
               ],
-              "pattern": "^[0-9a-f]{40}$"
+              "pattern": "^[0-9a-f]{40}$",
+              "description": "Git commit SHA associated with the command output. Note on self-referential hashing: a capsule committed within a Git commit cannot immutably contain the SHA of that same commit as a precomputed value (modifying the capsule would alter the containing Git commit SHA). This field may reference a previously known code commit, an already independently verified base/checkpoint commit, or remain null until verified post-commit."
             },
             "source_blob_shas": {
               "type": "object",
@@ -627,6 +628,24 @@
               "sealed_by": {
                 "type": "string",
                 "minLength": 1
+              }
+            }
+          },
+          "payload": {
+            "properties": {
+              "lineage": {
+                "properties": {
+                  "parent_capsules": {
+                    "items": {
+                      "properties": {
+                        "payload_sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        }
+                      }
+                    }
+                  }
+                }
               }
             }
           }
