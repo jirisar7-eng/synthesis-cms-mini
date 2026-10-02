@@ -52,8 +52,49 @@ jobs:
 
       - name: Verify actual committed Command Capsule files
         run: |
-          for file in .synthesis/task-capsules/*.json; do
-            [ -f "$file" ] || continue
+          set -euo pipefail
+
+          dir=".synthesis/task-capsules"
+
+          if [[ ! -d "$dir" || -L "$dir" ]]; then
+            echo "FAIL: Missing or unsafe capsule directory"
+            exit 1
+          fi
+
+          shopt -s nullglob dotglob
+
+          entries=("$dir"/*)
+
+          if (( ${#entries[@]} == 0 )); then
+            echo "FAIL: No Command Capsule files found"
+            exit 1
+          fi
+
+          verified=0
+
+          for file in "${entries[@]}"; do
+            if [[ ! -f "$file" || -L "$file" || "$file" != *.json ]]; then
+              echo "FAIL: Unexpected or unsafe capsule entry: $file"
+              exit 1
+            fi
+
             node scripts/governance/validate_command_capsule.mjs "$file"
-            node scripts/governance/verify_capsule_seal.mjs --verify "$file"
+
+            result="$(node scripts/governance/verify_capsule_seal.mjs --verify "$file")"
+
+            printf '%s\n' "$result"
+
+            if ! grep -Fxq 'PAYLOAD_HASH_MATCH: YES' <<< "$result"; then
+              echo "FAIL: Capsule lacks a verified SEALED payload hash: $file"
+              exit 1
+            fi
+
+            verified=$((verified + 1))
           done
+
+          if (( verified == 0 )); then
+            echo "FAIL: Zero verified Command Capsules"
+            exit 1
+          fi
+
+          echo "REAL_CAPSULES_VERIFIED: $verified"
