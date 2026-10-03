@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -129,3 +131,9 @@ jobs:
 
       - name: Verify committed Capability Registry instance
         run: node scripts/governance/validate_capability_registry.mjs --verify-all
+      - name: Check Source Blob verifier syntax
+        run: node --check scripts/governance/verify_source_blob_provenance.mjs
+      - name: Run Source Blob verifier self-tests
+        run: node scripts/governance/verify_source_blob_provenance.mjs --self-test
+      - name: Verify committed source-blob provenance
+        run: node scripts/governance/verify_source_blob_provenance.mjs --verify-all
