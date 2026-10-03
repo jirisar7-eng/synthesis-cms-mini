@@ -1,5 +1,47 @@
 {
-  "": {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://synthesis-cms-mini.org/schemas/capability-registry.schema.json",
+  "title": "Synthesis CMS mini Capability Registry Schema",
+  "description": "Formal specification and validation schema for the Capability and Feature Registry in Synthesis CMS mini (Step 3/60).",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "format_version",
+    "record_kind",
+    "status",
+    "capabilities"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "capability-registry.v1"
+    },
+    "format_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "record_kind": {
+      "type": "string",
+      "const": "CAPABILITY_REGISTRY"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "PROPOSED",
+        "ACTIVE"
+      ]
+    },
+    "capabilities": {
+      "type": "array",
+      "description": "List of declared capabilities and feature specifications.",
+      "items": {
+        "$ref": "#/$defs/capability_entry"
+      }
+    }
+  },
+  "$defs": {
     "capability_entry": {
       "type": "object",
       "required": [
@@ -105,7 +147,7 @@
           "type": "array",
           "description": "Strict typed dependencies on other capabilities required for operation.",
           "items": {
-            "": "#//capability_dependency"
+            "$ref": "#/$defs/capability_dependency"
           }
         },
         "origin_capsule_id": {
@@ -165,46 +207,6 @@
           "minimum": 1,
           "description": "Minimum specification revision required of the dependency."
         }
-      }
-    }
-  },
-  "title": "Synthesis CMS mini Capability Registry Schema",
-  "description": "Formal specification and validation schema for the Capability and Feature Registry in Synthesis CMS mini (Step 3/60).",
-  "type": "object",
-  "required": [
-    "schema_version",
-    "format_version",
-    "record_kind",
-    "status",
-    "capabilities"
-  ],
-  "additionalProperties": false,
-  "properties": {
-    "schema_version": {
-      "type": "string",
-      "const": "capability-registry.v1"
-    },
-    "format_version": {
-      "type": "string",
-      "const": "1.0.0"
-    },
-    "record_kind": {
-      "type": "string",
-      "const": "CAPABILITY_REGISTRY"
-    },
-    "status": {
-      "type": "string",
-      "enum": [
-        "DRAFT",
-        "PROPOSED",
-        "ACTIVE"
-      ]
-    },
-    "capabilities": {
-      "type": "array",
-      "description": "List of declared capabilities and feature specifications.",
-      "items": {
-        "": "#//capability_entry"
       }
     }
   }
