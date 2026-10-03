@@ -17,6 +17,7 @@ jobs:
     name: Verify Genesis Integrity
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+
     steps:
       - name: Check out repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -60,12 +61,14 @@ jobs:
             echo "FAIL: Missing or unsafe capsule directory"
             exit 1
           fi
+
           shopt -s nullglob dotglob
           entries=("$dir"/*)
           if (( ${#entries[@]} == 0 )); then
             echo "FAIL: No Command Capsule files found"
             exit 1
           fi
+
           verified=0
           for file in "${entries[@]}"; do
             if [[ ! -f "$file" || -L "$file" || "$file" != *.json ]]; then
@@ -81,6 +84,7 @@ jobs:
             fi
             verified=$((verified + 1))
           done
+
           if (( verified == 0 )); then
             echo "FAIL: Zero verified Command Capsules"
             exit 1
@@ -131,9 +135,180 @@ jobs:
 
       - name: Verify committed Capability Registry instance
         run: node scripts/governance/validate_capability_registry.mjs --verify-all
+
       - name: Check Source Blob verifier syntax
         run: node --check scripts/governance/verify_source_blob_provenance.mjs
+
       - name: Run Source Blob verifier self-tests
         run: node scripts/governance/verify_source_blob_provenance.mjs --self-test
+
       - name: Verify committed source-blob provenance
         run: node scripts/governance/verify_source_blob_provenance.mjs --verify-all
+
+      - name: Check Scope & Diff Firewall validator syntax
+        run: node --check scripts/governance/verify_scope_diff_firewall.mjs
+
+      - name: Run Scope & Diff Firewall behavioral self-tests
+        run: node scripts/governance/verify_scope_diff_firewall.mjs --self-test
+
+      - name: Verify context-aware Scope & Diff Firewall
+        run: |
+          set -euo pipefail
+          node - << 'EOF'
+          import { execFileSync } from "node:child_process";
+          import fs from "node:fs";
+          import path from "node:path";
+
+          const repoRoot = process.cwd();
+          function git(args, cwd = repoRoot) {
+            return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+          }
+
+          const eventName = process.env.GITHUB_EVENT_NAME || "push";
+          const ref = process.env.GITHUB_REF || "";
+          const eventPath = process.env.GITHUB_EVENT_PATH;
+          let eventData = {};
+          if (eventPath && fs.existsSync(eventPath)) {
+            try {
+              eventData = JSON.parse(fs.readFileSync(eventPath, "utf8"));
+            } catch (e) {
+              console.error("FAIL: Could not parse GITHUB_EVENT_PATH:", e.message);
+              process.exit(1);
+            }
+          }
+
+          console.log(`Verifying Scope & Diff Firewall for event: ${eventName}, ref: ${ref}`);
+
+          function verifyCommitInWorktree(commitSha, parentSha) {
+            console.log(`Verifying command commit: ${commitSha} (parent: ${parentSha})`);
+            const rawDiff = git(["diff-tree", "-r", "--raw", "-z", "--no-commit-id", parentSha, commitSha]);
+            const tokens = rawDiff.split("\0").filter(Boolean);
+            const newCapsules = [];
+            const newAttestations = [];
+
+            for (let i = 0; i < tokens.length; i += 2) {
+              const header = tokens[i];
+              const filePath = tokens[i + 1];
+              if (!header || !filePath) continue;
+              const status = header.slice(1).split(/\s+/)[4] || "";
+              if (status.startsWith("R") || status.startsWith("C")) {
+                i++;
+              }
+              if (filePath.startsWith(".synthesis/task-capsules/CAP-") && filePath.endsWith(".json")) {
+                if (status === "A") newCapsules.push(filePath);
+              }
+              if (filePath.startsWith(".synthesis/attestations/ATT-") && filePath.endsWith(".json")) {
+                if (status === "A") newAttestations.push(filePath);
+              }
+            }
+
+            if (newCapsules.length !== 1) {
+              throw new Error(`Commit ${commitSha} must introduce exactly 1 Command Capsule, found: ${newCapsules.length} (${newCapsules.join(", ")})`);
+            }
+            if (newAttestations.length !== 1) {
+              throw new Error(`Commit ${commitSha} must introduce exactly 1 Attestation, found: ${newAttestations.length} (${newAttestations.join(", ")})`);
+            }
+
+            const capsulePath = newCapsules[0];
+            const currentHead = git(["rev-parse", "HEAD"]);
+
+            if (currentHead === commitSha) {
+              execFileSync("node", ["scripts/governance/verify_scope_diff_firewall.mjs", "--post-commit", capsulePath, parentSha, commitSha], {
+                cwd: repoRoot,
+                stdio: "inherit"
+              });
+            } else {
+              const tmpWorktree = path.join("/tmp", `worktree-check-${commitSha.slice(0, 10)}-${Date.now()}`);
+              try {
+                git(["worktree", "add", "--detach", tmpWorktree, commitSha]);
+                execFileSync("node", ["scripts/governance/verify_scope_diff_firewall.mjs", "--post-commit", capsulePath, parentSha, commitSha], {
+                  cwd: tmpWorktree,
+                  stdio: "inherit"
+                });
+              } finally {
+                try {
+                  git(["worktree", "remove", "--force", tmpWorktree]);
+                } catch (e) {
+                  // ignore cleanup error
+                }
+              }
+            }
+            console.log(`Commit ${commitSha} Scope & Diff check: PASS`);
+          }
+
+          if (eventName === "push" && ref.startsWith("refs/heads/task/")) {
+            const headSha = git(["rev-parse", "HEAD"]);
+            const expectedSha = process.env.GITHUB_SHA;
+            if (expectedSha && headSha !== expectedSha) {
+              throw new Error(`HEAD mismatch: checkout HEAD (${headSha}) !== GITHUB_SHA (${expectedSha})`);
+            }
+            const parents = git(["rev-parse", `${headSha}^@`]).split(/\s+/).filter(Boolean);
+            if (parents.length !== 1) {
+              throw new Error(`Task branch push HEAD must have exactly 1 direct parent, found: ${parents.length}`);
+            }
+            verifyCommitInWorktree(headSha, parents[0]);
+          } else if (eventName === "pull_request") {
+            const pr = eventData.pull_request;
+            if (!pr) throw new Error("Missing pull_request object in event payload");
+            const headRepo = pr.head?.repo?.full_name;
+            const expectedRepo = process.env.GITHUB_REPOSITORY;
+            if (expectedRepo && headRepo !== expectedRepo) {
+              throw new Error(`PR source repository mismatch: ${headRepo} !== ${expectedRepo}`);
+            }
+            const headRef = pr.head?.ref || "";
+            if (!headRef.startsWith("task/")) {
+              throw new Error(`PR source branch must start with task/, got: ${headRef}`);
+            }
+            const prHeadSha = pr.head?.sha;
+            const prBaseSha = pr.base?.sha;
+            if (!prHeadSha || !prBaseSha) {
+              throw new Error(`Missing PR head (${prHeadSha}) or base (${prBaseSha}) SHA`);
+            }
+            console.log(`Verifying PR ${pr.number}: base=${prBaseSha}, head=${prHeadSha}`);
+            const commitList = git(["rev-list", "--topo-order", "--reverse", `${prBaseSha}..${prHeadSha}`]).split(/\s+/).filter(Boolean);
+            if (commitList.length === 0) {
+              throw new Error(`PR contains 0 new commits between ${prBaseSha} and ${prHeadSha}`);
+            }
+            let currentBase = prBaseSha;
+            for (const commit of commitList) {
+              const parents = git(["rev-parse", `${commit}^@`]).split(/\s+/).filter(Boolean);
+              if (parents.length !== 1 || parents[0] !== currentBase) {
+                throw new Error(`PR commit ${commit} parent mismatch: expected ${currentBase}, got: ${parents.join(", ")}`);
+              }
+              verifyCommitInWorktree(commit, currentBase);
+              currentBase = commit;
+            }
+          } else if (eventName === "push" && ref === "refs/heads/main") {
+            const headSha = git(["rev-parse", "HEAD"]);
+            const parents = git(["rev-parse", `${headSha}^@`]).split(/\s+/).filter(Boolean);
+            if (parents.length === 1) {
+              verifyCommitInWorktree(headSha, parents[0]);
+            } else if (parents.length === 2) {
+              const mainParent = parents[0];
+              const taskParent = parents[1];
+              console.log(`Verifying main merge commit: mainParent=${mainParent}, taskParent=${taskParent}`);
+              const taskCommits = git(["rev-list", "--topo-order", "--reverse", `${mainParent}..${taskParent}`]).split(/\s+/).filter(Boolean);
+              if (taskCommits.length === 0) {
+                throw new Error(`Merge commit introduced 0 commits from taskParent ${taskParent}`);
+              }
+              let currentBase = mainParent;
+              for (const commit of taskCommits) {
+                const cParents = git(["rev-parse", `${commit}^@`]).split(/\s+/).filter(Boolean);
+                if (cParents.length !== 1 || cParents[0] !== currentBase) {
+                  throw new Error(`Task commit ${commit} in merge has unexpected parent: ${cParents.join(", ")}, expected ${currentBase}`);
+                }
+                verifyCommitInWorktree(commit, currentBase);
+                currentBase = commit;
+              }
+              const mergeDiff = git(["diff-tree", "-r", "--name-only", taskParent, headSha]);
+              if (mergeDiff.trim().length > 0) {
+                throw new Error(`Main merge commit contains changes outside taskParent: ${mergeDiff}`);
+              }
+            } else {
+              throw new Error(`Unsupported commit parent structure on main: ${parents.length} parents`);
+            }
+          } else {
+            throw new Error(`UNSUPPORTED_EVENT_CONTEXT: Event ${eventName} with ref ${ref} is not supported`);
+          }
+          console.log("SCOPE_DIFF_FIREWALL_VERIFICATION: PASS");
+          EOF
