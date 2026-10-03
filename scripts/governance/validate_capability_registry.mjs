@@ -450,13 +450,19 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
   const validRaw = fs.readFileSync(registryPath, "utf-8");
   const validObj = parseStrictIJson(validRaw);
 
-  // POSITIVE 1: Actual bootstrap registry file passes
+  // POSITIVE 1: Actual live registry file passes dynamically
   try {
     const res = validateCapabilityRegistryFile(registryPath, { repoRoot });
-    if (res.valid && res.totalCapabilities === 3) {
-      passPositive(`Live bootstrap registry passes validation (${res.totalCapabilities} capabilities, ${res.totalAliases} aliases)`);
+    const expectedCount = Array.isArray(validObj.capabilities) ? validObj.capabilities.length : 0;
+    const hasHistoricalCaps = Array.isArray(validObj.capabilities) &&
+      validObj.capabilities.some(c => c.capability_id === "gov.capsule.persistence") &&
+      validObj.capabilities.some(c => c.capability_id === "gov.capsule.lineage") &&
+      validObj.capabilities.some(c => c.capability_id === "gov.capsule.cryptographic_seal");
+
+    if (res.valid && res.totalCapabilities === expectedCount && res.totalCapabilities >= 3 && hasHistoricalCaps) {
+      passPositive(`Live registry passes dynamic validation (${res.totalCapabilities} capabilities, ${res.totalAliases} aliases)`);
     } else {
-      throw new Error(`Expected live bootstrap registry to pass, got: ${res.stage}: ${res.error}`);
+      throw new Error(`Expected live registry to pass dynamic validation, got: valid=${res.valid}, count=${res.totalCapabilities}, expectedCount=${expectedCount}, stage=${res.stage}: ${res.error}`);
     }
   } catch (err) { failTest("Positive 1: live registry valid", err); }
 
