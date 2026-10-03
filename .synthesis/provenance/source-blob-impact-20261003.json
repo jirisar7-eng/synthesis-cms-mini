@@ -1,0 +1,272 @@
+{
+  "format_version": "1.0.0",
+  "record_kind": "HISTORICAL_SOURCE_BLOB_EVIDENCE_IMPACT",
+  "manifest_id": "IMPACT-SYN-MINI-GOV-SOURCE-BLOB-20261003",
+  "repository": "jirisar7-eng/synthesis-cms-mini",
+  "task_id": "SYN-MINI-GOV-CAPABILITY-REGISTRY-001",
+  "observed_at_utc": "2026-10-03T16:03:47.552Z",
+  "audited_historical_commits": [
+    "cd60e58ae349ba510147d4cab23b77be2676a350",
+    "f9faaacd5f6f0dd933afeb140d0da29722584fb8",
+    "c8fda612a08df8487b6a9d5f83b4cc054ea1571f",
+    "e372f3e32a5677c8f957f3028e85f9b0a0577a76",
+    "8e09de81e843e76455bc0b50c729e9384e4b75bc"
+  ],
+  "audited_capsules": [
+    "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-005",
+    "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-006",
+    "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007",
+    "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008",
+    "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009",
+    "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-011"
+  ],
+  "statistics": {
+    "total_source_references_checked": 77,
+    "total_mismatches_confirmed": 23,
+    "mismatch_counts_by_capsule": {
+      "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-005": 1,
+      "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-006": 1,
+      "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007": 2,
+      "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008": 4,
+      "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009": 7,
+      "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-011": 8
+    }
+  },
+  "governance_decision": {
+    "historical_rewrite_policy": "NO_REWRITE_HISTORICAL_SEALS_PRESERVED",
+    "capsule_cryptographic_seal_impact": "VALID_SEALS_INTACT",
+    "prospective_policy": "REQUIRE_BASE_COMMIT_BLOB_VERIFICATION_IN_FUTURE_GOVERNANCE"
+  },
+  "mismatches": [
+    {
+      "mismatch_id": "MISMATCH-005--github-workflows-genesis-integrity-yml",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-005",
+      "file_path": ".github/workflows/genesis-integrity.yml",
+      "claimed_git_blob_sha": "5f35d4b41727f9181ff7b98faa373d7f28aa062c",
+      "verified_historical_git_blob_sha": "5633b476cbac250b565a87cd4181f39db5343fc8",
+      "historical_comparison_commit": "cd60e58ae349ba510147d4cab23b77be2676a350",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-006--github-workflows-genesis-integrity-yml",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-006",
+      "file_path": ".github/workflows/genesis-integrity.yml",
+      "claimed_git_blob_sha": "5f35d4b41727f9181ff7b98faa373d7f28aa062c",
+      "verified_historical_git_blob_sha": "5633b476cbac250b565a87cd4181f39db5343fc8",
+      "historical_comparison_commit": "cd60e58ae349ba510147d4cab23b77be2676a350",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-007--synthesis-attestations-ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-006-json",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007",
+      "file_path": ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-006.json",
+      "claimed_git_blob_sha": "81f18579979929e0618037b51bfa52e00e0fe368",
+      "verified_historical_git_blob_sha": "212f5a598b674be2bc90428eee31a558d9a864bc",
+      "historical_comparison_commit": "f9faaacd5f6f0dd933afeb140d0da29722584fb8",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-007-scripts-governance-verify-capsule-lineage-mjs",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007",
+      "file_path": "scripts/governance/verify_capsule_lineage.mjs",
+      "claimed_git_blob_sha": "3cef8c4e51859664539824220b22a012d26fce16",
+      "verified_historical_git_blob_sha": "3cef8c4d9bb46928db56a4439a21c62edb0d45a3",
+      "historical_comparison_commit": "f9faaacd5f6f0dd933afeb140d0da29722584fb8",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-008--synthesis-attestations-ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-006-json",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008",
+      "file_path": ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-006.json",
+      "claimed_git_blob_sha": "81f18579979929e0618037b51bfa52e00e0fe368",
+      "verified_historical_git_blob_sha": "212f5a598b674be2bc90428eee31a558d9a864bc",
+      "historical_comparison_commit": "c8fda612a08df8487b6a9d5f83b4cc054ea1571f",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-008--synthesis-attestations-ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007-json",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008",
+      "file_path": ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007.json",
+      "claimed_git_blob_sha": "fc776735a90e3eb4c7baebddfbe2f16801ca9fbe",
+      "verified_historical_git_blob_sha": "4bc01774f697c74f40bd32f96abfe43d39803713",
+      "historical_comparison_commit": "c8fda612a08df8487b6a9d5f83b4cc054ea1571f",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-008-scripts-governance-verify-capsule-lineage-mjs",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008",
+      "file_path": "scripts/governance/verify_capsule_lineage.mjs",
+      "claimed_git_blob_sha": "3cef8c4e51859664539824220b22a012d26fce16",
+      "verified_historical_git_blob_sha": "3cef8c4d9bb46928db56a4439a21c62edb0d45a3",
+      "historical_comparison_commit": "c8fda612a08df8487b6a9d5f83b4cc054ea1571f",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-008-scripts-governance-verify-capability-schema-mjs",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008",
+      "file_path": "scripts/governance/verify_capability_schema.mjs",
+      "claimed_git_blob_sha": "552d76377742d45c613045fcffc101a1d6ea5dc7",
+      "verified_historical_git_blob_sha": "f807ef848147ee25685f2968ee8c3d16f3c191fc",
+      "historical_comparison_commit": "c8fda612a08df8487b6a9d5f83b4cc054ea1571f",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-009--synthesis-registries-capabilities-json",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009",
+      "file_path": ".synthesis/registries/capabilities.json",
+      "claimed_git_blob_sha": "85ef264a2e5dff0e68d0426d400e9982463aa1f4",
+      "verified_historical_git_blob_sha": "fae11cbb57cdb00f52d67392f77a6ec7c7900ba2",
+      "historical_comparison_commit": "e372f3e32a5677c8f957f3028e85f9b0a0577a76",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-009--synthesis-attestations-ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-006-json",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009",
+      "file_path": ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-006.json",
+      "claimed_git_blob_sha": "81f18579979929e0618037b51bfa52e00e0fe368",
+      "verified_historical_git_blob_sha": "212f5a598b674be2bc90428eee31a558d9a864bc",
+      "historical_comparison_commit": "e372f3e32a5677c8f957f3028e85f9b0a0577a76",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-009--synthesis-attestations-ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007-json",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009",
+      "file_path": ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007.json",
+      "claimed_git_blob_sha": "fc776735a90e3eb4c7baebddfbe2f16801ca9fbe",
+      "verified_historical_git_blob_sha": "4bc01774f697c74f40bd32f96abfe43d39803713",
+      "historical_comparison_commit": "e372f3e32a5677c8f957f3028e85f9b0a0577a76",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-009--synthesis-attestations-ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008-json",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009",
+      "file_path": ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008.json",
+      "claimed_git_blob_sha": "362190895315ff431940960ea7781b0a7018cfcb",
+      "verified_historical_git_blob_sha": "73d3cbe88d18250425069ae8425139f88d1f58fe",
+      "historical_comparison_commit": "e372f3e32a5677c8f957f3028e85f9b0a0577a76",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-009-scripts-governance-verify-capsule-lineage-mjs",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009",
+      "file_path": "scripts/governance/verify_capsule_lineage.mjs",
+      "claimed_git_blob_sha": "3cef8c4e51859664539824220b22a012d26fce16",
+      "verified_historical_git_blob_sha": "3cef8c4d9bb46928db56a4439a21c62edb0d45a3",
+      "historical_comparison_commit": "e372f3e32a5677c8f957f3028e85f9b0a0577a76",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-009-scripts-governance-verify-capability-schema-mjs",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009",
+      "file_path": "scripts/governance/verify_capability_schema.mjs",
+      "claimed_git_blob_sha": "552d76377742d45c613045fcffc101a1d6ea5dc7",
+      "verified_historical_git_blob_sha": "f807ef848147ee25685f2968ee8c3d16f3c191fc",
+      "historical_comparison_commit": "e372f3e32a5677c8f957f3028e85f9b0a0577a76",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-009--github-workflows-genesis-integrity-yml",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009",
+      "file_path": ".github/workflows/genesis-integrity.yml",
+      "claimed_git_blob_sha": "ec06013a5e840d2109015cbb819d9b689a7fb6d1",
+      "verified_historical_git_blob_sha": "87b6aca96c5f13a497a55269c3cfc7e15553f2a6",
+      "historical_comparison_commit": "e372f3e32a5677c8f957f3028e85f9b0a0577a76",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-011--synthesis-registries-capabilities-json",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-011",
+      "file_path": ".synthesis/registries/capabilities.json",
+      "claimed_git_blob_sha": "85ef264a2e5dff0e68d0426d400e9982463aa1f4",
+      "verified_historical_git_blob_sha": "fae11cbb57cdb00f52d67392f77a6ec7c7900ba2",
+      "historical_comparison_commit": "8e09de81e843e76455bc0b50c729e9384e4b75bc",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-011--synthesis-attestations-ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-006-json",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-011",
+      "file_path": ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-006.json",
+      "claimed_git_blob_sha": "81f18579979929e0618037b51bfa52e00e0fe368",
+      "verified_historical_git_blob_sha": "212f5a598b674be2bc90428eee31a558d9a864bc",
+      "historical_comparison_commit": "8e09de81e843e76455bc0b50c729e9384e4b75bc",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-011--synthesis-attestations-ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007-json",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-011",
+      "file_path": ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007.json",
+      "claimed_git_blob_sha": "fc776735a90e3eb4c7baebddfbe2f16801ca9fbe",
+      "verified_historical_git_blob_sha": "4bc01774f697c74f40bd32f96abfe43d39803713",
+      "historical_comparison_commit": "8e09de81e843e76455bc0b50c729e9384e4b75bc",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-011--synthesis-attestations-ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008-json",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-011",
+      "file_path": ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008.json",
+      "claimed_git_blob_sha": "362190895315ff431940960ea7781b0a7018cfcb",
+      "verified_historical_git_blob_sha": "73d3cbe88d18250425069ae8425139f88d1f58fe",
+      "historical_comparison_commit": "8e09de81e843e76455bc0b50c729e9384e4b75bc",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-011--synthesis-attestations-ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009-json",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-011",
+      "file_path": ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009.json",
+      "claimed_git_blob_sha": "f3bfa31980839e2467d01eb0c80088b90e9bc83f",
+      "verified_historical_git_blob_sha": "2a3f14bbcc03e6dc945d064429f2e49f355ec613",
+      "historical_comparison_commit": "8e09de81e843e76455bc0b50c729e9384e4b75bc",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-011-scripts-governance-verify-capsule-lineage-mjs",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-011",
+      "file_path": "scripts/governance/verify_capsule_lineage.mjs",
+      "claimed_git_blob_sha": "3cef8c4e51859664539824220b22a012d26fce16",
+      "verified_historical_git_blob_sha": "3cef8c4d9bb46928db56a4439a21c62edb0d45a3",
+      "historical_comparison_commit": "8e09de81e843e76455bc0b50c729e9384e4b75bc",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-011-scripts-governance-verify-capability-schema-mjs",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-011",
+      "file_path": "scripts/governance/verify_capability_schema.mjs",
+      "claimed_git_blob_sha": "552d76377742d45c613045fcffc101a1d6ea5dc7",
+      "verified_historical_git_blob_sha": "f807ef848147ee25685f2968ee8c3d16f3c191fc",
+      "historical_comparison_commit": "8e09de81e843e76455bc0b50c729e9384e4b75bc",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    },
+    {
+      "mismatch_id": "MISMATCH-011--github-workflows-genesis-integrity-yml",
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-011",
+      "file_path": ".github/workflows/genesis-integrity.yml",
+      "claimed_git_blob_sha": "ec06013a5e840d2109015cbb819d9b689a7fb6d1",
+      "verified_historical_git_blob_sha": "87b6aca96c5f13a497a55269c3cfc7e15553f2a6",
+      "historical_comparison_commit": "8e09de81e843e76455bc0b50c729e9384e4b75bc",
+      "evidence_classification": "GIT_TREE_MISMATCH_CONFIRMED",
+      "root_cause_summary": "Claimed SHA in capsule metadata was captured from provisional local file state prior to final atomic commit."
+    }
+  ]
+}
