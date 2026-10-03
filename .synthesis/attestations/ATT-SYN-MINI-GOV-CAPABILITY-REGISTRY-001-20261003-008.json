@@ -1,0 +1,25 @@
+{
+  "format_version": "1.0.0",
+  "record_kind": "LINKED_CAPSULE_FILE_ATTESTATION",
+  "attestation_id": "ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008",
+  "status": "OBSERVED_UNANCHORED",
+  "observed_at_utc": "2026-10-03T14:15:00Z",
+  "source_repository": "jirisar7-eng/synthesis-cms-mini",
+  "genesis_anchor_reference": {
+    "genesis_file": ".synthesis/lineage/genesis.json",
+    "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+  },
+  "parent_attestation": {
+    "attestation_id": "ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007",
+    "file_path": ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007.json",
+    "raw_file_sha256": "ffc8df9dc995142f0f124f900316af5dc2b2d0290221694b2ecce40089aa49ea"
+  },
+  "new_capsule": {
+    "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008",
+    "file_path": ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008.json",
+    "payload_sha256": "e382670aeda13c0c8585578b85cb8df3a355e7ef5d59c9e075e5df6729bb322e",
+    "raw_file_sha256": "71badd3c93cb411f66be731a124a33c3e66756899f604d69dfd5491a86404568",
+    "git_blob_sha": "ca8250b5157f270dbc5113679a9b1dc3d63455cf",
+    "file_size_bytes": 9577
+  }
+}

@@ -120,3 +120,12 @@ jobs:
 
       - name: Verify Capability Schema integrity
         run: node scripts/governance/verify_capability_schema.mjs --verify-all
+
+      - name: Check Capability Registry validator syntax
+        run: node --check scripts/governance/validate_capability_registry.mjs
+
+      - name: Run Capability Registry validator self-tests
+        run: node scripts/governance/validate_capability_registry.mjs --self-test
+
+      - name: Verify committed Capability Registry instance
+        run: node scripts/governance/validate_capability_registry.mjs --verify-all
