@@ -158,6 +158,7 @@ jobs:
           import { execFileSync } from "node:child_process";
           import fs from "node:fs";
           import path from "node:path";
+          import { verifyPostCommitDiff, validateCliCapsulePath } from "./scripts/governance/verify_scope_diff_firewall.mjs";
 
           const repoRoot = process.cwd();
           function git(args, cwd = repoRoot) {
@@ -186,19 +187,41 @@ jobs:
             const newCapsules = [];
             const newAttestations = [];
 
-            for (let i = 0; i < tokens.length; i += 2) {
+            let i = 0;
+            while (i < tokens.length) {
               const header = tokens[i];
-              const filePath = tokens[i + 1];
-              if (!header || !filePath) continue;
-              const status = header.slice(1).split(/\s+/)[4] || "";
+              i++;
+              if (!header.startsWith(":")) {
+                throw new Error(`MALFORMED_DIFF_HEADER: Diff header must start with ':': ${header}`);
+              }
+              const parts = header.slice(1).split(/\s+/);
+              if (parts.length < 5) {
+                throw new Error(`MALFORMED_DIFF_HEADER: Diff header has fewer than 5 components: ${header}`);
+              }
+              const status = parts[4];
+              const filePath = tokens[i];
+              i++;
+              if (!filePath) {
+                throw new Error(`MALFORMED_DIFF_RECORD: Missing path for header: ${header}`);
+              }
               if (status.startsWith("R") || status.startsWith("C")) {
+                const origPath = tokens[i];
                 i++;
+                throw new Error(`UNSUPPORTED_RENAME_COPY: Rename/copy forbidden in diff: ${origPath} -> ${filePath}`);
               }
-              if (filePath.startsWith(".synthesis/task-capsules/CAP-") && filePath.endsWith(".json")) {
-                if (status === "A") newCapsules.push(filePath);
-              }
-              if (filePath.startsWith(".synthesis/attestations/ATT-") && filePath.endsWith(".json")) {
-                if (status === "A") newAttestations.push(filePath);
+              if (status === "A") {
+                if (filePath.startsWith(".synthesis/task-capsules/CAP-") && filePath.endsWith(".json")) {
+                  if (newCapsules.includes(filePath)) {
+                    throw new Error(`DUPLICATE_CAPSULE_PATH: Duplicate capsule in diff: ${filePath}`);
+                  }
+                  newCapsules.push(filePath);
+                }
+                if (filePath.startsWith(".synthesis/attestations/ATT-") && filePath.endsWith(".json")) {
+                  if (newAttestations.includes(filePath)) {
+                    throw new Error(`DUPLICATE_ATTESTATION_PATH: Duplicate attestation in diff: ${filePath}`);
+                  }
+                  newAttestations.push(filePath);
+                }
               }
             }
 
@@ -209,31 +232,31 @@ jobs:
               throw new Error(`Commit ${commitSha} must introduce exactly 1 Attestation, found: ${newAttestations.length} (${newAttestations.join(", ")})`);
             }
 
-            const capsulePath = newCapsules[0];
+            const capsuleRelPath = newCapsules[0];
             const currentHead = git(["rev-parse", "HEAD"]);
 
-            if (currentHead === commitSha) {
-              execFileSync("node", ["scripts/governance/verify_scope_diff_firewall.mjs", "--post-commit", capsulePath, parentSha, commitSha], {
-                cwd: repoRoot,
-                stdio: "inherit"
-              });
-            } else {
-              const tmpWorktree = path.join("/tmp", `worktree-check-${commitSha.slice(0, 10)}-${Date.now()}`);
-              try {
-                git(["worktree", "add", "--detach", tmpWorktree, commitSha]);
-                execFileSync("node", ["scripts/governance/verify_scope_diff_firewall.mjs", "--post-commit", capsulePath, parentSha, commitSha], {
-                  cwd: tmpWorktree,
-                  stdio: "inherit"
-                });
-              } finally {
+            let verifyRoot = repoRoot;
+            let cleanupWorktree = null;
+
+            if (currentHead !== commitSha) {
+              cleanupWorktree = path.join("/tmp", `worktree-check-${commitSha.slice(0, 10)}-${Date.now()}`);
+              git(["worktree", "add", "--detach", cleanupWorktree, commitSha]);
+              verifyRoot = cleanupWorktree;
+            }
+
+            try {
+              const { capsule } = validateCliCapsulePath(capsuleRelPath, verifyRoot);
+              const res = verifyPostCommitDiff(capsule, parentSha, commitSha, verifyRoot);
+              console.log(`Commit ${commitSha} Scope & Diff check: PASS`, res);
+            } finally {
+              if (cleanupWorktree) {
                 try {
-                  git(["worktree", "remove", "--force", tmpWorktree]);
+                  git(["worktree", "remove", "--force", cleanupWorktree]);
                 } catch (e) {
                   // ignore cleanup error
                 }
               }
             }
-            console.log(`Commit ${commitSha} Scope & Diff check: PASS`);
           }
 
           if (eventName === "push" && ref.startsWith("refs/heads/task/")) {
