@@ -17,6 +17,7 @@ jobs:
     name: Verify Genesis Integrity
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+
     steps:
       - name: Check out repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -102,3 +103,12 @@ jobs:
 
       - name: Verify committed Command Capsule full-file baseline
         run: node scripts/governance/verify_capsule_file_baseline.mjs --verify-all
+
+      - name: Check Command Capsule attestation-chain verifier syntax
+        run: node --check scripts/governance/verify_capsule_attestation_chain.mjs
+
+      - name: Run Command Capsule attestation-chain verifier self-tests
+        run: node scripts/governance/verify_capsule_attestation_chain.mjs --self-test
+
+      - name: Verify complete committed Command Capsule attestation chain
+        run: node scripts/governance/verify_capsule_attestation_chain.mjs --verify-all
