@@ -1,0 +1,29 @@
+{
+  "format_version": "1.0.0",
+  "record_kind": "DETACHED_CAPSULE_RAW_FILE_BASELINE",
+  "status": "OBSERVED_UNANCHORED",
+  "observed_at_utc": "2026-10-02T17:29:47Z",
+  "source_repository": "jirisar7-eng/synthesis-cms-mini",
+  "source_main_sha": "d362a6431bf0f5c7368df96b657c596eb093b6ff",
+  "source_task_sha": "3db87689aee0ab72304efc3b46afc23a5a91890b",
+  "hash_scope": "SHA256_RAW_FILE_BYTES",
+  "genesis_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60",
+  "capsules": [
+    {
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010",
+      "file_path": ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010.json",
+      "payload_sha256": "013b25880c15906218b2c8dc326b727e5068a99c7a8db3ca9dd6edfa30b1cd38",
+      "raw_file_sha256": "2b91676df0699359a7a8bdbe81d8139c553f4f13f22549ad48e97b58d683e364",
+      "git_blob_sha": "27564aff47ebd19613df5a98d68e3934c9c159d0",
+      "file_size_bytes": 4842
+    },
+    {
+      "capsule_id": "CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-013",
+      "file_path": ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-013.json",
+      "payload_sha256": "ab5e7093761dc736c60bc28a29535d6bcfa6f7e5739bc3d39802d468898c6ecc",
+      "raw_file_sha256": "5609abcc6661f20bc1d3c36ef536c86f2b9a9e82a918c7ea12341ae64bdf4859",
+      "git_blob_sha": "83db4888a1571fea63ee526f24a7b99ffe99e586",
+      "file_size_bytes": 5551
+    }
+  ]
+}
