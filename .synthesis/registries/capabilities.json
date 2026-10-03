@@ -1,0 +1,71 @@
+{
+  "schema_version": "capability-registry.v1",
+  "format_version": "1.0.0",
+  "record_kind": "CAPABILITY_REGISTRY",
+  "status": "DRAFT",
+  "capabilities": [
+    {
+      "capability_id": "gov.capsule.persistence",
+      "name": "Command Capsule Persistence & Discovery",
+      "description": "Provides durable storage, discovery, and file-level integrity validation for immutable Command Capsules in .synthesis/task-capsules.",
+      "layer": "Stable Contracts",
+      "owner_domain": "gov.capsule",
+      "status": "PROPOSED",
+      "head_revision": 1,
+      "legacy_aliases": [
+        "CAPSULE_PERSISTENCE"
+      ],
+      "governing_contracts": [
+        "command-capsule.v1"
+      ],
+      "provides": [],
+      "requires": [],
+      "origin_capsule_id": null,
+      "origin_payload_sha256": null,
+      "introducing_commit_sha": null,
+      "superseded_by": null
+    },
+    {
+      "capability_id": "gov.capsule.lineage",
+      "name": "Command Capsule Parent-Chain Lineage",
+      "description": "Validates cryptographic parent-chain lineage, graph acyclicity, single Genesis root reachability, and historical ancestor continuity.",
+      "layer": "Stable Contracts",
+      "owner_domain": "gov.capsule",
+      "status": "PROPOSED",
+      "head_revision": 1,
+      "legacy_aliases": [
+        "CAPSULE_LINEAGE"
+      ],
+      "governing_contracts": [
+        "command-capsule.v1"
+      ],
+      "provides": [],
+      "requires": [],
+      "origin_capsule_id": null,
+      "origin_payload_sha256": null,
+      "introducing_commit_sha": null,
+      "superseded_by": null
+    },
+    {
+      "capability_id": "gov.capsule.cryptographic_seal",
+      "name": "Command Capsule Canonical RFC 8785 Cryptographic Seal",
+      "description": "Computes and verifies deterministic canonical RFC 8785 JSON representation and SHA-256 cryptographic payload integrity seals.",
+      "layer": "Stable Contracts",
+      "owner_domain": "gov.capsule",
+      "status": "PROPOSED",
+      "head_revision": 1,
+      "legacy_aliases": [
+        "CRYPTOGRAPHIC_SEAL"
+      ],
+      "governing_contracts": [
+        "command-capsule.v1"
+      ],
+      "provides": [],
+      "requires": [],
+      "origin_capsule_id": null,
+      "origin_payload_sha256": null,
+      "introducing_commit_sha": null,
+      "superseded_by": null
+    }
+  ]
+}

@@ -1,0 +1,190 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009",
+    "command_id": "CMD-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-009-REPAIR-DYNAMIC-REGISTRY-SELFTEST",
+    "task_id": "SYN-MINI-GOV-CAPABILITY-REGISTRY-001",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "3/60 — CAPABILITY / FEATURE REGISTRY",
+    "actors": {
+      "owner": "jirisar7-eng",
+      "command_author": "jirisar7-eng",
+      "executor": "AI Studio Engineer",
+      "verifier": "jirisar7-eng"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-03T14:30:00Z",
+      "development_phase": "GOVERNANCE",
+      "execution_mode": "RESTRICTED_GOVERNANCE_BOOTSTRAP"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "6dd9f5c8d9632f86c636102949a1edfaff69d1c5",
+      "source_branch": "task/SYN-MINI-GOV-CAPABILITY-REGISTRY-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/schemas/command-capsule.schema.json",
+        ".synthesis/schemas/capability-registry.schema.json",
+        ".synthesis/registries/capabilities.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-013.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-005.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-006.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008.json",
+        ".synthesis/attestations/capsule-file-baseline-20261002.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-005.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-006.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008.json",
+        "scripts/governance/validate_command_capsule.mjs",
+        "scripts/governance/verify_capsule_seal.mjs",
+        "scripts/governance/verify_capsule_lineage.mjs",
+        "scripts/governance/verify_capsule_file_baseline.mjs",
+        "scripts/governance/verify_capsule_attestation_chain.mjs",
+        "scripts/governance/verify_capability_schema.mjs",
+        "scripts/governance/validate_capability_registry.mjs",
+        ".github/workflows/genesis-integrity.yml",
+        "LICENSE"
+      ],
+      "permitted_write_paths": [
+        "scripts/governance/validate_capability_registry.mjs",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009.json"
+      ],
+      "protected_paths": [
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/schemas/command-capsule.schema.json",
+        ".synthesis/schemas/capability-registry.schema.json",
+        ".synthesis/registries/capabilities.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-013.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-005.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-006.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008.json",
+        ".synthesis/attestations/capsule-file-baseline-20261002.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-005.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-006.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008.json",
+        "scripts/governance/validate_command_capsule.mjs",
+        "scripts/governance/verify_capsule_seal.mjs",
+        "scripts/governance/verify_capsule_lineage.mjs",
+        "scripts/governance/verify_capsule_file_baseline.mjs",
+        "scripts/governance/verify_capsule_attestation_chain.mjs",
+        "scripts/governance/verify_capability_schema.mjs",
+        "scripts/governance/verify_genesis.mjs",
+        ".github/workflows/genesis-integrity.yml",
+        "LICENSE"
+      ],
+      "forbidden_operations": [
+        "npm install",
+        "git push origin main",
+        "rm -rf .synthesis",
+        "git push --force"
+      ],
+      "max_write_files_limit": 3,
+      "max_read_files_limit": 25
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008",
+          "command_id": "CMD-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-008-IMPLEMENT-BOOTSTRAP-REGISTRY-AND-VALIDATOR",
+          "payload_sha256": "e382670aeda13c0c8585578b85cb8df3a355e7ef5d59c9e075e5df6729bb322e",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "capability-registry.v1",
+        "command-capsule.v1"
+      ],
+      "affected_capabilities": [
+        "CAPSULE_LINEAGE",
+        "CAPSULE_PERSISTENCE",
+        "CRYPTOGRAPHIC_SEAL"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        "scripts/governance/validate_capability_registry.mjs",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009.json"
+      ],
+      "actual_changed_files": [
+        "scripts/governance/validate_capability_registry.mjs",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {
+        ".synthesis/lineage/genesis.json": "7a34b3d08150569affe67ef21d575f87695368b4",
+        ".synthesis/schemas/command-capsule.schema.json": "a224fea7cafb49afd6579e504e7f31cf10ebbe2a",
+        ".synthesis/schemas/capability-registry.schema.json": "9a89ccab2394735b2b2f3a2ba8c244731bfab0b6",
+        ".synthesis/registries/capabilities.json": "85ef264a2e5dff0e68d0426d400e9982463aa1f4",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010.json": "27564aff47ebd19613df5a98d68e3934c9c159d0",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-013.json": "83db4888a1571fea63ee526f24a7b99ffe99e586",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-005.json": "215c7122344733085bbbc699dd2236cc139f659a",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-006.json": "d2e15dcdf1bf81414560e26c22cb1183d5d72752",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007.json": "7f497936eac2e17f405a780c57bc515fa90a86d8",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008.json": "ca8250b5157f270dbc5113679a9b1dc3d63455cf",
+        ".synthesis/attestations/capsule-file-baseline-20261002.json": "d0c91b768a14070c7b0b19ad56fb33a573278898",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-005.json": "b264fd808178a59a3d1018178f7455adf32ab0bc",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-006.json": "81f18579979929e0618037b51bfa52e00e0fe368",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007.json": "fc776735a90e3eb4c7baebddfbe2f16801ca9fbe",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008.json": "362190895315ff431940960ea7781b0a7018cfcb",
+        "scripts/governance/verify_capsule_lineage.mjs": "3cef8c4e51859664539824220b22a012d26fce16",
+        "scripts/governance/verify_capability_schema.mjs": "552d76377742d45c613045fcffc101a1d6ea5dc7",
+        ".github/workflows/genesis-integrity.yml": "ec06013a5e840d2109015cbb819d9b689a7fb6d1"
+      }
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "BOOTSTRAP_NOT_YET_ACTIVE",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "Commit and push atomic 3-file group to task/SYN-MINI-GOV-CAPABILITY-REGISTRY-001 and verify exact-head CI run",
+      "stateless_recovery_context": {
+        "verified_task_head": "c8fda612a08df8487b6a9d5f83b4cc054ea1571f",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-03T14:30:00Z"
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "9be51226d376c527a407f2da0e9b0f0965fcd58ca58a7bc88f6add7eb699f024",
+    "sealed_at": "2026-10-03T14:30:00Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}

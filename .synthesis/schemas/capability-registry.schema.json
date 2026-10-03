@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://synthesis-cms-mini.org/schemas/capability-registry.schema.json",
+  "title": "Synthesis CMS mini Capability Registry Schema",
+  "description": "Formal specification and validation schema for the Capability and Feature Registry in Synthesis CMS mini (Step 3/60).",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "format_version",
+    "record_kind",
+    "status",
+    "capabilities"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "capability-registry.v1"
+    },
+    "format_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "record_kind": {
+      "type": "string",
+      "const": "CAPABILITY_REGISTRY"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "PROPOSED",
+        "ACTIVE"
+      ]
+    },
+    "capabilities": {
+      "type": "array",
+      "description": "List of declared capabilities and feature specifications.",
+      "items": {
+        "$ref": "#/$defs/capability_entry"
+      }
+    }
+  },
+  "$defs": {
+    "capability_entry": {
+      "type": "object",
+      "required": [
+        "capability_id",
+        "name",
+        "description",
+        "layer",
+        "owner_domain",
+        "status",
+        "head_revision",
+        "legacy_aliases",
+        "governing_contracts",
+        "provides",
+        "requires",
+        "origin_capsule_id",
+        "origin_payload_sha256",
+        "introducing_commit_sha",
+        "superseded_by"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "capability_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)+$",
+          "description": "Stable canonical dot-separated identifier for the capability."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 100,
+          "description": "Human-readable title of the capability."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 1000,
+          "description": "Detailed description of the capability boundary and functionality."
+        },
+        "layer": {
+          "type": "string",
+          "enum": [
+            "Universal Core",
+            "Stable Contracts",
+            "Public SDKs",
+            "Module Runtime",
+            "Integration Runtime",
+            "First-party Modules",
+            "Third-party Modules",
+            "Project Packs",
+            "Themes and Design Tokens",
+            "Content and Translations",
+            "Licensing and Distribution",
+            "Deployment and Operations"
+          ],
+          "description": "Architectural layer responsible for this capability."
+        },
+        "owner_domain": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)*$",
+          "description": "Domain or subsystem owner of the capability."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PROPOSED",
+            "STAGED",
+            "ACTIVE",
+            "DEPRECATED",
+            "REPLACED"
+          ],
+          "description": "Current lifecycle status of the capability."
+        },
+        "head_revision": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Monotonic integer revision of the capability specification."
+        },
+        "legacy_aliases": {
+          "type": "array",
+          "description": "List of historical or legacy uppercase identifiers mapping to this canonical capability.",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_]+$"
+          }
+        },
+        "governing_contracts": {
+          "type": "array",
+          "description": "List of technical governance contracts defining or constraining this capability.",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+(\\.v[0-9]+)$"
+          }
+        },
+        "provides": {
+          "type": "array",
+          "description": "Exported sub-features, interfaces, or functional tokens provided by this capability.",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+          }
+        },
+        "requires": {
+          "type": "array",
+          "description": "Strict typed dependencies on other capabilities required for operation.",
+          "items": {
+            "$ref": "#/$defs/capability_dependency"
+          }
+        },
+        "origin_capsule_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^CAP-SYN-MINI-[A-Z0-9_-]+$",
+          "description": "ID of the sealed Command Capsule introducing this capability revision (or null if PROPOSED)."
+        },
+        "origin_payload_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Payload SHA-256 hash of the introducing Command Capsule (or null if PROPOSED)."
+        },
+        "introducing_commit_sha": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([a-f0-9]{40}|PENDING_MERGE)$",
+          "description": "Merge commit SHA introducing this capability to main (or PENDING_MERGE/null)."
+        },
+        "superseded_by": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)+$",
+          "description": "Canonical capability ID of the successor capability if status is REPLACED (or null)."
+        }
+      }
+    },
+    "capability_dependency": {
+      "type": "object",
+      "required": [
+        "type",
+        "id",
+        "min_revision"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "capability"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)+$",
+          "description": "Canonical capability ID of the required dependency."
+        },
+        "min_revision": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Minimum specification revision required of the dependency."
+        }
+      }
+    }
+  }
+}
