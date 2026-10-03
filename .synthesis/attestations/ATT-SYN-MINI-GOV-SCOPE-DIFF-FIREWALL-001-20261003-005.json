@@ -1,0 +1,25 @@
+{
+  "format_version": "1.0.0",
+  "record_kind": "LINKED_CAPSULE_FILE_ATTESTATION",
+  "attestation_id": "ATT-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-005",
+  "status": "OBSERVED_UNANCHORED",
+  "observed_at_utc": "2026-10-03T17:57:08.497Z",
+  "source_repository": "jirisar7-eng/synthesis-cms-mini",
+  "genesis_anchor_reference": {
+    "genesis_file": ".synthesis/lineage/genesis.json",
+    "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+  },
+  "parent_attestation": {
+    "attestation_id": "ATT-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-004",
+    "file_path": ".synthesis/attestations/ATT-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-004.json",
+    "raw_file_sha256": "94e0d55e554a1efc50d2dea68592ff8db867bb455a2ac5dc38271322c76021fe"
+  },
+  "new_capsule": {
+    "capsule_id": "CAP-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-005",
+    "file_path": ".synthesis/task-capsules/CAP-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-005.json",
+    "payload_sha256": "7b4e60ec09346a10bb9da8158d96775c8e78d00af1181d7de65c6ed0255e54cc",
+    "raw_file_sha256": "6a7b9336a6cfde6d539fcd7cb79d5e673f2b5701f535e325bb5ac379548c1104",
+    "git_blob_sha": "c3ad385586dfa841551e47ee2a8df4b28c3fb9cb",
+    "file_size_bytes": 18316
+  }
+}

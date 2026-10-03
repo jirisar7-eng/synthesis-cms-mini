@@ -5,9 +5,12 @@
  *
  * Implements a deterministic, fail-closed two-phase firewall:
  *  - Phase A (Pre-commit): Inspects working tree, index, untracked files, and staged file modes.
- *                          Enforces exact set equality with declared expected changes (no existsSync fallback).
+ *                          Enforces exact set equality with declared expected changes.
+ *                          Validates real filesystem object types (rejecting symlinks & symlink ancestors).
+ *                          Strictly validates git diff-index without fail-open try/catch.
  *  - Phase B (Post-commit): Inspects git diff-tree, file modes, exact commit ancestry (single direct parent),
  *                           and enforces exact declared scope match against the commit diff.
+ *  - Strict CLI Grammar: Rejects mixed modes, extra arguments, unknown flags, and validates capsule identity.
  *
  * Built-in Node.js modules only (no external dependencies).
  * No shell interpolation (execFileSync with explicit argument arrays and shell: false).
@@ -19,7 +22,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 /**
- * Validates path format according to strict security invariants.
+ * Validates path format and filesystem properties according to strict security invariants.
  */
 export function validatePath(p, repoRoot = null) {
   if (typeof p !== "string" || p.length === 0) {
@@ -62,8 +65,8 @@ export function validatePath(p, repoRoot = null) {
 
   // If repoRoot is provided, enforce repository containment and ancestor symlink checks
   if (repoRoot) {
-    const resolvedPath = path.resolve(repoRoot, p);
     const normalizedRepoRoot = path.resolve(repoRoot);
+    const resolvedPath = path.resolve(repoRoot, p);
     if (!resolvedPath.startsWith(normalizedRepoRoot + path.sep)) {
       throw new Error(`UNTRUSTED_PATH_REJECTED: Path escapes repository root: ${p}`);
     }
@@ -71,15 +74,38 @@ export function validatePath(p, repoRoot = null) {
     // Check ancestor directories for symlinks
     let current = path.dirname(resolvedPath);
     while (current.length >= normalizedRepoRoot.length && current.startsWith(normalizedRepoRoot)) {
-      if (fs.existsSync(current)) {
-        const lstat = fs.lstatSync(current);
-        if (lstat.isSymbolicLink()) {
-          throw new Error(`SYMLINK_ANCESTOR_REJECTED: Ancestor directory is a symbolic link: ${current}`);
+      try {
+        if (fs.existsSync(current)) {
+          const lstat = fs.lstatSync(current);
+          if (lstat.isSymbolicLink()) {
+            throw new Error(`SYMLINK_ANCESTOR_REJECTED: Ancestor directory is a symbolic link: ${current}`);
+          }
         }
+      } catch (err) {
+        if (err.message.includes("SYMLINK_ANCESTOR_REJECTED")) throw err;
+        throw new Error(`FILESYSTEM_ACCESS_FAILURE: Failed checking ancestor directory ${current}: ${err.message}`);
       }
       const parent = path.dirname(current);
       if (parent === current) break;
       current = parent;
+    }
+
+    // If the path itself exists in filesystem, inspect its lstat (reject symlinks & unsupported types)
+    try {
+      if (fs.existsSync(resolvedPath)) {
+        const fileLstat = fs.lstatSync(resolvedPath);
+        if (fileLstat.isSymbolicLink()) {
+          throw new Error(`SYMLINK_OBJECT_REJECTED: Path is a symbolic link: ${p}`);
+        }
+        if (!fileLstat.isFile() && !fileLstat.isDirectory()) {
+          throw new Error(`UNSUPPORTED_FILE_TYPE_REJECTED: Path is not a regular file: ${p}`);
+        }
+      }
+    } catch (err) {
+      if (err.message.includes("SYMLINK_OBJECT_REJECTED") || err.message.includes("UNSUPPORTED_FILE_TYPE_REJECTED")) {
+        throw err;
+      }
+      throw new Error(`FILESYSTEM_ACCESS_FAILURE: Failed inspecting path ${p}: ${err.message}`);
     }
   }
 
@@ -205,6 +231,7 @@ export function defaultGitExecutor(args, cwd) {
 
 /**
  * Phase A — Pre-commit scope verification.
+ * Fail-closed: No ignoring of git diff-index errors.
  */
 export function verifyPreCommitScope(capsule, repoRoot, gitExecutor = defaultGitExecutor) {
   const policy = validateCapsuleScopePolicy(capsule, repoRoot);
@@ -237,7 +264,6 @@ export function verifyPreCommitScope(capsule, repoRoot, gitExecutor = defaultGit
     }
 
     // Check for rename / copy operations in porcelain -z
-    // In porcelain v1 -z, R and C have a second path in the subsequent NUL token
     if (x === "R" || y === "R" || x === "C" || y === "C") {
       const origPath = rawTokens[idx];
       idx++;
@@ -280,36 +306,51 @@ export function verifyPreCommitScope(capsule, repoRoot, gitExecutor = defaultGit
     candidateChanges.add(filePath);
   }
 
-  // Check staged index file modes using git diff-index --cached --raw -z HEAD (or fallback to empty tree)
-  try {
-    const rawStaged = gitExecutor(["diff-index", "--cached", "--raw", "-z", "HEAD"], repoRoot);
-    const stagedTokens = rawStaged.split("\0").filter(Boolean);
-    let sIdx = 0;
-    while (sIdx < stagedTokens.length) {
-      const header = stagedTokens[sIdx];
-      sIdx++;
-      if (!header.startsWith(":")) continue;
-      const parts = header.slice(1).split(/\s+/);
-      const newMode = parts[1];
-      const stagedPath = stagedTokens[sIdx];
-      sIdx++;
+  // Check staged index file modes using git diff-index --cached --raw -z HEAD
+  // FAIL-CLOSED: Any failure or malformed output MUST throw immediately!
+  const rawStaged = gitExecutor(["diff-index", "--cached", "--raw", "-z", "HEAD"], repoRoot);
+  const stagedTokens = rawStaged.split("\0").filter(Boolean);
+  let sIdx = 0;
 
-      if (newMode === "120000") {
-        throw new Error(`SYMLINK_MODE_REJECTED: Staged symlink mode 120000 forbidden: ${stagedPath}`);
-      }
-      if (newMode === "160000") {
-        throw new Error(`SUBMODULE_MODE_REJECTED: Staged submodule mode 160000 forbidden: ${stagedPath}`);
-      }
+  while (sIdx < stagedTokens.length) {
+    const header = stagedTokens[sIdx];
+    sIdx++;
+
+    if (!header.startsWith(":")) {
+      throw new Error(`MALFORMED_DIFF_INDEX_HEADER_REJECTED: Staged diff header must start with ':': ${header}`);
     }
-  } catch (err) {
-    if (err.message.includes("SYMLINK_MODE_REJECTED") || err.message.includes("SUBMODULE_MODE_REJECTED")) {
-      throw err;
+
+    const parts = header.slice(1).split(/\s+/);
+    if (parts.length < 5) {
+      throw new Error(`TRUNCATED_DIFF_INDEX_RECORD_REJECTED: Staged diff header has fewer than 5 components: ${header}`);
     }
-    // If HEAD does not exist yet (empty repo), continue
+
+    const newMode = parts[1];
+    const status = parts[4];
+    const stagedPath = stagedTokens[sIdx];
+    sIdx++;
+
+    if (!stagedPath) {
+      throw new Error(`TRUNCATED_DIFF_INDEX_RECORD_REJECTED: Missing file path for staged header: ${header}`);
+    }
+
+    if (newMode === "120000") {
+      throw new Error(`SYMLINK_MODE_REJECTED: Staged symlink mode 120000 forbidden: ${stagedPath}`);
+    }
+    if (newMode === "160000") {
+      throw new Error(`SUBMODULE_MODE_REJECTED: Staged submodule mode 160000 forbidden: ${stagedPath}`);
+    }
+    if (!["100644", "100755"].includes(newMode) && newMode !== "000000") {
+      throw new Error(`UNSUPPORTED_STAGED_MODE_REJECTED: Unsupported staged mode ${newMode} for ${stagedPath}`);
+    }
+
+    const statusCode = status[0];
+    if (!["A", "M", "D", "T"].includes(statusCode)) {
+      throw new Error(`UNKNOWN_DIFF_INDEX_STATUS_REJECTED: Unknown staged status '${status}' for ${stagedPath}`);
+    }
   }
 
   // Enforce EXACT set equality between candidateChanges and expectedChangedSet
-  // (NO fs.existsSync fallback — file merely existing does not mean it was modified!)
   for (const expected of expectedChangedSet) {
     if (!candidateChanges.has(expected)) {
       throw new Error(`MISSING_EXPECTED_FILE_REJECTED: Expected changed file was not modified or staged in Git: ${expected}`);
@@ -385,7 +426,6 @@ export function verifyPostCommitDiff(capsule, baseSha, headSha, repoRoot, gitExe
       throw new Error(`MALFORMED_DIFF_HEADER_REJECTED: Diff header must start with ':': ${header}`);
     }
 
-    // Header format: :old_mode new_mode old_sha new_sha status
     const parts = header.slice(1).split(/\s+/);
     if (parts.length < 5) {
       throw new Error(`MALFORMED_DIFF_HEADER_REJECTED: Diff header has fewer than 5 components: ${header}`);
@@ -485,7 +525,66 @@ export function verifyPostCommitDiff(capsule, baseSha, headSha, repoRoot, gitExe
 }
 
 /**
- * Behavioral self-test suite covering POS-01..POS-03, NEG-01..NEG-20, and SEC-NEG-01..SEC-NEG-16.
+ * Validates CLI capsule path argument and verifies capsule identity.
+ */
+export function validateCliCapsulePath(capsulePath, repoRoot) {
+  if (!capsulePath || typeof capsulePath !== "string") {
+    throw new Error("CAPSULE_PATH_INVALID_REJECTED: Capsule path must be a non-empty string");
+  }
+
+  const normalizedRepoRoot = path.resolve(repoRoot);
+  const resolved = path.resolve(repoRoot, capsulePath);
+
+  if (!resolved.startsWith(normalizedRepoRoot + path.sep)) {
+    throw new Error(`CAPSULE_PATH_ESCAPE_REJECTED: Capsule path escapes repository root: ${capsulePath}`);
+  }
+
+  const rel = path.relative(normalizedRepoRoot, resolved);
+  if (!rel.startsWith(".synthesis/task-capsules/") || !rel.endsWith(".json")) {
+    throw new Error(`CAPSULE_PATH_INVALID_REJECTED: Capsule path must be in .synthesis/task-capsules/*.json: ${rel}`);
+  }
+
+  // Check ancestor directories for symlinks
+  let current = path.dirname(resolved);
+  while (current.length >= normalizedRepoRoot.length && current.startsWith(normalizedRepoRoot)) {
+    if (fs.existsSync(current)) {
+      const lstat = fs.lstatSync(current);
+      if (lstat.isSymbolicLink()) {
+        throw new Error(`SYMLINK_ANCESTOR_REJECTED: Capsule ancestor directory is a symbolic link: ${current}`);
+      }
+    }
+    const parent = path.dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+
+  // Check capsule file itself
+  if (!fs.existsSync(resolved)) {
+    throw new Error(`CAPSULE_FILE_NOT_FOUND_REJECTED: Capsule file does not exist: ${rel}`);
+  }
+
+  const fileLstat = fs.lstatSync(resolved);
+  if (fileLstat.isSymbolicLink()) {
+    throw new Error(`SYMLINK_CAPSULE_REJECTED: Capsule file is a symbolic link: ${rel}`);
+  }
+  if (!fileLstat.isFile()) {
+    throw new Error(`UNSUPPORTED_FILE_TYPE_REJECTED: Capsule is not a regular file: ${rel}`);
+  }
+
+  // Verify capsule identity
+  const content = JSON.parse(fs.readFileSync(resolved, "utf-8"));
+  const expectedId = path.basename(resolved, ".json");
+  if (content.payload?.capsule_id !== expectedId) {
+    throw new Error(
+      `CAPSULE_IDENTITY_MISMATCH_REJECTED: Capsule filename (${expectedId}) does not match payload.capsule_id (${content.payload?.capsule_id})`
+    );
+  }
+
+  return { resolvedPath: resolved, capsule: content };
+}
+
+/**
+ * Behavioral self-test suite covering all positive and negative regressions.
  */
 export function runSelfTests() {
   console.log("Running Scope & Diff Firewall Behavioral Self-Tests...");
@@ -521,6 +620,7 @@ export function runSelfTests() {
 
   const sampleCapsule = {
     payload: {
+      capsule_id: "CAP-TEST-001",
       scope_boundary: {
         permitted_read_paths: ["LICENSE", "README.md"],
         permitted_write_paths: ["file1.txt", "file2.txt", "file3.txt"],
@@ -550,7 +650,7 @@ export function runSelfTests() {
       return "A  file1.txt\0A  file2.txt\0?? file3.txt\0";
     }
     if (args[0] === "diff-index") {
-      return ":000000 100644 000 111 A\0file1.txt\0";
+      return ":000000 100644 000 111 A\0file1.txt\0:000000 100644 000 222 A\0file2.txt\0";
     }
     return "";
   };
@@ -630,7 +730,7 @@ export function runSelfTests() {
 
   assertNegative("NEG-09: Declared write-limit exceeded", "DECLARED_WRITE_LIMIT_EXCEEDED_REJECTED", () => {
     const badCapsule = JSON.parse(JSON.stringify(sampleCapsule));
-    badCapsule.payload.scope_boundary.max_write_files_limit = 2; // actual is 3
+    badCapsule.payload.scope_boundary.max_write_files_limit = 2;
     validateCapsuleScopePolicy(badCapsule);
   });
 
@@ -652,6 +752,7 @@ export function runSelfTests() {
       if (args[0] === "status") {
         return "?? file1.txt\0?? intruder.sh\0";
       }
+      if (args[0] === "diff-index") return "";
       return "";
     };
     verifyPreCommitScope(sampleCapsule, "/tmp", mockGit);
@@ -662,6 +763,7 @@ export function runSelfTests() {
       if (args[0] === "status") {
         return " M unauthorized.txt\0";
       }
+      if (args[0] === "diff-index") return "";
       return "";
     };
     verifyPreCommitScope(sampleCapsule, "/tmp", mockGit);
@@ -672,6 +774,7 @@ export function runSelfTests() {
       if (args[0] === "status") {
         return " D unannounced_delete.txt\0";
       }
+      if (args[0] === "diff-index") return "";
       return "";
     };
     verifyPreCommitScope(sampleCapsule, "/tmp", mockGit);
@@ -722,6 +825,7 @@ export function runSelfTests() {
       if (args[0] === "status") {
         return "UU conflicted.txt\0";
       }
+      if (args[0] === "diff-index") return "";
       return "";
     };
     verifyPreCommitScope(sampleCapsule, "/tmp", mockGit);
@@ -760,14 +864,11 @@ export function runSelfTests() {
     verifyPostCommitDiff(sampleCapsule, baseSha, headSha, "/tmp", mockGit);
   });
 
-  // --- NEW SECURITY REGRESSION SCENARIOS (SEC-NEG-01 to SEC-NEG-16) ---
-
+  // --- PREVIOUS SEC-NEG SCENARIOS ---
   assertNegative("SEC-NEG-01: Expected file exists but was not changed in Git", "MISSING_EXPECTED_FILE_REJECTED", () => {
     const mockGit = (args) => {
-      if (args[0] === "status") {
-        // Only file1 and file2 are modified, file3 is unchanged
-        return "A  file1.txt\0A  file2.txt\0";
-      }
+      if (args[0] === "status") return "A  file1.txt\0A  file2.txt\0";
+      if (args[0] === "diff-index") return "";
       return "";
     };
     verifyPreCommitScope(sampleCapsule, "/tmp", mockGit);
@@ -775,10 +876,8 @@ export function runSelfTests() {
 
   assertNegative("SEC-NEG-02: Actual pre-commit set differs from declared expected set", "UNEXPECTED_CHANGED_FILE_REJECTED", () => {
     const mockGit = (args) => {
-      if (args[0] === "status") {
-        // 4 files touched, capsule expects 3
-        return "A  file1.txt\0A  file2.txt\0A  file3.txt\0A  file2.txt_extra\0";
-      }
+      if (args[0] === "status") return "A  file1.txt\0A  file2.txt\0A  file3.txt\0A  file2.txt_extra\0";
+      if (args[0] === "diff-index") return "";
       return "";
     };
     const expandedCapsule = JSON.parse(JSON.stringify(sampleCapsule));
@@ -794,7 +893,7 @@ export function runSelfTests() {
     const mockGit = (args) => {
       if (args[0] === "rev-parse") {
         if (args[1] === "HEAD") return headSha;
-        if (args[1] && args[1].includes("^@")) return "3333333333333333333333333333333333333333"; // different parent!
+        if (args[1] && args[1].includes("^@")) return "3333333333333333333333333333333333333333";
         return "ok";
       }
       return "";
@@ -817,7 +916,7 @@ export function runSelfTests() {
   assertNegative("SEC-NEG-06: Supplied head differs from actual HEAD", "HEAD_MISMATCH_REJECTED", () => {
     const mockGit = (args) => {
       if (args[0] === "rev-parse") {
-        if (args[1] === "HEAD") return "4444444444444444444444444444444444444444"; // checkout is at different HEAD!
+        if (args[1] === "HEAD") return "4444444444444444444444444444444444444444";
         return "ok";
       }
       return "";
@@ -885,55 +984,135 @@ export function runSelfTests() {
     verifyPostCommitDiff(sampleCapsule, baseSha, headSha, "/tmp", mockGit);
   });
 
-  assertNegative("SEC-NEG-11: Staged symlink mode 120000 in pre-commit", "SYMLINK_MODE_REJECTED", () => {
+  // --- ADDITIONAL REQUIRED REGRESSION SCENARIOS (NEG-INDEX-*, NEG-FS-*, NEG-CLI-*) ---
+
+  assertNegative("NEG-INDEX-01: git status succeeds, but git diff-index throws error", "GIT_EXECUTION_FAILURE", () => {
     const mockGit = (args) => {
-      if (args[0] === "status") {
-        return "A  file1.txt\0A  file2.txt\0A  file3.txt\0";
-      }
-      if (args[0] === "diff-index") {
-        return ":000000 120000 000 111 A\0file1.txt\0";
-      }
+      if (args[0] === "status") return "A  file1.txt\0A  file2.txt\0A  file3.txt\0";
+      if (args[0] === "diff-index") throw new Error("GIT_EXECUTION_FAILURE: git diff-index failed");
       return "";
     };
     verifyPreCommitScope(sampleCapsule, "/tmp", mockGit);
   });
 
-  assertNegative("SEC-NEG-12: Staged submodule mode 160000 in pre-commit", "SUBMODULE_MODE_REJECTED", () => {
+  assertNegative("NEG-INDEX-02: git diff-index returns malformed data", "MALFORMED_DIFF_INDEX_HEADER_REJECTED", () => {
     const mockGit = (args) => {
-      if (args[0] === "status") {
-        return "A  file1.txt\0A  file2.txt\0A  file3.txt\0";
-      }
-      if (args[0] === "diff-index") {
-        return ":000000 160000 000 111 A\0file1.txt\0";
-      }
+      if (args[0] === "status") return "A  file1.txt\0A  file2.txt\0A  file3.txt\0";
+      if (args[0] === "diff-index") return "corrupted_header_without_colon\0file1.txt\0";
       return "";
     };
     verifyPreCommitScope(sampleCapsule, "/tmp", mockGit);
   });
 
-  assertNegative("SEC-NEG-13: Symlink ancestor or path escape", "UNTRUSTED_PATH_REJECTED", () => {
+  assertNegative("NEG-INDEX-03: git diff-index returns truncated data", "TRUNCATED_DIFF_INDEX_RECORD_REJECTED", () => {
+    const mockGit = (args) => {
+      if (args[0] === "status") return "A  file1.txt\0A  file2.txt\0A  file3.txt\0";
+      if (args[0] === "diff-index") return ":100644 100644\0file1.txt\0";
+      return "";
+    };
+    verifyPreCommitScope(sampleCapsule, "/tmp", mockGit);
+  });
+
+  assertNegative("NEG-INDEX-04: git diff-index has unsupported modes", "UNSUPPORTED_STAGED_MODE_REJECTED", () => {
+    const mockGit = (args) => {
+      if (args[0] === "status") return "A  file1.txt\0A  file2.txt\0A  file3.txt\0";
+      if (args[0] === "diff-index") return ":000000 100777 000 111 A\0file1.txt\0";
+      return "";
+    };
+    verifyPreCommitScope(sampleCapsule, "/tmp", mockGit);
+  });
+
+  assertNegative("NEG-INDEX-05: git diff-index returns unknown status", "UNKNOWN_DIFF_INDEX_STATUS_REJECTED", () => {
+    const mockGit = (args) => {
+      if (args[0] === "status") return "A  file1.txt\0A  file2.txt\0A  file3.txt\0";
+      if (args[0] === "diff-index") return ":000000 100644 000 111 Z\0file1.txt\0";
+      return "";
+    };
+    verifyPreCommitScope(sampleCapsule, "/tmp", mockGit);
+  });
+
+  assertNegative("NEG-FS-01: Expected untracked file is a symlink", "SYMLINK_OBJECT_REJECTED", () => {
+    const tmpDir = path.join("/tmp", `test-fs-symlink-${Date.now()}`);
+    fs.mkdirSync(tmpDir, { recursive: true });
+    try {
+      const target = path.join(tmpDir, "real.txt");
+      fs.writeFileSync(target, "real content\n");
+      const symlinkPath = path.join(tmpDir, "symlink_file.txt");
+      fs.symlinkSync(target, symlinkPath);
+      validatePath("symlink_file.txt", tmpDir);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  assertNegative("NEG-FS-02: Expected file has a symlink ancestor", "SYMLINK_ANCESTOR_REJECTED", () => {
+    const tmpDir = path.join("/tmp", `test-fs-ancestor-${Date.now()}`);
+    fs.mkdirSync(tmpDir, { recursive: true });
+    try {
+      const realSubdir = path.join(tmpDir, "real_dir");
+      fs.mkdirSync(realSubdir);
+      fs.writeFileSync(path.join(realSubdir, "test.txt"), "hello\n");
+      const symlinkDir = path.join(tmpDir, "link_dir");
+      fs.symlinkSync(realSubdir, symlinkDir);
+      validatePath("link_dir/test.txt", tmpDir);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  assertNegative("NEG-FS-03: Filesystem metadata lookup fails on path escape", "UNTRUSTED_PATH_REJECTED", () => {
     validatePath("../../etc/passwd", "/tmp");
   });
 
-  assertNegative("SEC-NEG-14: Capsule path escapes repository", "CAPSULE_PATH_ESCAPE_REJECTED", () => {
-    validateCliCapsulePath("/outside/repo/CAP-001.json", "/tmp/repo");
+  assertNegative("NEG-CLI-01: Capsule file is a symlink pointing outside the repository", "SYMLINK_CAPSULE_REJECTED", () => {
+    const tmpDir = path.join("/tmp", `test-cli-symlink-${Date.now()}`);
+    const capDir = path.join(tmpDir, ".synthesis", "task-capsules");
+    fs.mkdirSync(capDir, { recursive: true });
+    try {
+      const extTarget = "/tmp/external-cap.json";
+      fs.writeFileSync(extTarget, JSON.stringify({ payload: { capsule_id: "CAP-EXTERNAL" } }));
+      const symlinkCap = path.join(capDir, "CAP-EXTERNAL.json");
+      fs.symlinkSync(extTarget, symlinkCap);
+      validateCliCapsulePath(".synthesis/task-capsules/CAP-EXTERNAL.json", tmpDir);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 
-  assertNegative("SEC-NEG-15: Unexpected staged/unstaged combination", "UNEXPECTED_UNSTAGED_MODIFICATION_REJECTED", () => {
-    const mockGit = (args) => {
-      if (args[0] === "status") {
-        return "A  file1.txt\0 M forbidden.txt\0";
-      }
-      return "";
-    };
-    verifyPreCommitScope(sampleCapsule, "/tmp", mockGit);
+  assertNegative("NEG-CLI-02: Capsule directory contains a symlink", "SYMLINK_ANCESTOR_REJECTED", () => {
+    const tmpDir = path.join("/tmp", `test-cli-dirlink-${Date.now()}`);
+    const realDir = path.join(tmpDir, "real_capsules");
+    fs.mkdirSync(realDir, { recursive: true });
+    fs.writeFileSync(path.join(realDir, "CAP-001.json"), JSON.stringify({ payload: { capsule_id: "CAP-001" } }));
+    const synDir = path.join(tmpDir, ".synthesis");
+    fs.mkdirSync(synDir, { recursive: true });
+    try {
+      fs.symlinkSync(realDir, path.join(synDir, "task-capsules"));
+      validateCliCapsulePath(".synthesis/task-capsules/CAP-001.json", tmpDir);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 
-  assertNegative("SEC-NEG-16: Missing or failing Git executable", "GIT_EXECUTION_FAILURE", () => {
-    const failingGit = () => {
-      throw new Error("GIT_EXECUTION_FAILURE: git executable not found");
-    };
-    verifyPreCommitScope(sampleCapsule, "/tmp", failingGit);
+  assertNegative("NEG-CLI-03: Mixed --self-test and --post-commit", "INVALID_CLI_INVOCATION_REJECTED", () => {
+    handleCliArguments(["--self-test", "--post-commit", "cap.json", baseSha, headSha], "/tmp");
+  });
+
+  assertNegative("NEG-CLI-04: Valid --pre-commit followed by unexpected extra arguments", "INVALID_CLI_INVOCATION_REJECTED", () => {
+    handleCliArguments(["--pre-commit", "cap.json", "--extra-arg"], "/tmp");
+  });
+
+  assertNegative("NEG-CLI-05: Malformed or substituted capsule identity", "CAPSULE_IDENTITY_MISMATCH_REJECTED", () => {
+    const tmpDir = path.join("/tmp", `test-cli-idmismatch-${Date.now()}`);
+    const capDir = path.join(tmpDir, ".synthesis", "task-capsules");
+    fs.mkdirSync(capDir, { recursive: true });
+    try {
+      const capFile = path.join(capDir, "CAP-ORIGINAL.json");
+      fs.writeFileSync(capFile, JSON.stringify({ payload: { capsule_id: "CAP-SUBSTITUTED" } }));
+      validateCliCapsulePath(".synthesis/task-capsules/CAP-ORIGINAL.json", tmpDir);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 
   // --- REAL GIT FIXTURE TEST ---
@@ -998,26 +1177,37 @@ export function runSelfTests() {
 }
 
 /**
- * Validates CLI capsule path argument.
+ * Strict CLI argument grammar handler.
  */
-export function validateCliCapsulePath(capsulePath, repoRoot) {
-  if (!capsulePath || typeof capsulePath !== "string") {
-    throw new Error("CAPSULE_PATH_INVALID_REJECTED: Capsule path must be a non-empty string");
+export function handleCliArguments(args, repoRoot) {
+  if (args.length === 1 && args[0] === "--self-test") {
+    runSelfTests();
+    return { mode: "self-test", success: true };
   }
 
-  const normalizedRepoRoot = path.resolve(repoRoot);
-  const resolved = path.resolve(repoRoot, capsulePath);
-
-  if (!resolved.startsWith(normalizedRepoRoot + path.sep)) {
-    throw new Error(`CAPSULE_PATH_ESCAPE_REJECTED: Capsule path escapes repository root: ${capsulePath}`);
+  if (args.length === 2 && args[0] === "--pre-commit") {
+    const { capsule } = validateCliCapsulePath(args[1], repoRoot);
+    const res = verifyPreCommitScope(capsule, repoRoot);
+    console.log("PRE_COMMIT_SCOPE_CHECK: PASS", res);
+    return { mode: "pre-commit", success: true, result: res };
   }
 
-  const rel = path.relative(normalizedRepoRoot, resolved);
-  if (!rel.startsWith(".synthesis/task-capsules/") || !rel.endsWith(".json")) {
-    throw new Error(`CAPSULE_PATH_INVALID_REJECTED: Capsule path must be in .synthesis/task-capsules/*.json: ${rel}`);
+  if (args.length === 4 && args[0] === "--post-commit") {
+    const rawPath = args[1];
+    const baseSha = args[2];
+    const headSha = args[3];
+
+    if (!/^[0-9a-f]{40}$/.test(baseSha) || !/^[0-9a-f]{40}$/.test(headSha)) {
+      throw new Error(`INVALID_SHA_SYNTAX_REJECTED: baseSha or headSha is not a valid 40-character hex SHA`);
+    }
+
+    const { capsule } = validateCliCapsulePath(rawPath, repoRoot);
+    const res = verifyPostCommitDiff(capsule, baseSha, headSha, repoRoot);
+    console.log("POST_COMMIT_DIFF_CHECK: PASS", res);
+    return { mode: "post-commit", success: true, result: res };
   }
 
-  return resolved;
+  throw new Error(`INVALID_CLI_INVOCATION_REJECTED: Invalid CLI invocation: ${args.join(" ")}`);
 }
 
 // --- CLI Execution ---
@@ -1025,48 +1215,13 @@ function main() {
   const args = process.argv.slice(2);
   const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
-  if (args.includes("--self-test")) {
-    runSelfTests();
+  try {
+    handleCliArguments(args, repoRoot);
     process.exit(0);
-  }
-
-  if (args.includes("--pre-commit")) {
-    const idx = args.indexOf("--pre-commit");
-    const rawPath = args[idx + 1];
-    if (!rawPath) {
-      console.error("Error: --pre-commit requires <capsule-path>");
-      process.exit(1);
-    }
-    const resolvedPath = validateCliCapsulePath(rawPath, repoRoot);
-    const capsule = JSON.parse(fs.readFileSync(resolvedPath, "utf-8"));
-    const res = verifyPreCommitScope(capsule, repoRoot);
-    console.log("PRE_COMMIT_SCOPE_CHECK: PASS", res);
-    process.exit(0);
-  }
-
-  if (args.includes("--post-commit")) {
-    const idx = args.indexOf("--post-commit");
-    const rawPath = args[idx + 1];
-    const baseSha = args[idx + 2];
-    const headSha = args[idx + 3];
-    if (!rawPath || !baseSha || !headSha) {
-      console.error("Error: --post-commit requires <capsule-path> <base-sha> <head-sha>");
-      process.exit(1);
-    }
-    const resolvedPath = validateCliCapsulePath(rawPath, repoRoot);
-    const capsule = JSON.parse(fs.readFileSync(resolvedPath, "utf-8"));
-    const res = verifyPostCommitDiff(capsule, baseSha, headSha, repoRoot);
-    console.log("POST_COMMIT_DIFF_CHECK: PASS", res);
-    process.exit(0);
-  }
-
-  // Reject unknown CLI options
-  if (args.length > 0) {
-    console.error(`UNKNOWN_CLI_OPTION_REJECTED: Unknown CLI arguments: ${args.join(" ")}`);
+  } catch (err) {
+    console.error(`Error: ${err.message}`);
     process.exit(1);
   }
-
-  console.log("Usage: node scripts/governance/verify_scope_diff_firewall.mjs --self-test | --pre-commit <capsule> | --post-commit <capsule> <base> <head>");
 }
 
 if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]))) {
