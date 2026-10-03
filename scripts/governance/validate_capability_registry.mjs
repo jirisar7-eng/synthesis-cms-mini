@@ -507,8 +507,8 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
       superseded_by: null
     });
     const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: false });
-    if (res.valid && res.totalCapabilities === 4) {
-      passPositive("Valid 4-node acyclic capability DAG passes validation");
+    if (res.valid && res.totalCapabilities === clone.capabilities.length) {
+      passPositive(`Valid multi-node acyclic capability DAG passes validation (${res.totalCapabilities} nodes)`);
     } else {
       throw new Error(`Expected valid DAG to pass, got: ${res.stage}: ${res.error}`);
     }

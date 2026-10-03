@@ -66,6 +66,25 @@
       "origin_payload_sha256": null,
       "introducing_commit_sha": null,
       "superseded_by": null
+    },
+    {
+      "capability_id": "gov.scope.diff_firewall",
+      "name": "Scope & Diff Firewall",
+      "description": "Deterministic validation of declared command write scope against actual Git index, working-tree and committed-diff evidence, with context-aware governance CI integration.",
+      "layer": "Stable Contracts",
+      "owner_domain": "gov.scope",
+      "status": "PROPOSED",
+      "head_revision": 1,
+      "legacy_aliases": [],
+      "governing_contracts": [
+        "command-capsule.v1"
+      ],
+      "provides": [],
+      "requires": [],
+      "origin_capsule_id": "CAP-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-003",
+      "origin_payload_sha256": "2939099d99a746e75c423adcb075bff7c89de0043a4a7c1fedfbde7f1d58bc43",
+      "introducing_commit_sha": null,
+      "superseded_by": null
     }
   ]
 }
