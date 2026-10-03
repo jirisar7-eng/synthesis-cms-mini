@@ -7,7 +7,7 @@
  *
  * Validates the machine-readable Capability Registry against structural schema rules,
  * semantic integrity, typed dependencies, directed graph acyclicity (DAG), lifecycle/provenance
- * consistency, and historical immutable alias mappings.
+ * consistency, fail-closed activation guards, and historical immutable alias mappings.
  */
 
 import fs from "node:fs";
@@ -106,6 +106,14 @@ export function validateCapabilityRegistry(registryObj, options = {}) {
   }
   if (!VALID_ROOT_STATUSES.has(registryObj.status)) {
     return { valid: false, stage: "INVALID_ROOT_STATUS", error: `Invalid root status: "${registryObj.status}"` };
+  }
+  // Fail-closed guard: root registry cannot be declared ACTIVE without global activation evidence
+  if (registryObj.status === "ACTIVE") {
+    return {
+      valid: false,
+      stage: "REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED",
+      error: "Root registry cannot be declared ACTIVE until an independently verifiable global activation protocol is established."
+    };
   }
   if (!Array.isArray(registryObj.capabilities)) {
     return { valid: false, stage: "CAPABILITIES_NOT_ARRAY", error: "capabilities must be an array." };
@@ -310,11 +318,21 @@ export function validateCapabilityRegistry(registryObj, options = {}) {
       return { valid: false, stage: "REPLACED_WITHOUT_SUPERSEDED_BY", error: `Capability "${capId}" has status REPLACED but superseded_by is null.` };
     }
 
-    // 4.2 Lifecycle vs Provenance (reject forged ACTIVE state)
+    // 4.2 Lifecycle vs Provenance (reject forged or unverified ACTIVE state)
     if (entry.status === "ACTIVE") {
       if (!entry.origin_capsule_id || !entry.origin_payload_sha256 || !entry.introducing_commit_sha) {
-        return { valid: false, stage: "FORGED_ACTIVE_PROVENANCE", error: `Capability "${capId}" is declared ACTIVE without required complete provenance evidence (origin_capsule_id, origin_payload_sha256, introducing_commit_sha).` };
+        return {
+          valid: false,
+          stage: "FORGED_ACTIVE_PROVENANCE",
+          error: `Capability "${capId}" is declared ACTIVE without required complete provenance evidence (origin_capsule_id, origin_payload_sha256, introducing_commit_sha).`
+        };
       }
+      // Fail-closed guard: effective ACTIVE status requires external activation proof protocol
+      return {
+        valid: false,
+        stage: "ACTIVE_EXTERNAL_PROOF_REQUIRED",
+        error: `Capability "${capId}" claims ACTIVE status, but independent runtime/governance activation evidence protocol is not yet active during bootstrap.`
+      };
     }
 
     // 4.3 Origin capsule verification against filesystem if present
@@ -611,8 +629,8 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
     }
   } catch (err) { failTest("Negative NEG-16: incorrect payload hash", err); }
 
-  // NEG-17: Forged ACTIVE state without complete provenance
-  assertNegative("NEG-17", "Forged ACTIVE status without provenance", c => {
+  // NEG-17: Forged ACTIVE state without complete provenance fields
+  assertNegative("NEG-17", "Forged ACTIVE status without provenance fields", c => {
     c.capabilities[0].status = "ACTIVE";
     c.capabilities[0].origin_capsule_id = null;
   }, "FORGED_ACTIVE_PROVENANCE");
@@ -642,6 +660,27 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
       throw new Error("Strict parser accepted duplicate property key");
     }
   } catch (err) { failTest("Negative NEG-20: duplicate property", err); }
+
+  // NEG-21: ACTIVE with PENDING_MERGE rejected without external activation proof
+  assertNegative("NEG-21", "ACTIVE with PENDING_MERGE rejected (ACTIVE_EXTERNAL_PROOF_REQUIRED)", c => {
+    c.capabilities[0].status = "ACTIVE";
+    c.capabilities[0].origin_capsule_id = "CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010";
+    c.capabilities[0].origin_payload_sha256 = "c656360c793ff0e81a3089dbe807e7b8bca9826f4325a77f24794e7751f7bb9c";
+    c.capabilities[0].introducing_commit_sha = "PENDING_MERGE";
+  }, "ACTIVE_EXTERNAL_PROOF_REQUIRED");
+
+  // NEG-22: ACTIVE with plausible commit SHA and existing capsule rejected without external proof
+  assertNegative("NEG-22", "ACTIVE with plausible commit SHA rejected (ACTIVE_EXTERNAL_PROOF_REQUIRED)", c => {
+    c.capabilities[0].status = "ACTIVE";
+    c.capabilities[0].origin_capsule_id = "CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010";
+    c.capabilities[0].origin_payload_sha256 = "c656360c793ff0e81a3089dbe807e7b8bca9826f4325a77f24794e7751f7bb9c";
+    c.capabilities[0].introducing_commit_sha = "6dd9f5c8d9632f86c636102949a1edfaff69d1c5";
+  }, "ACTIVE_EXTERNAL_PROOF_REQUIRED");
+
+  // NEG-23: Root status ACTIVE rejected without global activation evidence
+  assertNegative("NEG-23", "Root status ACTIVE rejected (REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED)", c => {
+    c.status = "ACTIVE";
+  }, "REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED");
 
   console.log(`[CAPABILITY-REGISTRY-VALIDATOR] Summary: ${positivePassed} positive passed, ${negativePassed} negative passed, ${failed} failed.`);
   return { positivePassed, negativePassed, failed, ok: failed === 0 };
@@ -675,6 +714,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename
       console.log(`TOTAL_LEGACY_ALIASES: ${res.totalAliases}`);
       console.log("DEPENDENCY_DAG_VERIFICATION: PASS");
       console.log("HISTORICAL_ALIAS_MAPPING: PASS");
+      console.log("FAIL_CLOSED_ACTIVE_GUARD: ENFORCED");
       console.log("SCHEMA_FULL_DRAFT_2020_12_VALIDATION: NOT_EXECUTED");
       process.exit(0);
     } else {
