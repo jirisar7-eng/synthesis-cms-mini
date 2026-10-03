@@ -848,6 +848,7 @@ export const REQUIRED_TEST_CASES = [
   { id: 'POS-07', name: 'POSITIVE 7: CLI standalone --help succeeds with exit 0', type: 'POSITIVE_CLI' },
   { id: 'POS-08', name: 'POSITIVE 8: CLI valid paired checkpoint flags succeed with exit 0', type: 'POSITIVE_CLI' },
   { id: 'POS-09', name: 'POSITIVE 9: Harness control verifies thrown exception in negative test fails assertNegative', type: 'POSITIVE' },
+  { id: 'POS-10', name: 'POSITIVE 10: Lineage topology direct builder root with valid child passes', type: 'POSITIVE' },
 
   // --- NEGATIVE TESTS (104) ---
   { id: 'NEG-01', name: 'NEGATIVE 1: Unrecorded 3rd capsule rejected', type: 'NEGATIVE' },
@@ -953,7 +954,11 @@ export const REQUIRED_TEST_CASES = [
   { id: 'NEG-101', name: 'NEGATIVE 101: CLI incomplete pair rejected with exit 1', type: 'NEGATIVE_CLI' },
   { id: 'NEG-102', name: 'NEGATIVE 102: CLI duplicate --require-trusted-prior flag rejected with exit 1', type: 'NEGATIVE_CLI' },
   { id: 'NEG-103', name: 'NEGATIVE 103: CLI surplus argument after --self-test rejected with exit 1', type: 'NEGATIVE_CLI' },
-  { id: 'NEG-104', name: 'NEGATIVE 104: CLI unknown flag rejected with exit 1', type: 'NEGATIVE_CLI' }
+  { id: 'NEG-104', name: 'NEGATIVE 104: CLI unknown flag rejected with exit 1', type: 'NEGATIVE_CLI' },
+  { id: 'NEG-105', name: 'NEGATIVE 105: Attestation recorded file_size_bytes mismatch rejected', type: 'NEGATIVE' },
+  { id: 'NEG-106', name: 'NEGATIVE 106: Attestation recorded raw_file_sha256 mismatch rejected', type: 'NEGATIVE' },
+  { id: 'NEG-107', name: 'NEGATIVE 107: Attestation recorded payload_sha256 mismatch rejected', type: 'NEGATIVE' },
+  { id: 'NEG-108', name: 'NEGATIVE 108: Attestation recorded git_blob_sha mismatch rejected', type: 'NEGATIVE' }
 ];
 
 export class TestHarness {
@@ -1355,6 +1360,46 @@ export function runSelfTests(repoRoot) {
     }
     return { valid: false, error: 'Harness control did not properly fail on thrown exception' };
   });
+  function buildTopologyGraphNode(capsuleId, commandId, parentRefs = []) {
+    const payload = {
+      schema_version: '1.0.0',
+      capsule_id: capsuleId,
+      command_id: commandId,
+      lineage: {
+        genesis_anchor_reference: {
+          path: '.synthesis/lineage/genesis.json',
+          pinned_sha256: PINNED_GENESIS_SHA256
+        },
+        parent_capsules: parentRefs.map(p => ({
+          capsule_id: p.capsule_id,
+          command_id: p.command_id,
+          payload_sha256: p.payload_sha256,
+          relationship_type: p.relationship_type || 'LINEAR_PARENT'
+        }))
+      }
+    };
+    const payloadHash = computePayloadSha256(payload).sha256Hex;
+    return {
+      capsule: {
+        payload
+      },
+      payloadHash
+    };
+  }
+
+  // POS-10: Lineage topology builder root with valid child passes -> PASS
+  harness.assertPositive('POS-10', 'POSITIVE 10: Lineage topology direct builder root with valid child passes', () => {
+    const root = buildTopologyGraphNode('CAP-ROOT', 'CMD-ROOT', []);
+    const child = buildTopologyGraphNode('CAP-CHILD', 'CMD-CHILD', [{ capsule_id: 'CAP-ROOT', command_id: 'CMD-ROOT', payload_sha256: root.payloadHash, relationship_type: 'LINEAR_PARENT' }]);
+    const graph = new Map([['CAP-ROOT', root], ['CAP-CHILD', child]]);
+    try {
+      verifyLineageGraph(graph);
+      return { valid: true };
+    } catch (err) {
+      return { valid: false, stage: 'UNEXPECTED_EXCEPTION', error: err.message };
+    }
+  });
+
 
   // --- NEGATIVE TESTS (104) ---
 
@@ -2754,71 +2799,58 @@ export function runSelfTests(repoRoot) {
     }
   }, 'CAPSULES_DIR_READ_FAILED');
 
-  // NEG-90: Lineage topology self-parent loop -> LINEAGE_GRAPH_INVALID
+  // NEG-90: Lineage topology self-parent loop -> LINEAGE_GRAPH_INVALID (SELF_PARENT_REFERENCE)
   harness.assertNegative('NEG-90', 'NEGATIVE 90: Lineage topology self-parent loop rejected', () => {
-    const graph = new Map();
-    graph.set('CAP-01', {
-      capsule_id: 'CAP-01',
-      command_id: 'CMD-01',
-      payload_sha256: 'a'.repeat(64),
-      parent_capsules: [{ capsule_id: 'CAP-01', command_id: 'CMD-01', payload_sha256: 'a'.repeat(64), relationship_type: 'LINEAR_PARENT' }]
-    });
+    const root = buildTopologyGraphNode('CAP-ROOT', 'CMD-ROOT', []);
+    const selfNode = buildTopologyGraphNode('CAP-SELF', 'CMD-SELF', [{ capsule_id: 'CAP-SELF', command_id: 'CMD-SELF', payload_sha256: 'a'.repeat(64), relationship_type: 'LINEAR_PARENT' }]);
+    const graph = new Map([['CAP-ROOT', root], ['CAP-SELF', selfNode]]);
     try {
       verifyLineageGraph(graph);
       return { valid: true };
     } catch (err) {
-      return { valid: false, stage: 'LINEAGE_GRAPH_INVALID', error: err.message };
+      if (err.message.startsWith('SELF_PARENT_REFERENCE')) {
+        return { valid: false, stage: 'LINEAGE_GRAPH_INVALID', error: err.message };
+      }
+      throw err;
     }
-  }, 'LINEAGE_GRAPH_INVALID');
+  }, 'LINEAGE_GRAPH_INVALID', 'SELF_PARENT_REFERENCE');
 
-  // NEG-91: Lineage topology graph cycle -> LINEAGE_GRAPH_INVALID
+  // NEG-91: Lineage topology graph cycle -> LINEAGE_GRAPH_INVALID (GRAPH_CYCLE_DETECTED)
   harness.assertNegative('NEG-91', 'NEGATIVE 91: Lineage topology graph cycle rejected', () => {
-    const graph = new Map();
-    graph.set('CAP-01', {
-      capsule_id: 'CAP-01',
-      command_id: 'CMD-01',
-      payload_sha256: 'a'.repeat(64),
-      parent_capsules: [{ capsule_id: 'CAP-02', command_id: 'CMD-02', payload_sha256: 'b'.repeat(64), relationship_type: 'LINEAR_PARENT' }]
-    });
-    graph.set('CAP-02', {
-      capsule_id: 'CAP-02',
-      command_id: 'CMD-02',
-      payload_sha256: 'b'.repeat(64),
-      parent_capsules: [{ capsule_id: 'CAP-01', command_id: 'CMD-01', payload_sha256: 'a'.repeat(64), relationship_type: 'LINEAR_PARENT' }]
-    });
+    const root = buildTopologyGraphNode('CAP-ROOT', 'CMD-ROOT', []);
+    const nodeX = buildTopologyGraphNode('CAP-X', 'CMD-X', [{ capsule_id: 'CAP-Y', command_id: 'CMD-Y', payload_sha256: '', relationship_type: 'LINEAR_PARENT' }]);
+    const nodeY = buildTopologyGraphNode('CAP-Y', 'CMD-Y', [{ capsule_id: 'CAP-X', command_id: 'CMD-X', payload_sha256: nodeX.payloadHash, relationship_type: 'LINEAR_PARENT' }]);
+    nodeX.capsule.payload.lineage.parent_capsules[0].payload_sha256 = nodeY.payloadHash;
+    const graph = new Map([['CAP-ROOT', root], ['CAP-X', nodeX], ['CAP-Y', nodeY]]);
     try {
       verifyLineageGraph(graph);
       return { valid: true };
     } catch (err) {
-      return { valid: false, stage: 'LINEAGE_GRAPH_INVALID', error: err.message };
+      if (err.message.startsWith('GRAPH_CYCLE_DETECTED')) {
+        return { valid: false, stage: 'LINEAGE_GRAPH_INVALID', error: err.message };
+      }
+      throw err;
     }
-  }, 'LINEAGE_GRAPH_INVALID');
+  }, 'LINEAGE_GRAPH_INVALID', 'GRAPH_CYCLE_DETECTED');
 
-  // NEG-92: Lineage topology duplicate parent edge -> LINEAGE_GRAPH_INVALID
+  // NEG-92: Lineage topology duplicate parent edge -> LINEAGE_GRAPH_INVALID (DUPLICATE_PARENT_EDGE)
   harness.assertNegative('NEG-92', 'NEGATIVE 92: Lineage topology duplicate parent edge rejected', () => {
-    const graph = new Map();
-    graph.set('CAP-01', {
-      capsule_id: 'CAP-01',
-      command_id: 'CMD-01',
-      payload_sha256: 'a'.repeat(64),
-      parent_capsules: []
-    });
-    graph.set('CAP-02', {
-      capsule_id: 'CAP-02',
-      command_id: 'CMD-02',
-      payload_sha256: 'b'.repeat(64),
-      parent_capsules: [
-        { capsule_id: 'CAP-01', command_id: 'CMD-01', payload_sha256: 'a'.repeat(64), relationship_type: 'LINEAR_PARENT' },
-        { capsule_id: 'CAP-01', command_id: 'CMD-01', payload_sha256: 'a'.repeat(64), relationship_type: 'LINEAR_PARENT' }
-      ]
-    });
+    const root = buildTopologyGraphNode('CAP-ROOT', 'CMD-ROOT', []);
+    const dupChild = buildTopologyGraphNode('CAP-CHILD', 'CMD-CHILD', [
+      { capsule_id: 'CAP-ROOT', command_id: 'CMD-ROOT', payload_sha256: root.payloadHash, relationship_type: 'LINEAR_PARENT' },
+      { capsule_id: 'CAP-ROOT', command_id: 'CMD-ROOT', payload_sha256: root.payloadHash, relationship_type: 'LINEAR_PARENT' }
+    ]);
+    const graph = new Map([['CAP-ROOT', root], ['CAP-CHILD', dupChild]]);
     try {
       verifyLineageGraph(graph);
       return { valid: true };
     } catch (err) {
-      return { valid: false, stage: 'LINEAGE_GRAPH_INVALID', error: err.message };
+      if (err.message.startsWith('DUPLICATE_PARENT_EDGE')) {
+        return { valid: false, stage: 'LINEAGE_GRAPH_INVALID', error: err.message };
+      }
+      throw err;
     }
-  }, 'LINEAGE_GRAPH_INVALID');
+  }, 'LINEAGE_GRAPH_INVALID', 'DUPLICATE_PARENT_EDGE');
 
   // NEG-93: Duplicate capsule ID in chain -> DUPLICATE_CAPSULE_ID_IN_CHAIN (tested via simulated duplicate record in loadAttestationChain)
   harness.assertNegative('NEG-93', 'NEGATIVE 93: Duplicate capsule ID in chain rejected', () => {
@@ -2885,6 +2917,67 @@ export function runSelfTests(repoRoot) {
   harness.assertCliNegative('NEG-102', 'NEGATIVE 102: CLI duplicate --require-trusted-prior flag rejected with exit 1', ['--verify-all', '--require-trusted-prior', '--require-trusted-prior']);
   harness.assertCliNegative('NEG-103', 'NEGATIVE 103: CLI surplus argument after --self-test rejected with exit 1', ['--self-test', '--extra']);
   harness.assertCliNegative('NEG-104', 'NEGATIVE 104: CLI unknown flag rejected with exit 1', ['--unrecognized-flag']);
+
+  // NEG-105: Attestation recorded file_size_bytes mismatch -> FILE_SIZE_MISMATCH
+  harness.assertNegative('NEG-105', 'NEGATIVE 105: Attestation recorded file_size_bytes mismatch rejected', () => {
+    const tmpDir = setupTestEnv();
+    try {
+      const third = addSyntheticThirdCapsule(tmpDir);
+      const p = path.join(tmpDir, third.attestationRelPath);
+      const att = JSON.parse(fs.readFileSync(p, 'utf8'));
+      att.new_capsule.file_size_bytes = att.new_capsule.file_size_bytes + 10;
+      fs.writeFileSync(p, JSON.stringify(att, null, 2), 'utf8');
+      return verifyAttestationChain(tmpDir);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }, 'FILE_SIZE_MISMATCH');
+
+  // NEG-106: Attestation recorded raw_file_sha256 mismatch -> RAW_FILE_SHA256_MISMATCH
+  harness.assertNegative('NEG-106', 'NEGATIVE 106: Attestation recorded raw_file_sha256 mismatch rejected', () => {
+    const tmpDir = setupTestEnv();
+    try {
+      const third = addSyntheticThirdCapsule(tmpDir);
+      const p = path.join(tmpDir, third.attestationRelPath);
+      const att = JSON.parse(fs.readFileSync(p, 'utf8'));
+      att.new_capsule.raw_file_sha256 = '0'.repeat(64);
+      fs.writeFileSync(p, JSON.stringify(att, null, 2), 'utf8');
+      return verifyAttestationChain(tmpDir);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }, 'RAW_FILE_SHA256_MISMATCH');
+
+  // NEG-107: Attestation recorded payload_sha256 mismatch -> PAYLOAD_SHA256_MISMATCH
+  harness.assertNegative('NEG-107', 'NEGATIVE 107: Attestation recorded payload_sha256 mismatch rejected', () => {
+    const tmpDir = setupTestEnv();
+    try {
+      const third = addSyntheticThirdCapsule(tmpDir);
+      const p = path.join(tmpDir, third.attestationRelPath);
+      const att = JSON.parse(fs.readFileSync(p, 'utf8'));
+      att.new_capsule.payload_sha256 = '1'.repeat(64);
+      fs.writeFileSync(p, JSON.stringify(att, null, 2), 'utf8');
+      return verifyAttestationChain(tmpDir);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }, 'PAYLOAD_SHA256_MISMATCH');
+
+  // NEG-108: Attestation recorded git_blob_sha mismatch -> GIT_BLOB_SHA_MISMATCH
+  harness.assertNegative('NEG-108', 'NEGATIVE 108: Attestation recorded git_blob_sha mismatch rejected', () => {
+    const tmpDir = setupTestEnv();
+    try {
+      const third = addSyntheticThirdCapsule(tmpDir);
+      const p = path.join(tmpDir, third.attestationRelPath);
+      const att = JSON.parse(fs.readFileSync(p, 'utf8'));
+      att.new_capsule.git_blob_sha = '2'.repeat(40);
+      fs.writeFileSync(p, JSON.stringify(att, null, 2), 'utf8');
+      return verifyAttestationChain(tmpDir);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }, 'GIT_BLOB_SHA_MISMATCH');
+
 
   return harness.getResults();
 }
