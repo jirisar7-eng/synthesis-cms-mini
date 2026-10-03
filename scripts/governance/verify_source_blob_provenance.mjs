@@ -3,19 +3,18 @@
  * verify_source_blob_provenance.mjs
  *
  * Deterministic, fail-closed Git source-blob provenance verifier for Synthesis CMS mini.
- * Enforces:
- *   1. Historical capsules (005-011): source_blob_shas must match either containing commit
- *      or parent commit Git tree, unless explicitly covered by the tamper-evident
- *      CMD-013 historical impact manifest (source-blob-impact-20261003.json).
- *   2. Prospective capsules (>= 013): source_blob_shas MUST refer to verified blobs
- *      existing in the parent Git commit tree. Historical waiver is strictly prohibited.
- *   3. Strict validation of manifest SHA-256, format, and 1-to-1 exception accounting.
+ * Security Hardening (CMD-015):
+ *   - Shell-free child process execution using execFileSync / spawnSync without shell interpolation.
+ *   - Strict validation of untrusted file paths, Git revisions, and capsule filenames.
+ *   - Fail-closed Git execution: isShallow() errors fail closed.
+ *   - Strict separation between production committed verification (--verify-all) and
+ *     local candidate verification (--verify-candidate).
  */
 
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
@@ -33,6 +32,69 @@ export const HISTORICAL_CAPSULE_SET = new Set([
   "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009",
   "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-011"
 ]);
+
+/**
+ * Validates untrusted source paths to prevent shell injection, directory traversal,
+ * control character injection, and option injection.
+ */
+export function validateSourcePath(p) {
+  if (typeof p !== "string" || p.length === 0) {
+    throw new Error("UNTRUSTED_PATH_REJECTED: Source path must be a non-empty string");
+  }
+  for (let i = 0; i < p.length; i++) {
+    const code = p.charCodeAt(i);
+    if (code < 32 || code === 127) {
+      throw new Error(`UNTRUSTED_PATH_REJECTED: Control character detected in path: ${JSON.stringify(p)}`);
+    }
+  }
+  if (/[\$\;\&\|\`\<\>\"\'\\\n\r\t\*\?\[\]\!\(\)]/.test(p)) {
+    throw new Error(`UNTRUSTED_PATH_REJECTED: Shell metacharacter detected in path: ${p}`);
+  }
+  if (path.isAbsolute(p) || p.startsWith("/")) {
+    throw new Error(`UNTRUSTED_PATH_REJECTED: Absolute paths forbidden: ${p}`);
+  }
+  if (p.startsWith("-")) {
+    throw new Error(`UNTRUSTED_PATH_REJECTED: Option injection forbidden: ${p}`);
+  }
+  const segments = p.split("/");
+  if (segments.some(seg => seg === ".." || seg === ".")) {
+    throw new Error(`UNTRUSTED_PATH_REJECTED: Traversal segments forbidden: ${p}`);
+  }
+  return true;
+}
+
+/**
+ * Validates capsule filenames.
+ */
+export function validateCapsuleFilename(filename) {
+  if (typeof filename !== "string" || filename.length === 0) {
+    throw new Error("UNSAFE_CAPSULE_FILENAME: Filename must be non-empty string");
+  }
+  if (path.isAbsolute(filename) || filename.includes("..")) {
+    throw new Error(`UNSAFE_CAPSULE_FILENAME: Path traversal in capsule filename: ${filename}`);
+  }
+  const base = path.basename(filename);
+  if (!/^CAP-[A-Z0-9_-]+\.json$/.test(base)) {
+    throw new Error(`UNSAFE_CAPSULE_FILENAME: Unsafe or malformed capsule filename: ${base}`);
+  }
+  return true;
+}
+
+/**
+ * Validates Git revision selectors.
+ */
+export function validateGitRevision(rev) {
+  if (typeof rev !== "string" || rev.length === 0) {
+    throw new Error("INVALID_GIT_REVISION: Revision must be a non-empty string");
+  }
+  if (rev.startsWith("-")) {
+    throw new Error(`INVALID_GIT_REVISION: Option injection forbidden in revision: ${rev}`);
+  }
+  if (!/^[a-zA-Z0-9_\-\.\^\~]+$/.test(rev)) {
+    throw new Error(`INVALID_GIT_REVISION: Invalid characters in revision selector: ${rev}`);
+  }
+  return true;
+}
 
 /**
  * Locates the repository root by searching upward for .git or .synthesis.
@@ -53,38 +115,79 @@ export function locateRepositoryRoot(startDir = __dirname) {
 }
 
 /**
- * Default git runner executing git commands in repoRoot.
+ * Default git runner executing git commands via shell-free execFileSync.
  */
 export function defaultGitRunner(repoRoot) {
   return {
     revParse(rev) {
+      if (rev.includes(":")) {
+        const colonIdx = rev.indexOf(":");
+        const commitPart = rev.slice(0, colonIdx);
+        const pathPart = rev.slice(colonIdx + 1);
+        validateGitRevision(commitPart);
+        validateSourcePath(pathPart);
+      } else {
+        validateGitRevision(rev);
+      }
       try {
-        return execSync(`git -C "${repoRoot}" rev-parse ${rev}`, { stdio: ["pipe", "pipe", "ignore"] }).toString().trim();
+        const out = execFileSync("git", ["-C", repoRoot, "rev-parse", rev], {
+          stdio: ["pipe", "pipe", "pipe"],
+          encoding: "utf8"
+        });
+        return out.trim() || null;
       } catch {
         return null;
       }
     },
     catFileType(sha) {
+      if (!/^[a-f0-9]{40}$/.test(sha)) {
+        throw new Error(`INVALID_GIT_OBJECT_SHA: Malformed SHA: ${sha}`);
+      }
       try {
-        return execSync(`git -C "${repoRoot}" cat-file -t ${sha}`, { stdio: ["pipe", "pipe", "ignore"] }).toString().trim();
+        const out = execFileSync("git", ["-C", repoRoot, "cat-file", "-t", sha], {
+          stdio: ["pipe", "pipe", "pipe"],
+          encoding: "utf8"
+        });
+        return out.trim() || null;
       } catch {
         return null;
       }
     },
     getCommitForPath(relPath) {
+      validateSourcePath(relPath);
       try {
-        const out = execSync(`git -C "${repoRoot}" log -1 --pretty=format:%H -- "${relPath}"`, { stdio: ["pipe", "pipe", "ignore"] }).toString().trim();
-        return out || null;
+        const out = execFileSync("git", ["-C", repoRoot, "log", "-1", "--pretty=format:%H", "--", relPath], {
+          stdio: ["pipe", "pipe", "pipe"],
+          encoding: "utf8"
+        });
+        return out.trim() || null;
       } catch {
         return null;
       }
     },
     isShallow() {
       try {
-        const out = execSync(`git -C "${repoRoot}" rev-parse --is-shallow-repository`, { stdio: ["pipe", "pipe", "ignore"] }).toString().trim();
+        const out = execFileSync("git", ["-C", repoRoot, "rev-parse", "--is-shallow-repository"], {
+          stdio: ["pipe", "pipe", "pipe"],
+          encoding: "utf8"
+        }).trim();
+        if (out !== "true" && out !== "false") {
+          throw new Error(`Unexpected output from --is-shallow-repository: "${out}"`);
+        }
         return out === "true";
+      } catch (err) {
+        throw new Error(`GIT_COMMAND_FAILED: Failed to check shallow repository state: ${err.message}`);
+      }
+    },
+    listCommittedCapsules() {
+      try {
+        const out = execFileSync("git", ["-C", repoRoot, "ls-tree", "-r", "--name-only", "HEAD", ".synthesis/task-capsules"], {
+          stdio: ["pipe", "pipe", "pipe"],
+          encoding: "utf8"
+        });
+        return out.trim().split("\n").filter(f => f.endsWith(".json")).sort();
       } catch {
-        return false;
+        return [];
       }
     }
   };
@@ -171,8 +274,10 @@ export function verifyCapsuleSourceBlobs({
   git,
   manifestIndex,
   manifestUsedTracker = new Set(),
-  allowUncommittedCandidate = true
+  allowUncommittedCandidate = false
 }) {
+  validateCapsuleFilename(relPath);
+
   const capId = capsuleJson?.payload?.capsule_id;
   if (!capId) {
     throw new Error(`INVALID_CAPSULE: Missing payload.capsule_id in ${relPath}`);
@@ -180,21 +285,20 @@ export function verifyCapsuleSourceBlobs({
 
   const sourceBlobs = capsuleJson?.payload?.changes_and_evidence?.source_blob_shas;
   if (!sourceBlobs || typeof sourceBlobs !== "object") {
-    // Capsules without source_blob_shas (e.g. Genesis root 010) are valid
     return { capId, checkedCount: 0, exceptionsUsed: 0, passed: true };
   }
 
   // Find containing commit
-  let containingCommit = git.getCommitForPath(relPath);
+  const containingCommit = git.getCommitForPath(relPath);
   let parentCommit = null;
 
   if (!containingCommit) {
     if (!allowUncommittedCandidate) {
-      throw new Error(`UNCOMMITTED_CAPSULE: Capsule ${capId} has not been found in Git commit history`);
+      throw new Error(`COMMITTED_ONLY_PRODUCTION_GATE: Capsule ${capId} has not been found in Git commit history`);
     }
     parentCommit = git.revParse("HEAD");
     if (!parentCommit) {
-      throw new Error(`UNCOMMITTED_CAPSULE: Capsule ${capId} has not been found in Git commit history`);
+      throw new Error(`COMMITTED_ONLY_PRODUCTION_GATE: Unable to resolve parent HEAD commit for candidate ${capId}`);
     }
   } else {
     parentCommit = git.revParse(`${containingCommit}^`);
@@ -207,6 +311,9 @@ export function verifyCapsuleSourceBlobs({
   for (const [filePath, claimedBlob] of Object.entries(sourceBlobs)) {
     checkedCount++;
 
+    // Strict input validation
+    validateSourcePath(filePath);
+
     if (!/^[a-f0-9]{40}$/.test(claimedBlob)) {
       throw new Error(`MALFORMED_SOURCE_BLOB_SHA: Capsule ${capId} path ${filePath} has invalid SHA syntax: ${claimedBlob}`);
     }
@@ -215,23 +322,19 @@ export function verifyCapsuleSourceBlobs({
     const objType = git.catFileType(claimedBlob);
 
     if (isHistorical) {
-      // Historical rules: can match parent commit or containing commit
       const parentBlob = parentCommit ? git.revParse(`${parentCommit}:${filePath}`) : null;
-      const containingBlob = git.revParse(`${containingCommit}:${filePath}`);
+      const containingBlob = containingCommit ? git.revParse(`${containingCommit}:${filePath}`) : null;
 
       if (claimedBlob === parentBlob || claimedBlob === containingBlob) {
-        // Direct tree match
         continue;
       }
 
-      // Check impact manifest
       const pairKey = `${capId}::${filePath}`;
       const exception = manifestIndex ? manifestIndex.get(pairKey) : null;
       if (!exception) {
         throw new Error(`UNAUTHORIZED_SOURCE_BLOB_MISMATCH: Capsule ${capId} path ${filePath} claimed ${claimedBlob}, no authorized historical exception found`);
       }
 
-      // Verify exact fields match
       if (exception.claimed_git_blob_sha !== claimedBlob) {
         throw new Error(`EXCEPTION_CLAIMED_SHA_MISMATCH: Manifest expected ${exception.claimed_git_blob_sha}, capsule claimed ${claimedBlob}`);
       }
@@ -242,8 +345,6 @@ export function verifyCapsuleSourceBlobs({
       manifestUsedTracker.add(pairKey);
       exceptionsUsed++;
     } else {
-      // Prospective rules (>= 013):
-      // Must NOT use historical waiver
       const pairKey = `${capId}::${filePath}`;
       if (manifestIndex && manifestIndex.has(pairKey)) {
         throw new Error(`HISTORICAL_WAIVER_PROHIBITED_FOR_NEW_CAPSULES: Prospective capsule ${capId} cannot claim historical waiver`);
@@ -268,11 +369,12 @@ export function verifyCapsuleSourceBlobs({
     }
   }
 
-  return { capId, checkedCount, exceptionsUsed, passed: true };
+  return { capId, checkedCount, exceptionsUsed, passed: true, isCandidate: !containingCommit };
 }
 
 /**
- * Runs complete verification of all committed capsules in repoRoot.
+ * Runs complete production verification of all COMMITTED capsules in repoRoot.
+ * Fail-closed: uncommitted candidates are strictly rejected.
  */
 export function verifyAllSourceBlobProvenance(repoRoot, git = null) {
   const gitRunner = git || defaultGitRunner(repoRoot);
@@ -284,26 +386,30 @@ export function verifyAllSourceBlobProvenance(repoRoot, git = null) {
   const manifestPath = path.join(repoRoot, ".synthesis", "provenance", "source-blob-impact-20261003.json");
   const { rawSha256, index: manifestIndex } = loadAndValidateImpactManifest(manifestPath);
 
-  const capsulesDir = path.join(repoRoot, ".synthesis", "task-capsules");
-  const entries = fs.readdirSync(capsulesDir).filter(f => f.endsWith(".json")).sort();
-
   const manifestUsedTracker = new Set();
   let totalChecked = 0;
   let totalExceptionsUsed = 0;
   const verifiedCapsules = [];
 
-  for (const f of entries) {
-    const fullPath = path.join(capsulesDir, f);
-    const relPath = `.synthesis/task-capsules/${f}`;
+  const relPaths = (typeof gitRunner.listCommittedCapsules === "function")
+    ? gitRunner.listCommittedCapsules()
+    : fs.readdirSync(path.join(repoRoot, ".synthesis", "task-capsules"))
+        .filter(f => f.endsWith(".json"))
+        .sort()
+        .map(f => `.synthesis/task-capsules/${f}`);
+
+  for (const relPath of relPaths) {
+    const fullPath = path.join(repoRoot, relPath);
     const capsuleJson = JSON.parse(fs.readFileSync(fullPath, "utf-8"));
 
+    // Enforce production mode: NO uncommitted candidate allowed in --verify-all
     const result = verifyCapsuleSourceBlobs({
       capsuleJson,
       relPath,
       git: gitRunner,
       manifestIndex,
       manifestUsedTracker,
-      allowUncommittedCandidate: true
+      allowUncommittedCandidate: false
     });
 
     totalChecked += result.checkedCount;
@@ -311,7 +417,6 @@ export function verifyAllSourceBlobProvenance(repoRoot, git = null) {
     verifiedCapsules.push({ capId: result.capId, checked: result.checkedCount, exceptions: result.exceptionsUsed });
   }
 
-  // Ensure ALL 23 exceptions in manifest were strictly used and matched
   if (manifestUsedTracker.size !== EXPECTED_EXCEPTION_COUNT) {
     throw new Error(`MISSING_MANIFEST_EXCEPTION: Expected all ${EXPECTED_EXCEPTION_COUNT} manifest exceptions to be utilized, but only ${manifestUsedTracker.size} matched`);
   }
@@ -326,10 +431,30 @@ export function verifyAllSourceBlobProvenance(repoRoot, git = null) {
 }
 
 /**
- * Runs self-tests covering positive requirements and all 16 negative test cases.
+ * Explicit pre-commit candidate verification pathway.
+ */
+export function verifyCandidateCapsule(capsuleFilePath, repoRoot, git = null) {
+  const gitRunner = git || defaultGitRunner(repoRoot);
+  const manifestPath = path.join(repoRoot, ".synthesis", "provenance", "source-blob-impact-20261003.json");
+  const { index: manifestIndex } = loadAndValidateImpactManifest(manifestPath);
+
+  const capsuleJson = JSON.parse(fs.readFileSync(capsuleFilePath, "utf-8"));
+  const relPath = path.relative(repoRoot, capsuleFilePath);
+
+  return verifyCapsuleSourceBlobs({
+    capsuleJson,
+    relPath,
+    git: gitRunner,
+    manifestIndex,
+    allowUncommittedCandidate: true
+  });
+}
+
+/**
+ * Runs self-tests covering positive requirements, historical baseline, and all negative security test cases.
  */
 export function runSelfTests(repoRoot) {
-  console.log("[SOURCE-BLOB-VERIFIER] Running Behavioral Self-Tests...");
+  console.log("[SOURCE-BLOB-VERIFIER] Running Behavioral & Security Self-Tests...");
   let positivePassed = 0;
   let negativePassed = 0;
 
@@ -351,7 +476,6 @@ export function runSelfTests(repoRoot) {
     process.exit(1);
   }
 
-  // Helper for negative testing
   function assertNegative(testName, expectedErrCode, fn) {
     try {
       fn();
@@ -368,11 +492,12 @@ export function runSelfTests(repoRoot) {
     }
   }
 
+  // --- Core Functional Negatives ---
   // NEGATIVE 1: Incorrect Git blob SHA in prospective capsule
   assertNegative("NEGATIVE 1: Incorrect Git blob SHA in prospective capsule", "PROSPECTIVE_PARENT_BLOB_MISMATCH", () => {
     const mockGit = {
-      getCommitForPath: () => "commit_013",
-      revParse: (cmd) => cmd.includes("^") ? "parent_commit" : "1111111111111111111111111111111111111111",
+      getCommitForPath: () => "1111111111111111111111111111111111111111",
+      revParse: (cmd) => cmd.includes("^") ? "2222222222222222222222222222222222222222" : "1111111111111111111111111111111111111111",
       catFileType: () => "blob"
     };
     verifyCapsuleSourceBlobs({
@@ -392,8 +517,8 @@ export function runSelfTests(repoRoot) {
   // NEGATIVE 2: Nonexistent source path in prospective capsule
   assertNegative("NEGATIVE 2: Nonexistent source path in prospective parent tree", "NONEXISTENT_SOURCE_PATH", () => {
     const mockGit = {
-      getCommitForPath: () => "commit_013",
-      revParse: (cmd) => cmd.includes("^") ? "parent_commit" : null,
+      getCommitForPath: () => "1111111111111111111111111111111111111111",
+      revParse: (cmd) => cmd.includes("^") ? "2222222222222222222222222222222222222222" : null,
       catFileType: () => "blob"
     };
     verifyCapsuleSourceBlobs({
@@ -413,8 +538,8 @@ export function runSelfTests(repoRoot) {
   // NEGATIVE 3: Missing Git object in ODB
   assertNegative("NEGATIVE 3: Missing Git object in ODB", "MISSING_GIT_OBJECT", () => {
     const mockGit = {
-      getCommitForPath: () => "commit_013",
-      revParse: (cmd) => cmd.includes("^") ? "parent_commit" : "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      getCommitForPath: () => "1111111111111111111111111111111111111111",
+      revParse: (cmd) => cmd.includes("^") ? "2222222222222222222222222222222222222222" : "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       catFileType: () => null
     };
     verifyCapsuleSourceBlobs({
@@ -456,8 +581,8 @@ export function runSelfTests(repoRoot) {
     });
   });
 
-  // NEGATIVE 5: Incorrect containing-commit mapping (uncommitted capsule rejected)
-  assertNegative("NEGATIVE 5: Uncommitted capsule rejected", "UNCOMMITTED_CAPSULE", () => {
+  // NEGATIVE 5: Uncommitted capsule rejected in production
+  assertNegative("NEGATIVE 5: Uncommitted capsule rejected in production", "COMMITTED_ONLY_PRODUCTION_GATE", () => {
     const mockGit = {
       getCommitForPath: () => null,
       revParse: () => null,
@@ -524,7 +649,7 @@ export function runSelfTests(repoRoot) {
     loadAndValidateImpactManifest(null, realManifestRaw + " \n", false);
   });
 
-  // NEGATIVE 10: Future capsule using a historical waiver rejected
+  // NEGATIVE 10: Future capsule using historical waiver rejected
   assertNegative("NEGATIVE 10: Future capsule using historical waiver rejected", "HISTORICAL_WAIVER_PROHIBITED_FOR_NEW_CAPSULES", () => {
     const { index } = loadAndValidateImpactManifest(realManifestPath);
     const fakeIndex = new Map(index);
@@ -549,11 +674,11 @@ export function runSelfTests(repoRoot) {
     });
   });
 
-  // NEGATIVE 11: Source SHA from unrelated branch / not in parent
+  // NEGATIVE 11: Source SHA from unrelated branch
   assertNegative("NEGATIVE 11: Source SHA from unrelated branch rejected", "PROSPECTIVE_PARENT_BLOB_MISMATCH", () => {
     const mockGit = {
-      getCommitForPath: () => "commit_013",
-      revParse: (cmd) => cmd.includes("^") ? "parent_commit" : "1111111111111111111111111111111111111111",
+      getCommitForPath: () => "1111111111111111111111111111111111111111",
+      revParse: (cmd) => cmd.includes("^") ? "2222222222222222222222222222222222222222" : "1111111111111111111111111111111111111111",
       catFileType: () => "blob"
     };
     verifyCapsuleSourceBlobs({
@@ -573,8 +698,8 @@ export function runSelfTests(repoRoot) {
   // NEGATIVE 12: Source SHA from future commit
   assertNegative("NEGATIVE 12: Source SHA from future commit rejected", "PROSPECTIVE_PARENT_BLOB_MISMATCH", () => {
     const mockGit = {
-      getCommitForPath: () => "commit_013",
-      revParse: (cmd) => cmd.includes("^") ? "parent_commit" : "1111111111111111111111111111111111111111",
+      getCommitForPath: () => "1111111111111111111111111111111111111111",
+      revParse: (cmd) => cmd.includes("^") ? "2222222222222222222222222222222222222222" : "1111111111111111111111111111111111111111",
       catFileType: () => "blob"
     };
     verifyCapsuleSourceBlobs({
@@ -620,7 +745,7 @@ export function runSelfTests(repoRoot) {
     verifyAllSourceBlobProvenance(repoRoot, mockGit);
   });
 
-  // NEGATIVE 15: Malformed source_blob_shas (uppercase or non-hex)
+  // NEGATIVE 15: Malformed source_blob_shas syntax
   assertNegative("NEGATIVE 15: Malformed source_blob_shas syntax rejected", "MALFORMED_SOURCE_BLOB_SHA", () => {
     const mockGit = {
       getCommitForPath: () => "commit_013",
@@ -642,7 +767,7 @@ export function runSelfTests(repoRoot) {
   });
 
   // NEGATIVE 16: Invalid capsule-to-commit attribution
-  assertNegative("NEGATIVE 16: Invalid capsule-to-commit attribution rejected", "UNCOMMITTED_CAPSULE", () => {
+  assertNegative("NEGATIVE 16: Invalid capsule-to-commit attribution rejected", "COMMITTED_ONLY_PRODUCTION_GATE", () => {
     const mockGit = {
       getCommitForPath: () => null
     };
@@ -655,33 +780,142 @@ export function runSelfTests(repoRoot) {
           }
         }
       },
-      relPath: ".synthesis/task-capsules/untracked.json",
+      relPath: ".synthesis/task-capsules/CAP-005.json",
       git: mockGit,
       allowUncommittedCandidate: false
     });
   });
 
-  // POSITIVE 2: Synthetically constructed prospective capsule matching parent tree passes
+  // --- CMD-015 Security Negative Regressions ---
+  // SEC-NEG 1: Source path containing shell syntax
+  assertNegative("SEC-NEG 1: Source path containing shell syntax rejected", "UNTRUSTED_PATH_REJECTED", () => {
+    validateSourcePath("path/to/file;echo 'evil'");
+  });
+
+  // SEC-NEG 2: Source path containing command substitution
+  assertNegative("SEC-NEG 2: Source path containing command substitution rejected", "UNTRUSTED_PATH_REJECTED", () => {
+    validateSourcePath("path/to/$(whoami)");
+  });
+
+  // SEC-NEG 3: Source path containing quotation characters
+  assertNegative("SEC-NEG 3: Source path containing quotation characters rejected", "UNTRUSTED_PATH_REJECTED", () => {
+    validateSourcePath("path/to/\"quoted\"");
+  });
+
+  // SEC-NEG 4: Source path containing a semicolon
+  assertNegative("SEC-NEG 4: Source path containing a semicolon rejected", "UNTRUSTED_PATH_REJECTED", () => {
+    validateSourcePath("path/to/file;rm -rf");
+  });
+
+  // SEC-NEG 5: Source path containing a backtick
+  assertNegative("SEC-NEG 5: Source path containing a backtick rejected", "UNTRUSTED_PATH_REJECTED", () => {
+    validateSourcePath("path/to/`id`");
+  });
+
+  // SEC-NEG 6: Source path containing control characters
+  assertNegative("SEC-NEG 6: Source path containing control characters rejected", "UNTRUSTED_PATH_REJECTED", () => {
+    validateSourcePath("path/to/file\x00malicious");
+  });
+
+  // SEC-NEG 7: Source path containing traversal segments
+  assertNegative("SEC-NEG 7: Source path containing traversal segments rejected", "UNTRUSTED_PATH_REJECTED", () => {
+    validateSourcePath("path/to/../../etc/passwd");
+  });
+
+  // SEC-NEG 8: Absolute source path
+  assertNegative("SEC-NEG 8: Absolute source path rejected", "UNTRUSTED_PATH_REJECTED", () => {
+    validateSourcePath("/etc/shadow");
+  });
+
+  // SEC-NEG 9: Unsafe capsule filename
+  assertNegative("SEC-NEG 9: Unsafe capsule filename rejected", "UNSAFE_CAPSULE_FILENAME", () => {
+    validateCapsuleFilename(".synthesis/task-capsules/CAP-EVIL;rm.json");
+  });
+
+  // SEC-NEG 10: Invalid Git revision selector
+  assertNegative("SEC-NEG 10: Invalid Git revision selector rejected", "INVALID_GIT_REVISION", () => {
+    validateGitRevision("--upload-pack=/evil/path");
+  });
+
+  // SEC-NEG 11: Missing Git executable
+  assertNegative("SEC-NEG 11: Missing Git executable fails closed", "GIT_COMMAND_FAILED", () => {
+    const badRunner = {
+      isShallow: () => { throw new Error("GIT_COMMAND_FAILED: spawn git ENOENT"); }
+    };
+    verifyAllSourceBlobProvenance(repoRoot, badRunner);
+  });
+
+  // SEC-NEG 12: Failed shallow-repository query fails closed
+  assertNegative("SEC-NEG 12: Failed shallow-repository query fails closed", "GIT_COMMAND_FAILED", () => {
+    const errorRunner = {
+      isShallow: () => { throw new Error("GIT_COMMAND_FAILED: git rev-parse returned exit code 128"); }
+    };
+    verifyAllSourceBlobProvenance(repoRoot, errorRunner);
+  });
+
+  // SEC-NEG 13: Missing containing commit in production rejected
+  assertNegative("SEC-NEG 13: Missing containing commit in production rejected", "COMMITTED_ONLY_PRODUCTION_GATE", () => {
+    const mockGit = {
+      getCommitForPath: () => null,
+      revParse: () => "head_commit",
+      catFileType: () => "blob"
+    };
+    verifyCapsuleSourceBlobs({
+      capsuleJson: {
+        payload: {
+          capsule_id: "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-014",
+          changes_and_evidence: { source_blob_shas: { "valid/path.txt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" } }
+        }
+      },
+      relPath: ".synthesis/task-capsules/CAP-014.json",
+      git: mockGit,
+      allowUncommittedCandidate: false
+    });
+  });
+
+  // SEC-NEG 14: Attempted uncommitted-candidate fallback during committed verification rejected
+  assertNegative("SEC-NEG 14: Uncommitted fallback in production rejected", "COMMITTED_ONLY_PRODUCTION_GATE", () => {
+    const mockGit = {
+      isShallow: () => false,
+      getCommitForPath: () => null,
+      revParse: () => "head_sha"
+    };
+    // Calling verifyAll when a capsule is uncommitted
+    verifyCapsuleSourceBlobs({
+      capsuleJson: {
+        payload: {
+          capsule_id: "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-014",
+          changes_and_evidence: { source_blob_shas: { "p.txt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" } }
+        }
+      },
+      relPath: ".synthesis/task-capsules/CAP-014.json",
+      git: mockGit,
+      allowUncommittedCandidate: false
+    });
+  });
+
+  // POSITIVE 2: Prospective candidate capsule matching parent commit tree passes via verifyCandidateCapsule
   try {
     const mockGit = {
-      getCommitForPath: () => "commit_014",
-      revParse: (cmd) => cmd.includes("^") ? "parent_commit_013" : "1234567890abcdef1234567890abcdef12345678",
+      getCommitForPath: () => null,
+      revParse: (cmd) => cmd === "HEAD" ? "parent_head_commit" : "1234567890abcdef1234567890abcdef12345678",
       catFileType: () => "blob"
     };
     const res = verifyCapsuleSourceBlobs({
       capsuleJson: {
         payload: {
-          capsule_id: "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-014",
+          capsule_id: "CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-015",
           changes_and_evidence: {
             source_blob_shas: { "path/to/valid/source.mjs": "1234567890abcdef1234567890abcdef12345678" }
           }
         }
       },
-      relPath: ".synthesis/task-capsules/CAP-014.json",
-      git: mockGit
+      relPath: ".synthesis/task-capsules/CAP-015.json",
+      git: mockGit,
+      allowUncommittedCandidate: true
     });
-    if (res.passed && res.checkedCount === 1) {
-      console.log("  ✓ POSITIVE 2: Prospective capsule matching parent commit tree passes cleanly");
+    if (res.passed && res.checkedCount === 1 && res.isCandidate) {
+      console.log("  ✓ POSITIVE 2: Pre-commit candidate pathway passes cleanly with parent HEAD matching");
       positivePassed++;
     }
   } catch (err) {
@@ -697,12 +931,30 @@ const args = process.argv.slice(2);
 const repoRoot = locateRepositoryRoot();
 
 if (args.includes("--help") || args.length === 0) {
-  console.log("Usage: node scripts/governance/verify_source_blob_provenance.mjs [--verify-all | --self-test]");
+  console.log("Usage: node scripts/governance/verify_source_blob_provenance.mjs [--verify-all | --self-test | --verify-candidate <path>]");
   process.exit(0);
 }
 
 if (args.includes("--self-test")) {
   runSelfTests(repoRoot);
+}
+
+if (args.includes("--verify-candidate")) {
+  const candidateIdx = args.indexOf("--verify-candidate");
+  const targetPath = args[candidateIdx + 1];
+  if (!targetPath) {
+    console.error("Error: --verify-candidate requires a capsule file path");
+    process.exit(1);
+  }
+  try {
+    const res = verifyCandidateCapsule(path.resolve(repoRoot, targetPath), repoRoot);
+    console.log(`CANDIDATE_SOURCE_BLOB_VERIFICATION: PASS`);
+    console.log(`CAPSULE_ID: ${res.capId}`);
+    console.log(`REFERENCES_CHECKED: ${res.checkedCount}`);
+  } catch (err) {
+    console.error(`CANDIDATE_SOURCE_BLOB_VERIFICATION: FAIL (${err.message})`);
+    process.exit(1);
+  }
 }
 
 if (args.includes("--verify-all")) {
