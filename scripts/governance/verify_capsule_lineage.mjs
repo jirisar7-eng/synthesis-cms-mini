@@ -522,19 +522,23 @@ export function runSelfTests(repoRoot) {
       }
     } catch (err) { failTest('Positive 3: exact parent match', err); }
 
-    // POSITIVE 4: Full current graph validates under --verify-all
+    // POSITIVE 4: Full current live graph validates under verifyLineageGraph
     try {
       const res = verifyLineageGraph(realMap, {
         singleRoot: true,
         expectedRootId: 'CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010'
       });
-      if (res.ok && res.totalCapsules === 2 && res.rootCount === 1) {
-        passPositive('Full current graph (010 -> 013) validates under verifyLineageGraph');
+      const hasHistoricalRoots = realMap.has('CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010') &&
+                                 realMap.has('CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-013');
+      const singleRootMatch = Array.isArray(res.roots) && res.roots.length === 1 &&
+                              res.roots[0] === 'CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010';
+      if (res.ok && res.totalCapsules === realMap.size && res.totalCapsules >= 2 &&
+          res.rootCount === 1 && singleRootMatch && hasHistoricalRoots) {
+        passPositive('Full current live graph (' + realMap.size + ' capsules rooted at 010) validates under verifyLineageGraph');
       } else {
-        throw new Error('Unexpected full graph verification outcome');
+        throw new Error('Unexpected live graph verification outcome: ok=' + res.ok + ', totalCapsules=' + res.totalCapsules + ', expectedSize=' + realMap.size + ', rootCount=' + res.rootCount);
       }
-    } catch (err) { failTest('Positive 4: full current graph validates', err); }
-
+    } catch (err) { failTest('Positive 4: full current live graph validates', err); }
     // POSITIVE 5: A valid branching graph passes (ROOT -> A, ROOT -> B)
     try {
       const capA = createSyntheticSealedCapsule(cap013, {
