@@ -24,8 +24,12 @@ import {
 import {
   parseStrictIJson,
   verifyCapsuleSeal,
+  computePayloadSha256,
   timingSafeHexCompare
 } from './verify_capsule_seal.mjs';
+import {
+  verifyAttestationChain
+} from './verify_capsule_attestation_chain.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -442,8 +446,7 @@ export function verifyCapsuleFileBaseline(repoRoot) {
     };
   }
 
-  // 3. Verify Each Recorded Capsule
-  const verifiedRecords = [];
+  // 3. Verify each baseline-manifested capsule record
   for (const record of manRes.manifest.capsules) {
     const capRes = verifyManifestCapsuleRecord(repoRoot, record, schema);
     if (!capRes.valid) {
@@ -453,24 +456,36 @@ export function verifyCapsuleFileBaseline(repoRoot) {
         error: capRes.error
       };
     }
-    verifiedRecords.push(capRes);
   }
 
-  // 4. Verify Complete Directory Coverage
-  const covRes = verifyDirectoryCoverage(repoRoot, manRes.manifest);
-  if (!covRes.valid) {
+  // 4. Delegate complete repository & DAG chain verification to authoritative chain verifier
+  const chainRes = verifyAttestationChain(repoRoot);
+  if (!chainRes.valid) {
     return {
       valid: false,
-      stage: covRes.stage,
-      error: covRes.error
+      stage: chainRes.stage,
+      error: chainRes.error
     };
   }
+
+  // 5. Adapt chain records explicitly to the legacy baseline record shape
+  const adaptedRecords = chainRes.attestedRecords.map(r => ({
+    valid: true,
+    capsuleId: r.capsuleId,
+    filePath: r.filePath,
+    rawFileSha256: r.rawSha256,
+    gitBlobSha: r.gitBlobSha,
+    payloadSha256: r.payloadSha256,
+    fileSizeBytes: r.fileSizeBytes
+  }));
 
   return {
     valid: true,
     manifestGitBlob: manRes.gitBlobSha,
-    verifiedCount: verifiedRecords.length,
-    records: verifiedRecords
+    verifiedCount: adaptedRecords.length,
+    records: adaptedRecords,
+    chainLength: chainRes.attestationChainLength,
+    headAttestationId: chainRes.headAttestationId
   };
 }
 
@@ -560,15 +575,168 @@ export function runSelfTests(repoRoot) {
     return { valid: true };
   });
 
-  // POSITIVE F: Directory coverage confirms exactly 2 capsules
-  assertPositive('POSITIVE F: Directory coverage confirms exactly 2 capsules', () => {
-    const manRes = verifyManifestIntegrity(repoRoot);
-    if (!manRes.valid) return manRes;
-    const cov = verifyDirectoryCoverage(repoRoot, manRes.manifest);
-    if (!cov.valid || cov.count !== 2) {
-      return { valid: false, error: `Expected coverage count 2, got ${cov.count}` };
+  // POSITIVE F: Directory coverage confirms exactly 2 capsules in isolated fixture
+  assertPositive('POSITIVE F: Directory coverage confirms exactly 2 capsules in isolated fixture', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'syn-mini-test-'));
+    try {
+      const cap010Rel = '.synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010.json';
+      const cap013Rel = '.synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-013.json';
+      const manRel = PINNED_MANIFEST_RELATIVE_PATH;
+
+      const p010 = path.join(tmpDir, cap010Rel);
+      const p013 = path.join(tmpDir, cap013Rel);
+      const pMan = path.join(tmpDir, manRel);
+
+      fs.mkdirSync(path.dirname(p010), { recursive: true });
+      fs.mkdirSync(path.dirname(pMan), { recursive: true });
+
+      fs.copyFileSync(path.join(repoRoot, cap010Rel), p010);
+      fs.copyFileSync(path.join(repoRoot, cap013Rel), p013);
+      fs.copyFileSync(path.join(repoRoot, manRel), pMan);
+
+      const manRes = verifyManifestIntegrity(tmpDir);
+      if (!manRes.valid) return manRes;
+      const cov = verifyDirectoryCoverage(tmpDir, manRes.manifest);
+      if (!cov.valid || cov.count !== 2) {
+        return { valid: false, error: `Expected coverage count 2, got ${cov.count}` };
+      }
+      return { valid: true };
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
     }
-    return { valid: true };
+  });
+
+  function setupMigrationTestEnv() {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'syn-mini-baseline-mig-'));
+    fs.mkdirSync(path.join(tmpDir, '.synthesis', 'lineage'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.synthesis', 'schemas'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.synthesis', 'task-capsules'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.synthesis', 'attestations'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, 'scripts', 'governance'), { recursive: true });
+
+    fs.copyFileSync(
+      path.join(repoRoot, '.synthesis/lineage/genesis.json'),
+      path.join(tmpDir, '.synthesis/lineage/genesis.json')
+    );
+    fs.copyFileSync(
+      path.join(repoRoot, 'scripts/governance/verify_genesis.mjs'),
+      path.join(tmpDir, 'scripts/governance/verify_genesis.mjs')
+    );
+    fs.copyFileSync(
+      path.join(repoRoot, '.synthesis/schemas/command-capsule.schema.json'),
+      path.join(tmpDir, '.synthesis/schemas/command-capsule.schema.json')
+    );
+    fs.copyFileSync(
+      path.join(repoRoot, '.synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010.json'),
+      path.join(tmpDir, '.synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010.json')
+    );
+    fs.copyFileSync(
+      path.join(repoRoot, '.synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-013.json'),
+      path.join(tmpDir, '.synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-013.json')
+    );
+    fs.copyFileSync(
+      path.join(repoRoot, PINNED_MANIFEST_RELATIVE_PATH),
+      path.join(tmpDir, PINNED_MANIFEST_RELATIVE_PATH)
+    );
+    return tmpDir;
+  }
+
+  function addSyntheticThirdCapsuleFixture(tmpDir) {
+    const cap013Bytes = fs.readFileSync(path.join(tmpDir, '.synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-013.json'));
+    const cap013 = JSON.parse(cap013Bytes.toString('utf8'));
+
+    const cap014Payload = JSON.parse(JSON.stringify(cap013.payload));
+    cap014Payload.capsule_id = 'CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-014';
+    cap014Payload.command_id = 'CMD-SYN-MINI-GOV-CAPSULE-SCHEMA-001-014-SYNTHETIC';
+    cap014Payload.lineage.parent_capsules = [
+      {
+        capsule_id: cap013.payload.capsule_id,
+        command_id: cap013.payload.command_id,
+        payload_sha256: cap013.seal.payload_sha256,
+        relationship_type: 'LINEAR_PARENT'
+      }
+    ];
+
+    const validPayloadSha = computePayloadSha256(cap014Payload).sha256Hex;
+
+    const cap014 = {
+      payload: cap014Payload,
+      seal: {
+        status: 'SEALED',
+        hash_algorithm: 'SHA-256',
+        canonicalization_algorithm: 'RFC-8785',
+        payload_sha256: validPayloadSha,
+        sealed_at: '2026-10-02T16:00:00Z',
+        sealed_by: 'jirisar7-eng',
+        seal_signature: null
+      }
+    };
+
+    const cap014Bytes = Buffer.from(JSON.stringify(cap014, null, 2), 'utf8');
+    const cap014RelPath = '.synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-014.json';
+    fs.writeFileSync(path.join(tmpDir, cap014RelPath), cap014Bytes);
+
+    const baselineBytes = fs.readFileSync(path.join(tmpDir, PINNED_MANIFEST_RELATIVE_PATH));
+    const baselineRawSha = computeRawFileSha256(baselineBytes);
+
+    const att001Id = 'ATT-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-001';
+    const att001 = {
+      format_version: '1.0.0',
+      record_kind: 'LINKED_CAPSULE_FILE_ATTESTATION',
+      attestation_id: att001Id,
+      status: 'OBSERVED_UNANCHORED',
+      observed_at_utc: '2026-10-02T16:05:00Z',
+      source_repository: 'jirisar7-eng/synthesis-cms-mini',
+      genesis_anchor_reference: {
+        genesis_file: '.synthesis/lineage/genesis.json',
+        pinned_sha256: PINNED_GENESIS_SHA256
+      },
+      parent_attestation: {
+        attestation_id: 'DETACHED_CAPSULE_RAW_FILE_BASELINE_20261002',
+        file_path: PINNED_MANIFEST_RELATIVE_PATH,
+        raw_file_sha256: baselineRawSha
+      },
+      new_capsule: {
+        capsule_id: cap014.payload.capsule_id,
+        file_path: cap014RelPath,
+        payload_sha256: validPayloadSha,
+        raw_file_sha256: computeRawFileSha256(cap014Bytes),
+        git_blob_sha: computeGitBlobSha(cap014Bytes),
+        file_size_bytes: cap014Bytes.length
+      }
+    };
+
+    const att001Bytes = Buffer.from(JSON.stringify(att001, null, 2), 'utf8');
+    const att001RelPath = `.synthesis/attestations/${att001Id}.json`;
+    fs.writeFileSync(path.join(tmpDir, att001RelPath), att001Bytes);
+
+    return {
+      capRelPath: cap014RelPath,
+      attestationRelPath: att001RelPath,
+      capBytes: cap014Bytes,
+      attestationBytes: att001Bytes
+    };
+  }
+
+  // POSITIVE G: Full baseline verification passes with valid synthetic 3rd capsule + linked attestation extension
+  assertPositive('POSITIVE G: Full baseline verification passes with valid synthetic 3rd capsule extension', () => {
+    const tmpDir = setupMigrationTestEnv();
+    try {
+      addSyntheticThirdCapsuleFixture(tmpDir);
+      const res = verifyCapsuleFileBaseline(tmpDir);
+      if (!res.valid) {
+        return { valid: false, error: `Expected valid baseline verification, got ${res.stage}: ${res.error}` };
+      }
+      if (res.verifiedCount !== 3) {
+        return { valid: false, error: `Expected 3 verified capsules, got ${res.verifiedCount}` };
+      }
+      if (!Array.isArray(res.records) || res.records.length !== 3) {
+        return { valid: false, error: `Expected 3 records in result, got ${res.records?.length}` };
+      }
+      return { valid: true };
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 
   // NEGATIVE TESTS (Isolated in-memory / temporary directory)
@@ -818,6 +986,45 @@ export function runSelfTests(repoRoot) {
     }
   }, 'CAPSULE_DIR_NOT_DIRECTORY');
 
+  // NEGATIVE Q: Full baseline verification rejects 3rd capsule without linked attestation
+  assertNegative('NEGATIVE Q: 3rd capsule without linked attestation rejected in full baseline verification', () => {
+    const tmpDir = setupMigrationTestEnv();
+    try {
+      const third = addSyntheticThirdCapsuleFixture(tmpDir);
+      fs.unlinkSync(path.join(tmpDir, third.attestationRelPath));
+      return verifyCapsuleFileBaseline(tmpDir);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }, 'UNRECORDED_CAPSULE_DETECTED');
+
+  // NEGATIVE R: Full baseline verification rejects linked attestation with missing capsule file
+  assertNegative('NEGATIVE R: Linked attestation with missing capsule file rejected in full baseline verification', () => {
+    const tmpDir = setupMigrationTestEnv();
+    try {
+      const third = addSyntheticThirdCapsuleFixture(tmpDir);
+      fs.unlinkSync(path.join(tmpDir, third.capRelPath));
+      return verifyCapsuleFileBaseline(tmpDir);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }, 'RECORDED_CAPSULE_FILE_MISSING');
+
+  // NEGATIVE S: Full baseline verification rejects linked attestation with forged parent hash without fallback
+  assertNegative('NEGATIVE S: Linked attestation with forged parent hash rejected without fallback', () => {
+    const tmpDir = setupMigrationTestEnv();
+    try {
+      const third = addSyntheticThirdCapsuleFixture(tmpDir);
+      const attPath = path.join(tmpDir, third.attestationRelPath);
+      const att = JSON.parse(fs.readFileSync(attPath, 'utf8'));
+      att.parent_attestation.raw_file_sha256 = 'f'.repeat(64);
+      fs.writeFileSync(attPath, JSON.stringify(att, null, 2), 'utf8');
+      return verifyCapsuleFileBaseline(tmpDir);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }, 'PARENT_RAW_SHA256_MISMATCH');
+
   return {
     positivePassed,
     negativePassed,
@@ -858,7 +1065,7 @@ function main() {
     console.log(`FAILED_TESTS: ${results.failedTests}`);
     console.log(`BASELINE_VERIFICATION_STATUS: ${results.failedTests === 0 ? 'PASS' : 'FAIL'}`);
 
-    if (results.failedTests > 0 || results.positivePassed < 6 || results.negativePassed < 16) {
+    if (results.failedTests > 0 || results.positivePassed < 7 || results.negativePassed < 19) {
       process.exit(1);
     }
     process.exit(0);
