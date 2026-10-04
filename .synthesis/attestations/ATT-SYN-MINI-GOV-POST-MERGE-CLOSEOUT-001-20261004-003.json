@@ -1,0 +1,25 @@
+{
+  "format_version": "1.0.0",
+  "record_kind": "LINKED_CAPSULE_FILE_ATTESTATION",
+  "attestation_id": "ATT-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-003",
+  "status": "OBSERVED_UNANCHORED",
+  "observed_at_utc": "2026-10-04T01:45:30.000Z",
+  "source_repository": "jirisar7-eng/synthesis-cms-mini",
+  "genesis_anchor_reference": {
+    "genesis_file": ".synthesis/lineage/genesis.json",
+    "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+  },
+  "parent_attestation": {
+    "attestation_id": "ATT-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261003-002",
+    "file_path": ".synthesis/attestations/ATT-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261003-002.json",
+    "raw_file_sha256": "b8b776a98d6d1f956627e3b149fdda73f68af244f88f5ea2e81840af910c21b8"
+  },
+  "new_capsule": {
+    "capsule_id": "CAP-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-003",
+    "file_path": ".synthesis/task-capsules/CAP-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-003.json",
+    "payload_sha256": "da78f9d6d2a108e93b1de7e59c429c6a36436e7911b5812e2e898e6e9e54e8bd",
+    "raw_file_sha256": "b5305ff89725409fe893736b9c8fc87e101522bbea9e6ab0e7a8f2a4f4f27466",
+    "git_blob_sha": "f95f78f6c822f22cd3ce2e92affdbe4eea1c2899",
+    "file_size_bytes": 14549
+  }
+}
