@@ -32,6 +32,17 @@ jobs:
       - name: Verify Node.js version
         run: node --version
 
+      - name: Check Stateless Worker syntax
+        run: node --check scripts/governance/verify_stateless_worker.mjs
+
+      - name: Run Stateless Worker security self-tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(node scripts/governance/verify_stateless_worker.mjs --self-test)"
+          printf '%s\n' "$output"
+          grep -Fxq 'WORKER_SELFTEST: {"positivePassed":8,"negativePassed":49,"totalTests":57}' <<< "$output"
+
       - name: Check validator syntax
         run: node --check scripts/governance/verify_genesis.mjs
 
