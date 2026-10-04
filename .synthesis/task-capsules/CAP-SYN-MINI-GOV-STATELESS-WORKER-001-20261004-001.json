@@ -1,0 +1,276 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-001",
+    "command_id": "CMD-SYN-MINI-GOV-STATELESS-WORKER-001-001-IMPLEMENT-WORKER-PROTOCOL",
+    "task_id": "SYN-MINI-GOV-STATELESS-WORKER-001",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "5/60 — STATELESS AI WORKER PROTOCOL",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-04T16:56:42.257Z",
+      "development_phase": "IMPLEMENT",
+      "execution_mode": "GOVERNANCE"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "474cb4a4fde921db09fe4fb1446b30d339f864bd",
+      "source_branch": "task/SYN-MINI-GOV-STATELESS-WORKER-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/schemas/command-capsule.schema.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-009.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-009.json",
+        "scripts/governance/verify_stateless_worker.mjs"
+      ],
+      "permitted_write_paths": [
+        "scripts/governance/verify_stateless_worker.mjs",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-001.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-001.json"
+      ],
+      "protected_paths": [
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/schemas/command-capsule.schema.json",
+        ".synthesis/schemas/capability-registry.schema.json",
+        ".synthesis/registries/capabilities.json",
+        "scripts/governance/verify_scope_diff_firewall.mjs",
+        ".github/workflows/genesis-integrity.yml"
+      ],
+      "forbidden_operations": [
+        "DIRECT_MAIN_PUSH",
+        "FORCE_PUSH",
+        "REBASE",
+        "MERGE",
+        "HISTORICAL_REWRITE"
+      ],
+      "max_write_files_limit": 3,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-009",
+          "command_id": "CMD-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-009-PREPARE-PR7-MERGE",
+          "payload_sha256": "94789f864b609a8c4476446b4add71818428448efc970d9398d497608e25ef1f",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": [
+          "DIAG-SYN-MINI-GOV-PR6-TIMESTAMP-PROVENANCE-001"
+        ]
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "command-capsule.v1"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall"
+      ],
+      "declared_dependencies": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal"
+      ]
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        "scripts/governance/verify_stateless_worker.mjs",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-001.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-001.json"
+      ],
+      "actual_changed_files": [
+        "scripts/governance/verify_stateless_worker.mjs",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-001.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-001.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {
+        ".github/workflows/genesis-integrity.yml": "6299b513359e54d290e45dc4957f6345b7da78f5",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-005.json": "b264fd808178a59a3d1018178f7455adf32ab0bc",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-006.json": "212f5a598b674be2bc90428eee31a558d9a864bc",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007.json": "4bc01774f697c74f40bd32f96abfe43d39803713",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008.json": "73d3cbe88d18250425069ae8425139f88d1f58fe",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009.json": "2a3f14bbcc03e6dc945d064429f2e49f355ec613",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-011.json": "25ccc22cf5d8c139561675433f3d8b3409c10a8e",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-013.json": "afbe2bccd5dd97a85dd06d5b4ceb56c1ff937aba",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-014.json": "ef74687c098e27bafc7f45f492b79f4881a1f814",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-015.json": "fdd552119042d19f3a4723767a08e174fcc7fef2",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-016.json": "968f69175ff5dea4e691067a7e39542ecf079aad",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-017.json": "4df322ce5f689c443cfa789729268df109a50686",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261003-001.json": "70152122bce63a06f1c6f421adb4b87bcc9d0995",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261003-002.json": "0958cc5e11682c57fc30ba46eaa7d9c9a567f11a",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-003.json": "0287316f52ef3d149009851d702dffbe02055535",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-004.json": "4545bdb0c7dc73ac1fca5229b025ebabddd98385",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-005.json": "79cd5b81ee1a7cf77fce2e288bf4c65916dbe31e",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-006.json": "c38ab6e0afa16dfcbe5564c688e654612e449793",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-007.json": "08f28f1430db4849a184b2ba07a8478acd56d881",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-008.json": "f9d50172bd1e9242ddeecedf58b3ab010c26b888",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-009.json": "4645a37bb9c3c0e7fab125d17487d7321b212910",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-002.json": "79c7d320a29d6ec595eec2fbf4667dc9f85913ea",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-003.json": "3f2323781bfb50a98a370d0460eb099de0d1043c",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-004.json": "976af88f4c189419482543caf78a2571954dcf82",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-005.json": "6532596e2c36d9f74ab39a73bec0a6e3b887d8b7",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-006.json": "3899afa3842f498ce05d21d1975122138c64c269",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-007.json": "b5f598ade25303471818055fb56602f578ee7cb9",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-008.json": "e76aba93cfdcf814fa7defe1fb857fecb97dbf4e",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-009.json": "3633fac85904a1a1dca64e9d94dc38e457eb837a",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-010.json": "27ab850c5adb808ef1a48b0a45c463ab449e529d",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-011.json": "d7883eb4a927cc8fb2b2243c8c3f82b59fc955ff",
+        ".synthesis/attestations/capsule-file-baseline-20261002.json": "d0c91b768a14070c7b0b19ad56fb33a573278898",
+        ".synthesis/lineage/genesis.json": "7a34b3d08150569affe67ef21d575f87695368b4",
+        ".synthesis/provenance/source-blob-impact-20261003.json": "deecbe561ca924021ef5c68fe9bf68d463e9272a",
+        ".synthesis/registries/capabilities.json": "b5a06f8e802375974e7298de0545ac058a03759b",
+        ".synthesis/schemas/capability-registry.schema.json": "9a89ccab2394735b2b2f3a2ba8c244731bfab0b6",
+        ".synthesis/schemas/command-capsule.schema.json": "a224fea7cafb49afd6579e504e7f31cf10ebbe2a",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-005.json": "215c7122344733085bbbc699dd2236cc139f659a",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-006.json": "d2e15dcdf1bf81414560e26c22cb1183d5d72752",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-007.json": "7f497936eac2e17f405a780c57bc515fa90a86d8",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-008.json": "ca8250b5157f270dbc5113679a9b1dc3d63455cf",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-009.json": "ba5210397d95887555fa2d2e8d3c33dd2fb9fdfc",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-011.json": "28a9ed1ee2253eb1ae337cdac3498da014feb0b4",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-013.json": "9cc921a5775aa4043b8c222fc120b6cd324419ec",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-014.json": "7e09f237fe9f1b0761b1429d4ffd197191451a65",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-015.json": "e729d8e19703bbdd02ef44207cd8eb10f51c47fb",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-016.json": "9b65dd6fb9f2d9a907afa0047511cbfeeeb9b6e6",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPABILITY-REGISTRY-001-20261003-017.json": "6449bb4a0b3214edb8fa86f13502598e572f003d",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010.json": "27564aff47ebd19613df5a98d68e3934c9c159d0",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-013.json": "83db4888a1571fea63ee526f24a7b99ffe99e586",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261003-001.json": "7ce2888dc9e72196a25632a5382f2da2ac680bfe",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261003-002.json": "c137b097f3b7de24edf507bfda2a959dc5cfa9e5",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-003.json": "f95f78f6c822f22cd3ce2e92affdbe4eea1c2899",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-004.json": "8f264fdbb2b1928adf4838b250f4662b4223fb53",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-005.json": "03a531317d0de1925b31430a702d87a957193541",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-006.json": "23aff511a3924c53bec77dadbaffce1c7b7a19fb",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-007.json": "33453e2800139deb8975e3f8dc05f3544a86008e",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-008.json": "a15f7f409f581468294e6f8e40713e06c4bae661",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-009.json": "50bcd9ee11af6b0bf5b1bfe71d84d47fca2ba28c",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-002.json": "8f99a60f8e7a26f7f347251a3135c7b03a54df59",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-003.json": "04c8dade1945488aa41470c229079afe16618511",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-004.json": "b4369cfb257b71fac46f6e5176f00629e039455e",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-005.json": "c3ad385586dfa841551e47ee2a8df4b28c3fb9cb",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-006.json": "a964a34366be2a76c683b78b261264ab8608e8b9",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-007.json": "d975b2702c3c38aaa58663ba122c78532a493157",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-008.json": "b953aa7d4a945f781cf08666eaff06c78e8149ee",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-009.json": "5a9774d378bb3eda44cbb368042f83e4f8302889",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-010.json": "cbaa5785e3bde725952b99b15b97f50dce268e41",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-011.json": "ecf9762f35ebb41c198a37a8cf9d9edb41da0f87",
+        "LICENSE": "0ad25db4bd1d86c452db3f9602ccdbe172438f52",
+        "scripts/governance/validate_capability_registry.mjs": "e6e23a45d096db2ee2c798f4229580d892db3fcc",
+        "scripts/governance/validate_command_capsule.mjs": "7e4aa50fa039186913d4f65854e74efbfb1edd89",
+        "scripts/governance/verify_capability_schema.mjs": "f807ef848147ee25685f2968ee8c3d16f3c191fc",
+        "scripts/governance/verify_capsule_attestation_chain.mjs": "205f9a92b1382ca08e9b2bfd64661f2f3b309e6c",
+        "scripts/governance/verify_capsule_file_baseline.mjs": "2845823b43f1474df206e5eb970fdca8506113b1",
+        "scripts/governance/verify_capsule_lineage.mjs": "3cef8c4d9bb46928db56a4439a21c62edb0d45a3",
+        "scripts/governance/verify_capsule_seal.mjs": "f6eddd88c16c241517d5d156eca88cbc012540b9",
+        "scripts/governance/verify_genesis.mjs": "285968b9ae801955dacc25fcda6ab333c990a9a0",
+        "scripts/governance/verify_scope_diff_firewall.mjs": "66fe33269143fc08b4ff197aeee279c27ff88926",
+        "scripts/governance/verify_source_blob_provenance.mjs": "4c3406ee7acf9f72558e6d6d003f34ccb243a405"
+      }
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "BOOTSTRAP_NOT_YET_ACTIVE",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "Commit and push atomic 3-file checkpoint to task/SYN-MINI-GOV-STATELESS-WORKER-001, then verify task CI.",
+      "stateless_recovery_context": {
+        "verified_task_head": "474cb4a4fde921db09fe4fb1446b30d339f864bd",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-04T16:56:42.257Z",
+        "stateless_worker_protocol": {
+          "worker_file": "scripts/governance/verify_stateless_worker.mjs",
+          "supported_states": [
+            "READY_READ_ONLY",
+            "READY_TO_PLAN",
+            "READY_TO_MUTATE",
+            "STOP_STALE_INPUT",
+            "STOP_UNVERIFIABLE",
+            "STOP_SECURITY_FAILURE",
+            "STOP_AUTHORIZATION_REQUIRED"
+          ],
+          "positive_tests_passed": 8,
+          "negative_tests_passed": 18,
+          "total_tests_passed": 26,
+          "hash_type_separation": {
+            "git_blob_sha": "Git object identifier (hash-object)",
+            "raw_file_sha256": "File byte content digest (SHA-256)",
+            "capsule_payload_sha256": "RFC 8785 canonical JSON digest (SHA-256)"
+          }
+        },
+        "owner_approval": {
+          "authorized_by": "Jiří Šár",
+          "decision": "GRANTED_FOR_THIS_EXACT_BASE_AND_SCOPE",
+          "authoritative_notion_audit_url": "https://app.notion.com/p/3efa127f178a819b83eec846dd5b80e5",
+          "authorized_base_main_sha": "474cb4a4fde921db09fe4fb1446b30d339f864bd"
+        },
+        "verified_pr7_merge_evidence": {
+          "merge_commit_sha": "474cb4a4fde921db09fe4fb1446b30d339f864bd",
+          "main_ci_run_id": "37215416800",
+          "main_ci_conclusion": "SUCCESS"
+        },
+        "timestamp_provenance_impact": {
+          "diagnostic_id": "DIAG-SYN-MINI-GOV-PR6-TIMESTAMP-PROVENANCE-001",
+          "authoritative_supporting_audit": "https://app.notion.com/p/3efa127f178a81d7bd21d590d3f85b73",
+          "root_cause": "DEFECT_B_TIMEZONE_MISINTERPRETATION",
+          "description": "Prompt metadata contained a local PDT timestamp with UTC offset -07:00. Local clock values were copied into capsule and attestation JSON fields and incorrectly given a UTC \"Z\" suffix. Evidence includes the independently observed GitHub chronology.",
+          "affected_historical_records": [
+            "CAP-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-004",
+            "ATT-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-004",
+            "CAP-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-005",
+            "ATT-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-005",
+            "CAP-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-006",
+            "ATT-SYN-MINI-GOV-POST-MERGE-CLOSEOUT-001-20261004-006"
+          ],
+          "cryptographic_integrity": "VALID",
+          "absolute_timestamp_provenance": "DEFECT_CONFIRMED",
+          "historical_record_modification": "FORBIDDEN",
+          "current_authoritative_assessment": "Original sealed payloads remain immutable. Their affected timestamp claims are not reliable as absolute UTC event times.",
+          "future_timestamp_policy": "RUNTIME_UTC_ONLY",
+          "future_validator_hardening": "SEPARATE_FOLLOW_UP_REQUIRED"
+        },
+        "historical_cmd012_audit_exception": "PRESERVED_NOT_RETROACTIVELY_REPAIRED",
+        "capability_registry_status": "DRAFT_4_PROPOSED_0_ACTIVE",
+        "global_governance_health": "BOOTSTRAP_NOT_YET_ACTIVE"
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "c5209929241002ae28b59a4729700ef0f159b9721a787a6f0a0615bc1864ace7",
+    "sealed_at": "2026-10-04T16:56:42.257Z",
+    "sealed_by": "AI Studio Engineer",
+    "seal_signature": null
+  }
+}

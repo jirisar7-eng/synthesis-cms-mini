@@ -1,0 +1,195 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-003",
+    "command_id": "CMD-SYN-MINI-GOV-STATELESS-WORKER-001-003-WIRE-WORKER-CI",
+    "task_id": "SYN-MINI-GOV-STATELESS-WORKER-001",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "5/60 — STATELESS AI WORKER PROTOCOL",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "Jiří Šár",
+      "executor": "GitHub Copilot Agent",
+      "verifier": "GitHub Copilot Agent"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-04T18:42:44.175Z",
+      "development_phase": "IMPLEMENT",
+      "execution_mode": "RESTRICTED_GOVERNANCE_BOOTSTRAP"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "474cb4a4fde921db09fe4fb1446b30d339f864bd",
+      "source_branch": "task/SYN-MINI-GOV-STATELESS-WORKER-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".github/workflows/genesis-integrity.yml",
+        "scripts/governance/verify_stateless_worker.mjs",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-002.json",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/schemas/command-capsule.schema.json",
+        ".synthesis/schemas/capability-registry.schema.json",
+        ".synthesis/registries/capabilities.json",
+        "scripts/governance/verify_genesis.mjs",
+        "scripts/governance/validate_command_capsule.mjs",
+        "scripts/governance/verify_capsule_seal.mjs",
+        "scripts/governance/verify_capsule_lineage.mjs",
+        "scripts/governance/verify_capsule_attestation_chain.mjs",
+        "scripts/governance/verify_capsule_file_baseline.mjs",
+        "scripts/governance/verify_source_blob_provenance.mjs",
+        "scripts/governance/verify_capability_schema.mjs",
+        "scripts/governance/validate_capability_registry.mjs",
+        "scripts/governance/verify_scope_diff_firewall.mjs"
+      ],
+      "permitted_write_paths": [
+        ".github/workflows/genesis-integrity.yml",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-003.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-003.json"
+      ],
+      "protected_paths": [
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/schemas/command-capsule.schema.json",
+        ".synthesis/schemas/capability-registry.schema.json",
+        ".synthesis/registries/capabilities.json",
+        "scripts/governance/verify_scope_diff_firewall.mjs",
+        "scripts/governance/verify_stateless_worker.mjs",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-001.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-002.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-001.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-002.json"
+      ],
+      "forbidden_operations": [
+        "DIRECT_MAIN_PUSH",
+        "FORCE_PUSH",
+        "REBASE",
+        "MERGE",
+        "PR_CREATION",
+        "DEPLOYMENT",
+        "GOVERNANCE_ACTIVATION",
+        "HISTORICAL_REWRITE",
+        "STEP_6_IMPLEMENTATION"
+      ],
+      "max_write_files_limit": 3,
+      "max_read_files_limit": 18
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-002",
+          "command_id": "CMD-SYN-MINI-GOV-STATELESS-WORKER-001-002-REPAIR-FAIL-CLOSED-GATES",
+          "payload_sha256": "520a4e743ea5fcb4092f4ca5386f57bfb530a1220b3f91b0427757904f66d1dd",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "github-actions.genesis-integrity",
+        "stateless-worker.security-self-tests"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall"
+      ],
+      "declared_dependencies": [
+        "github-actions.genesis-integrity",
+        "stateless-worker.security-self-tests",
+        "gov.capsule.cryptographic_seal"
+      ]
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".github/workflows/genesis-integrity.yml",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-003.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-003.json"
+      ],
+      "actual_changed_files": [
+        ".github/workflows/genesis-integrity.yml",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-003.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-003.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {
+        ".github/workflows/genesis-integrity.yml": "6299b513359e54d290e45dc4957f6345b7da78f5",
+        "scripts/governance/verify_stateless_worker.mjs": "ed3b9bc27f7431ea40a752fd1072af555f54748b",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-002.json": "e475a1c13c2664a7e1e6100b39006420fb200752",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-002.json": "a363fa950981c3b473c14e9481ff2269214ee832",
+        ".synthesis/lineage/genesis.json": "7a34b3d08150569affe67ef21d575f87695368b4",
+        ".synthesis/schemas/command-capsule.schema.json": "a224fea7cafb49afd6579e504e7f31cf10ebbe2a",
+        ".synthesis/schemas/capability-registry.schema.json": "9a89ccab2394735b2b2f3a2ba8c244731bfab0b6",
+        ".synthesis/registries/capabilities.json": "b5a06f8e802375974e7298de0545ac058a03759b",
+        "scripts/governance/verify_genesis.mjs": "285968b9ae801955dacc25fcda6ab333c990a9a0",
+        "scripts/governance/validate_command_capsule.mjs": "7e4aa50fa039186913d4f65854e74efbfb1edd89",
+        "scripts/governance/verify_capsule_seal.mjs": "f6eddd88c16c241517d5d156eca88cbc012540b9",
+        "scripts/governance/verify_capsule_lineage.mjs": "3cef8c4d9bb46928db56a4439a21c62edb0d45a3",
+        "scripts/governance/verify_capsule_attestation_chain.mjs": "205f9a92b1382ca08e9b2bfd64661f2f3b309e6c",
+        "scripts/governance/verify_capsule_file_baseline.mjs": "2845823b43f1474df206e5eb970fdca8506113b1",
+        "scripts/governance/verify_source_blob_provenance.mjs": "4c3406ee7acf9f72558e6d6d003f34ccb243a405",
+        "scripts/governance/verify_capability_schema.mjs": "f807ef848147ee25685f2968ee8c3d16f3c191fc",
+        "scripts/governance/validate_capability_registry.mjs": "e6e23a45d096db2ee2c798f4229580d892db3fcc",
+        "scripts/governance/verify_scope_diff_firewall.mjs": "66fe33269143fc08b4ff197aeee279c27ff88926"
+      }
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PASS",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "BOOTSTRAP_NOT_YET_ACTIVE",
+      "blockers": [],
+      "incomplete_work": [
+        "Atomic task-branch commit, push, remote SHA verification, and new exact-head CI verification remain pending."
+      ],
+      "next_safe_step": "After all pre-commit gates pass, create one atomic commit with exactly the authorized three paths, push normally to the existing task branch, verify remote SHA and new exact-head CI, then stop after CMD003.",
+      "stateless_recovery_context": {
+        "verified_task_head": "baee323d996d15c92254d22f9514f3efd4b55854",
+        "expected_clean_worktree": false,
+        "last_authoritative_remote_sync": "2026-10-04T18:42:26.172Z",
+        "command_id": "CMD-SYN-MINI-GOV-STATELESS-WORKER-001-003-WIRE-WORKER-CI",
+        "expected_main_sha": "474cb4a4fde921db09fe4fb1446b30d339f864bd",
+        "expected_task_sha": "baee323d996d15c92254d22f9514f3efd4b55854",
+        "authorized_write_paths": [
+          ".github/workflows/genesis-integrity.yml",
+          ".synthesis/task-capsules/CAP-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-003.json",
+          ".synthesis/attestations/ATT-SYN-MINI-GOV-STATELESS-WORKER-001-20261004-003.json"
+        ],
+        "ready_to_mutate": "DENIED_UNCONDITIONALLY",
+        "ci_verification": "PENDING",
+        "pull_request_created": false,
+        "merge_performed": false,
+        "deployment_status": "NOT_DEPLOYED"
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "3049f4ea580ec62d01cd1c0f7b9b9d6c5e8dfc547db4a63f31ae33211c5f9b29",
+    "sealed_at": "2026-10-04T18:42:44.175Z",
+    "sealed_by": "GitHub Copilot Agent",
+    "seal_signature": null
+  }
+}
