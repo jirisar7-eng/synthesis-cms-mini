@@ -1,0 +1,113 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "record_kind": "REMOTE_FILE_CHECKPOINT",
+    "checkpoint_id": "CHK-SYN-MINI-GOV-MILESTONE-A-001-20261005-002",
+    "checkpoint_type": "ATOMIC_GROUP",
+    "checkpoint_state": "CHECKPOINT_COMPLETE",
+    "task_id": "SYN-MINI-GOV-MILESTONE-A-001",
+    "command_id": "CMD-SYN-MINI-GOV-MILESTONE-A-001-005-STAGE-GOVERNANCE-CONTRACTS",
+    "roadmap_step": "6/60 — Staging 6 foundational governance contracts and governance lockfile for Milestone A",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "created_at_utc": "2026-10-05T17:32:22.009Z",
+    "repository": {
+      "name": "jirisar7-eng/synthesis-cms-mini",
+      "id": 1401215700,
+      "branch": "task/SYN-MINI-GOV-MILESTONE-A-001",
+      "base_main_sha": "256a1400f03a01b0bd6229b0c68af913b88ddbe3"
+    },
+    "target_commit": {
+      "commit_sha": "58d613676fcc5ab89e34863fa9351fb117c42ef9",
+      "parent_sha": "049fbcb20a804e2d74bdefe127b72143e82e9f2c",
+      "commit_timestamp_utc": "2026-10-05T17:20:11Z"
+    },
+    "remote_verification": {
+      "verification_method": "GIT_LS_REMOTE",
+      "observed_remote_ref": "refs/heads/task/SYN-MINI-GOV-MILESTONE-A-001",
+      "observed_remote_sha": "58d613676fcc5ab89e34863fa9351fb117c42ef9",
+      "remote_relationship": "EXACT_HEAD",
+      "verified_at_utc": "2026-10-05T17:32:22.009Z"
+    },
+    "checkpoint_lineage": {
+      "parent_checkpoint": {
+        "checkpoint_id": "CHK-SYN-MINI-GOV-MILESTONE-A-001-20261005-001",
+        "file_path": ".synthesis/checkpoints/CHK-SYN-MINI-GOV-MILESTONE-A-001-20261005-001.json",
+        "raw_file_sha256": "014795caefb9d6c0c45b807bbc9fcaaaa3d021d6a9dff291039f44dcaca25e80"
+      }
+    },
+    "checkpointed_files": [
+      {
+        "file_path": ".synthesis/contracts/CONTRACT-GOV-GENESIS-ANCHOR-001/v1.0.0.json",
+        "operation": "ADD",
+        "source_blob_sha": null,
+        "result_blob_sha": "0dd87c7b44705cc3c2a4ead4a0787205d9ee120f",
+        "file_size_bytes": 1161
+      },
+      {
+        "file_path": ".synthesis/contracts/CONTRACT-GOV-COMMAND-CAPSULE-001/v1.0.0.json",
+        "operation": "ADD",
+        "source_blob_sha": null,
+        "result_blob_sha": "13124c0fdc95562fdb6f6f62f8b150ff20f2e071",
+        "file_size_bytes": 1162
+      },
+      {
+        "file_path": ".synthesis/contracts/CONTRACT-GOV-CAPABILITY-REGISTRY-001/v1.0.0.json",
+        "operation": "ADD",
+        "source_blob_sha": null,
+        "result_blob_sha": "7cbf52e2af3e588a037018bccba1e4bcc5f62653",
+        "file_size_bytes": 1237
+      },
+      {
+        "file_path": ".synthesis/contracts/CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001/v1.0.0.json",
+        "operation": "ADD",
+        "source_blob_sha": null,
+        "result_blob_sha": "8d70aaf9dcff4d3b8ea691e5ba1a00dd0fe4d739",
+        "file_size_bytes": 1148
+      },
+      {
+        "file_path": ".synthesis/contracts/CONTRACT-GOV-STATELESS-WORKER-001/v1.0.0.json",
+        "operation": "ADD",
+        "source_blob_sha": null,
+        "result_blob_sha": "c8eabe5712da42a703f1c33f27070e88c0b3f098",
+        "file_size_bytes": 1209
+      },
+      {
+        "file_path": ".synthesis/contracts/CONTRACT-GOV-REMOTE-CHECKPOINT-001/v1.0.0.json",
+        "operation": "ADD",
+        "source_blob_sha": null,
+        "result_blob_sha": "9fc48eaf5f29c7a09b01036d5342beee9cbeaa92",
+        "file_size_bytes": 1210
+      },
+      {
+        "file_path": ".synthesis/registries/contracts.json",
+        "operation": "ADD",
+        "source_blob_sha": null,
+        "result_blob_sha": "94b9794b696201442d0f295070f08e82cf371a46",
+        "file_size_bytes": 3582
+      },
+      {
+        "file_path": ".synthesis/governance.lock.json",
+        "operation": "ADD",
+        "source_blob_sha": null,
+        "result_blob_sha": "74fd354e3a385a7f8b13bdc6e47889ff10543bec",
+        "file_size_bytes": 8667
+      }
+    ],
+    "evidence_binding": {
+      "linked_capsule_id": "CAP-SYN-MINI-GOV-MILESTONE-A-001-20261005-005",
+      "linked_capsule_payload_sha256": "542c6507969bee614b4a0b0d5ecd6e492417f7adb18ac4e3fc17ce85ff6457c9"
+    },
+    "recovery_semantics": {
+      "durability_state": "REMOTE_DURABLE",
+      "skippable_on_recovery": true
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "ac0af3693699174cc967cff8d6986fa8846ecf9eff85819410734d75c4bd2616",
+    "sealed_at": "2026-10-05T17:32:22.009Z",
+    "sealed_by": "AI Studio Engineer"
+  }
+}
