@@ -26,7 +26,8 @@ import {
   canonicalizeRfc8785,
   computePayloadSha256,
   parseStrictIJson,
-  timingSafeHexCompare
+  timingSafeHexCompare,
+  verifyCapsuleSeal
 } from './verify_capsule_seal.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -441,6 +442,236 @@ export function validateCheckpointCommitBinding(repoRoot, checkpointObj) {
   return true;
 }
 
+// Capsule Evidence Binding Validator
+export function validateEvidenceBinding(repoRoot, checkpointObj) {
+  validateCheckpointSeal(checkpointObj);
+  const { payload } = checkpointObj;
+  const eb = payload.evidence_binding;
+  const linkedCapId = eb.linked_capsule_id;
+  const claimedPayloadSha = eb.linked_capsule_payload_sha256;
+
+  // 1. Canonical path check
+  function validateSafeCapsulePath(p) {
+    if (typeof p !== 'string' || !p) throw new Error('PATH_ERROR: Path must be a non-empty string');
+    if (path.isAbsolute(p)) throw new Error('PATH_ERROR: Absolute path forbidden');
+    if (p.startsWith('-')) throw new Error('PATH_ERROR: Option injection forbidden');
+    if (/[\x00-\x1F\x7F]/.test(p)) throw new Error('PATH_ERROR: Control characters forbidden');
+    const norm = path.normalize(p);
+    if (norm.startsWith('..') || norm === '..' || path.isAbsolute(norm)) throw new Error('PATH_ERROR: Path traversal detected');
+    if (!norm.startsWith('.synthesis/task-capsules/')) throw new Error('INVALID_CAPSULE_PATH: Must be in .synthesis/task-capsules/');
+    return norm;
+  }
+  const relPath = validateSafeCapsulePath(`.synthesis/task-capsules/${linkedCapId}.json`);
+  const fullCapPath = path.resolve(repoRoot, relPath);
+
+  if (!fs.existsSync(fullCapPath)) {
+    throw new Error(`CAPSULE_FILE_MISSING: Linked capsule file not found: ${relPath}`);
+  }
+
+  // Symlink checks: target file and ancestor directories
+  if (fs.lstatSync(fullCapPath).isSymbolicLink()) {
+    throw new Error(`UNSAFE_SYMLINK_DETECTED: Linked capsule path is a symlink: ${relPath}`);
+  }
+  let currentDir = path.dirname(fullCapPath);
+  const resolvedRepoRoot = path.resolve(repoRoot);
+  while (currentDir !== resolvedRepoRoot && currentDir !== path.dirname(currentDir)) {
+    if (fs.existsSync(currentDir) && fs.lstatSync(currentDir).isSymbolicLink()) {
+      throw new Error(`UNSAFE_SYMLINK_DETECTED: Symlink ancestor detected: ${currentDir}`);
+    }
+    currentDir = path.dirname(currentDir);
+  }
+
+  if (!fs.statSync(fullCapPath).isFile()) {
+    throw new Error(`NOT_A_REGULAR_FILE: Linked capsule is not a regular file: ${relPath}`);
+  }
+
+  // 2. Strict load & seal verification of capsule
+  const rawBytes = fs.readFileSync(fullCapPath);
+  const rawText = rawBytes.toString('utf8');
+  if (Buffer.from(rawText, 'utf8').compare(rawBytes) !== 0) {
+    throw new Error(`MALFORMED_UTF8: Linked capsule file has invalid UTF-8: ${relPath}`);
+  }
+
+  const capObj = parseStrictIJson(rawText);
+  if (!capObj || typeof capObj !== 'object' || Array.isArray(capObj)) {
+    throw new Error(`INVALID_CAPSULE_STRUCTURE: Capsule must be an object: ${relPath}`);
+  }
+  if (capObj.seal?.status !== 'SEALED') {
+    throw new Error(`CAPSULE_NOT_SEALED: Linked capsule is not in SEALED status: ${capObj.seal?.status}`);
+  }
+
+  const { sha256Hex: computedCapSha } = computePayloadSha256(capObj.payload);
+  if (!timingSafeHexCompare(computedCapSha, capObj.seal.payload_sha256)) {
+    throw new Error(`CAPSULE_SEAL_MISMATCH: Computed capsule SHA-256 (${computedCapSha}) !== seal (${capObj.seal.payload_sha256})`);
+  }
+
+  if (!timingSafeHexCompare(capObj.seal.payload_sha256, claimedPayloadSha)) {
+    throw new Error(`CAPSULE_PAYLOAD_SHA_MISMATCH: Linked capsule payload SHA (${capObj.seal.payload_sha256}) !== checkpoint evidence binding (${claimedPayloadSha})`);
+  }
+
+  if (capObj.payload.capsule_id !== linkedCapId) {
+    throw new Error(`CAPSULE_ID_MISMATCH: Linked capsule ID (${capObj.payload.capsule_id}) !== evidence binding (${linkedCapId})`);
+  }
+
+  // 3. Semantic alignment with checkpoint
+  if (capObj.payload.project_id !== payload.project_id) {
+    throw new Error(`CAPSULE_SEMANTIC_MISMATCH: project_id mismatch (${capObj.payload.project_id} !== ${payload.project_id})`);
+  }
+  if (capObj.payload.task_id !== payload.task_id) {
+    throw new Error(`CAPSULE_SEMANTIC_MISMATCH: task_id mismatch (${capObj.payload.task_id} !== ${payload.task_id})`);
+  }
+  if (capObj.payload.command_id !== payload.command_id) {
+    throw new Error(`CAPSULE_SEMANTIC_MISMATCH: command_id mismatch (${capObj.payload.command_id} !== ${payload.command_id})`);
+  }
+  if (capObj.payload.roadmap_step !== payload.roadmap_step) {
+    throw new Error(`CAPSULE_SEMANTIC_MISMATCH: roadmap_step mismatch (${capObj.payload.roadmap_step} !== ${payload.roadmap_step})`);
+  }
+
+  // 4. Target commit tree binding
+  const targetCommit = payload.target_commit.commit_sha;
+  let treeOut;
+  try {
+    treeOut = execGit(['ls-tree', '-r', targetCommit], repoRoot);
+  } catch (err) {
+    throw new Error(`GIT_LS_TREE_FAILED: Could not inspect target commit tree: ${err.message}`);
+  }
+
+  const treeLines = treeOut.split('\n').filter(Boolean);
+  let targetTreeBlob = null;
+  for (const line of treeLines) {
+    const parts = line.split(/\s+/);
+    if (parts[3] === relPath) {
+      targetTreeBlob = parts[2];
+      break;
+    }
+  }
+
+  if (!targetTreeBlob) {
+    throw new Error(`CAPSULE_NOT_IN_TARGET_COMMIT: Linked capsule ${relPath} not found in target commit tree ${targetCommit}`);
+  }
+
+  const actualFileBlob = computeGitBlobSha(rawBytes);
+  if (targetTreeBlob !== actualFileBlob) {
+    throw new Error(`CAPSULE_COMMIT_BLOB_MISMATCH: Target commit tree blob (${targetTreeBlob}) !== local capsule blob (${actualFileBlob})`);
+  }
+
+  return true;
+}
+
+// Global Checkpoint Lineage & Directory Verifier
+export function verifyAllCheckpointLineage(repoRoot = DEFAULT_REPO_ROOT) {
+  const chkDir = path.join(repoRoot, '.synthesis', 'checkpoints');
+  if (!fs.existsSync(chkDir)) {
+    throw new Error('NO_CHECKPOINTS_AVAILABLE: Checkpoint directory .synthesis/checkpoints does not exist');
+  }
+
+  const dirEntries = fs.readdirSync(chkDir, { withFileTypes: true });
+  if (dirEntries.length === 0) {
+    throw new Error('NO_CHECKPOINTS_AVAILABLE: No checkpoint files found in .synthesis/checkpoints');
+  }
+
+  // Fail closed on symlinks, directories, non-checkpoint files
+  for (const ent of dirEntries) {
+    if (ent.isSymbolicLink()) {
+      throw new Error(`UNEXPECTED_DIRECTORY_ENTRY: Symlink entry forbidden in checkpoints directory: ${ent.name}`);
+    }
+    if (!ent.isFile() || !ent.name.startsWith('CHK-') || !ent.name.endsWith('.json')) {
+      throw new Error(`UNEXPECTED_DIRECTORY_ENTRY: Unexpected non-checkpoint entry in checkpoints directory: ${ent.name}`);
+    }
+  }
+
+  const checkpointMap = new Map();
+  const parentToChildren = new Map();
+
+  for (const ent of dirEntries) {
+    const filePath = path.join(chkDir, ent.name);
+    const { obj, rawBytes } = loadCheckpointStrict(filePath, repoRoot);
+    const chkId = obj.payload.checkpoint_id;
+
+    if (ent.name !== `${chkId}.json`) {
+      throw new Error(`CHECKPOINT_FILE_NAME_MISMATCH: File ${ent.name} does not match checkpoint_id ${chkId}`);
+    }
+
+    if (checkpointMap.has(chkId)) {
+      throw new Error(`DUPLICATE_CHECKPOINT_ID: Duplicate checkpoint ID detected: ${chkId}`);
+    }
+
+    checkpointMap.set(chkId, { obj, rawBytes, filePath });
+  }
+
+  // Cycle detection (self-cycle, 2-node cycle, multi-node cycle)
+  const parentMap = new Map();
+  for (const [chkId, { obj }] of checkpointMap.entries()) {
+    const p = obj.payload.checkpoint_lineage.parent_checkpoint;
+    parentMap.set(chkId, p ? p.checkpoint_id : null);
+  }
+
+  for (const startId of checkpointMap.keys()) {
+    const visitedInPath = new Set();
+    let curr = startId;
+    while (curr) {
+      if (visitedInPath.has(curr)) {
+        throw new Error(`CHECKPOINT_LINEAGE_CYCLE: Lineage cycle detected involving ${curr}`);
+      }
+      visitedInPath.add(curr);
+      curr = parentMap.get(curr);
+    }
+  }
+
+  // Lineage consistency, compatibility & fork check
+  for (const [chkId, { obj }] of checkpointMap.entries()) {
+    const parentRef = obj.payload.checkpoint_lineage.parent_checkpoint;
+    if (parentRef) {
+      const parentId = parentRef.checkpoint_id;
+      if (parentId === chkId) {
+        throw new Error(`CHECKPOINT_LINEAGE_CYCLE: Self-referential checkpoint parent loop detected: ${chkId}`);
+      }
+
+      const parentFullPath = path.resolve(repoRoot, parentRef.file_path);
+      if (!fs.existsSync(parentFullPath)) {
+        throw new Error(`PARENT_CHECKPOINT_MISSING: Parent checkpoint file not found: ${parentRef.file_path}`);
+      }
+
+      const { obj: parentObj, rawBytes: parentBytes } = loadCheckpointStrict(parentFullPath, repoRoot);
+      const computedParentRawSha = computeRawFileSha256(parentBytes);
+      if (computedParentRawSha !== parentRef.raw_file_sha256) {
+        throw new Error(`PARENT_CHECKPOINT_RAW_SHA_MISMATCH: Parent file ${parentRef.file_path} SHA256 mismatch`);
+      }
+      if (parentObj.payload.checkpoint_id !== parentId) {
+        throw new Error(`PARENT_CHECKPOINT_ID_MISMATCH: Claimed parent ID ${parentId} !== found ${parentObj.payload.checkpoint_id}`);
+      }
+
+      // Compatibility check between parent and child
+      if (obj.payload.project_id !== parentObj.payload.project_id) {
+        throw new Error(`LINEAGE_INCOMPATIBILITY: Parent/child project_id mismatch`);
+      }
+      if (obj.payload.repository.name !== parentObj.payload.repository.name) {
+        throw new Error(`LINEAGE_INCOMPATIBILITY: Parent/child repository name mismatch`);
+      }
+      if (obj.payload.repository.branch !== parentObj.payload.repository.branch) {
+        throw new Error(`LINEAGE_INCOMPATIBILITY: Parent/child repository branch mismatch`);
+      }
+      if (obj.payload.task_id !== parentObj.payload.task_id) {
+        throw new Error(`LINEAGE_INCOMPATIBILITY: Parent/child task_id mismatch`);
+      }
+
+      // Linear lineage fork rejection (one parent cannot have multiple children)
+      if (!parentToChildren.has(parentId)) {
+        parentToChildren.set(parentId, []);
+      }
+      const children = parentToChildren.get(parentId);
+      children.push(chkId);
+      if (children.length > 1) {
+        throw new Error(`LINEAGE_FORK_REJECTED: Multiple children [${children.join(', ')}] claim the same parent ${parentId}`);
+      }
+    }
+  }
+
+
+
+  return { success: true, count: checkpointMap.size };
+}
+
 // Checkpoint Lineage Validator
 export function validateCheckpointLineage(repoRoot, checkpointObj) {
   validateCheckpointSeal(checkpointObj);
@@ -529,6 +760,7 @@ export function verifyLiveCheckpoint(filePath, repoRoot = DEFAULT_REPO_ROOT, moc
   validateCheckpointCommitBinding(repoRoot, obj);
   validateCheckpointLineage(repoRoot, obj);
   validateRecordedRemoteEvidence(obj, repoRoot);
+  validateEvidenceBinding(repoRoot, obj);
 
   const branchName = obj.payload.repository.branch;
   const liveRemoteSha = fetchLiveRemoteRefSha(repoRoot, branchName, mockLsRemoteOutput);
@@ -628,10 +860,50 @@ export function runSelfTests() {
     const c1Sha = execGit(['rev-parse', 'HEAD'], tmpDir);
     const c1Blob = execGit(['ls-tree', '-r', c1Sha], tmpDir).split('\n').find(l => l.includes('src/module.mjs')).split(/\s+/)[2];
 
-    // Commit 2: Modify test module file (C2)
+    // Helper to create test capsule
+    function makeTestCapsule(capId, taskId = 'SYN-MINI-TEST-001', commandId = 'CMD-SYN-MINI-TEST-001-001', step = '6/60 — Remote file checkpoint test', branch = 'task/SYN-MINI-TEST-001') {
+      const payload = {
+        schema_version: '1.0.0',
+        capsule_type: 'COMMAND_CAPSULE',
+        capsule_id: capId,
+        command_id: commandId,
+        task_id: taskId,
+        project_id: 'SYNTHESIS_CMS_MINI',
+        roadmap_step: step,
+        actors: { owner: 'Jiří Šár', command_author: 'Test', executor: 'Test', verifier: 'Test' },
+        execution_metadata: { execution_timestamp: '2026-10-05T00:00:00Z', development_phase: 'IMPLEMENT', execution_mode: 'RESTRICTED_GOVERNANCE_BOOTSTRAP' },
+        repository_baseline: { repository_name: 'jirisar7-eng/synthesis-cms-mini', repository_id: 1401215700, base_main_sha: c0Sha, source_branch: branch, expected_target_branch: 'main' },
+        scope_boundary: { permitted_read_paths: [], permitted_write_paths: [], protected_paths: [], forbidden_operations: [], max_write_files_limit: 3, max_read_files_limit: 10 },
+        lineage: { genesis_anchor_reference: { path: '.synthesis/lineage/genesis.json', pinned_sha256: 'b'.repeat(64) }, parent_capsules: [], typed_lineage_references: { superseded_capsules: [], repaired_capsules: [], diagnostic_predecessors: [] } },
+        contracts_and_dependencies: { affected_contracts: [], affected_capabilities: [], declared_dependencies: [] },
+        changes_and_evidence: { expected_changed_files: [], actual_changed_files: [], commit_sha: null, source_blob_shas: {} },
+        verification_states: { syntax_verification: 'PASS', behavioral_test_verification: 'PASS', security_review: 'PASS', remote_sha_verification: 'PENDING', ci_verification: 'PENDING', pull_request_status: 'NOT_CREATED', merge_status: 'NOT_MERGED', deployment_status: 'NOT_DEPLOYED' },
+        recovery_and_next_steps: { global_governance_health: 'BOOTSTRAP_NOT_YET_ACTIVE', blockers: [], incomplete_work: [], next_safe_step: 'NEXT' }
+      };
+      const { sha256Hex } = computePayloadSha256(payload);
+      return {
+        payload,
+        seal: {
+          status: 'SEALED',
+          hash_algorithm: 'SHA-256',
+          canonicalization_algorithm: 'RFC-8785',
+          payload_sha256: sha256Hex,
+          sealed_at: '2026-10-05T00:00:00Z',
+          sealed_by: 'Test',
+          seal_signature: null
+        }
+      };
+    }
+
+    fs.mkdirSync(path.join(tmpDir, '.synthesis', 'task-capsules'), { recursive: true });
+    const defaultTestCap = makeTestCapsule('CAP-SYN-MINI-TEST-001-20261005-001');
+    const defaultCapPath = path.join(tmpDir, '.synthesis', 'task-capsules', 'CAP-SYN-MINI-TEST-001-20261005-001.json');
+    fs.writeFileSync(defaultCapPath, JSON.stringify(defaultTestCap, null, 2));
+
+    // Commit 2: Modify test module file and add linked capsule (C2)
     fs.writeFileSync(path.join(tmpDir, 'src', 'module.mjs'), 'export const v = 2;\n');
-    execGit(['add', 'src/module.mjs'], tmpDir);
-    execGit(['commit', '-m', 'modify module'], tmpDir);
+    execGit(['add', 'src/module.mjs', '.synthesis/task-capsules/CAP-SYN-MINI-TEST-001-20261005-001.json'], tmpDir);
+    execGit(['commit', '-m', 'modify module and add capsule'], tmpDir);
     const c2Sha = execGit(['rev-parse', 'HEAD'], tmpDir);
     const c2Blob = execGit(['ls-tree', '-r', c2Sha], tmpDir).split('\n').find(l => l.includes('src/module.mjs')).split(/\s+/)[2];
 
@@ -688,7 +960,7 @@ export function runSelfTests() {
         ],
         evidence_binding: {
           linked_capsule_id: 'CAP-SYN-MINI-TEST-001-20261005-001',
-          linked_capsule_payload_sha256: 'a'.repeat(64)
+          linked_capsule_payload_sha256: defaultTestCap.seal.payload_sha256
         },
         recovery_semantics: {
           durability_state: 'REMOTE_DURABLE',
@@ -856,6 +1128,97 @@ export function runSelfTests() {
         linked_capsule_payload_sha256: 'a'.repeat(64)
       }
     })), 'POS-14 standard capsule id');
+    posPassed++;
+
+    // POS-15 (REPAIR 002R04): Real linked capsule with correct seal and hash accepted
+    assert(validateEvidenceBinding(tmpDir, chkPos01), 'POS-15 evidence binding');
+    posPassed++;
+
+    // POS-16 (REPAIR 002R04): Repair capsule ID evidence accepted in target commit
+    const repairCapObj = makeTestCapsule('CAP-SYN-MINI-GOV-REMOTE-FILE-CHECKPOINT-001-20261005-002R02');
+    const repairCapPath = path.join(tmpDir, '.synthesis', 'task-capsules', 'CAP-SYN-MINI-GOV-REMOTE-FILE-CHECKPOINT-001-20261005-002R02.json');
+    fs.writeFileSync(repairCapPath, JSON.stringify(repairCapObj, null, 2));
+
+    // Commit repair capsule into commit C7
+    execGit(['add', '.synthesis/task-capsules/CAP-SYN-MINI-GOV-REMOTE-FILE-CHECKPOINT-001-20261005-002R02.json'], tmpDir);
+    execGit(['commit', '-m', 'add repair capsule'], tmpDir);
+    const c7Sha = execGit(['rev-parse', 'HEAD'], tmpDir);
+    const c7Parent = execGit(['rev-parse', 'HEAD~1'], tmpDir);
+
+    const chkPos16 = buildCheckpoint({
+      checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-016',
+      target_commit: { commit_sha: c7Sha, parent_sha: c7Parent, commit_timestamp_utc: '2026-10-05T00:00:00Z' },
+      evidence_binding: {
+        linked_capsule_id: 'CAP-SYN-MINI-GOV-REMOTE-FILE-CHECKPOINT-001-20261005-002R02',
+        linked_capsule_payload_sha256: repairCapObj.seal.payload_sha256
+      }
+    });
+    assert(validateEvidenceBinding(tmpDir, chkPos16), 'POS-16 repair capsule binding');
+    posPassed++;
+
+    // POS-17 (REPAIR 002R04): Valid linear two-checkpoint lineage accepted
+    const chkDir = path.join(tmpDir, '.synthesis', 'checkpoints');
+    fs.mkdirSync(chkDir, { recursive: true });
+    // Write checkpoint 1
+    const chk1Obj = buildCheckpoint({ checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-001' });
+    const chk1Path = path.join(chkDir, 'CHK-SYN-MINI-TEST-001-20261005-001.json');
+    fs.writeFileSync(chk1Path, JSON.stringify(chk1Obj, null, 2));
+    const chk1RawSha = computeRawFileSha256(fs.readFileSync(chk1Path));
+
+    // Write checkpoint 2 linked to checkpoint 1
+    const chk2Obj = buildCheckpoint({
+      checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-002',
+      checkpoint_lineage: {
+        parent_checkpoint: {
+          checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-001',
+          file_path: '.synthesis/checkpoints/CHK-SYN-MINI-TEST-001-20261005-001.json',
+          raw_file_sha256: chk1RawSha
+        }
+      }
+    });
+    const chk2Path = path.join(chkDir, 'CHK-SYN-MINI-TEST-001-20261005-002.json');
+    fs.writeFileSync(chk2Path, JSON.stringify(chk2Obj, null, 2));
+
+    const lin17Res = verifyAllCheckpointLineage(tmpDir);
+    assert(lin17Res.success === true && lin17Res.count === 2, 'POS-17 linear lineage');
+    posPassed++;
+
+    // POS-18 (REPAIR 002R04): Two independent lineage roots accepted
+    const capRoot2 = makeTestCapsule('CAP-SYN-MINI-TEST-002-20261005-001', 'SYN-MINI-TEST-002', 'CMD-SYN-MINI-TEST-002-001', '6/60 — Remote file checkpoint test', 'task/SYN-MINI-TEST-002');
+    const capRoot2Path = path.join(tmpDir, '.synthesis', 'task-capsules', 'CAP-SYN-MINI-TEST-002-20261005-001.json');
+    fs.writeFileSync(capRoot2Path, JSON.stringify(capRoot2, null, 2));
+    execGit(['add', '.synthesis/task-capsules/CAP-SYN-MINI-TEST-002-20261005-001.json'], tmpDir);
+    execGit(['commit', '-m', 'add second root capsule'], tmpDir);
+    const c8Sha = execGit(['rev-parse', 'HEAD'], tmpDir);
+    const c8Parent = execGit(['rev-parse', 'HEAD~1'], tmpDir);
+
+    const chk3Obj = buildCheckpoint({
+      checkpoint_id: 'CHK-SYN-MINI-TEST-002-20261005-001',
+      task_id: 'SYN-MINI-TEST-002',
+      command_id: 'CMD-SYN-MINI-TEST-002-001',
+      target_commit: { commit_sha: c8Sha, parent_sha: c8Parent, commit_timestamp_utc: '2026-10-05T00:00:00Z' },
+      repository: {
+        name: 'jirisar7-eng/synthesis-cms-mini',
+        id: 1401215700,
+        branch: 'task/SYN-MINI-TEST-002',
+        base_main_sha: c0Sha
+      },
+      evidence_binding: {
+        linked_capsule_id: 'CAP-SYN-MINI-TEST-002-20261005-001',
+        linked_capsule_payload_sha256: capRoot2.seal.payload_sha256
+      },
+      checkpoint_lineage: { parent_checkpoint: null }
+    });
+    const chk3Path = path.join(chkDir, 'CHK-SYN-MINI-TEST-002-20261005-001.json');
+    fs.writeFileSync(chk3Path, JSON.stringify(chk3Obj, null, 2));
+
+    const lin18Res = verifyAllCheckpointLineage(tmpDir);
+    assert(lin18Res.success === true && lin18Res.count === 3, 'POS-18 two independent roots');
+    posPassed++;
+
+    // Clean up extra checkpoints created for POS-17 and POS-18, keeping p1Path intact
+    try { fs.unlinkSync(chk2Path); } catch (_) {}
+    try { fs.unlinkSync(chk3Path); } catch (_) {}
 
     // NEG-01: Local commit without remote proof (invalid verification method)
     assertThrows(() => {
@@ -1293,6 +1656,240 @@ export function runSelfTests() {
       }));
     }, 'INVALID_CAPSULE_ID', 'NEG-65 (empty capsule ID)');
 
+    // NEG-66 (REPAIR 002R04): Linked capsule file missing
+    assertThrows(() => {
+      const chk = buildCheckpoint({
+        evidence_binding: { linked_capsule_id: 'CAP-SYN-MINI-MISSING-001', linked_capsule_payload_sha256: '0'.repeat(64) }
+      });
+      validateEvidenceBinding(tmpDir, chk);
+    }, 'CAPSULE_FILE_MISSING', 'NEG-66 (capsule file missing)');
+
+    // NEG-67 (REPAIR 002R04): Linked capsule ID mismatch in file
+    const mismatchCapPath = path.join(tmpDir, '.synthesis', 'task-capsules', 'CAP-SYN-MINI-MISMATCH-001.json');
+    const mismatchCapObj = makeTestCapsule('CAP-SYN-MINI-OTHER-001');
+    fs.writeFileSync(mismatchCapPath, JSON.stringify(mismatchCapObj, null, 2));
+    assertThrows(() => {
+      const chk = buildCheckpoint({
+        evidence_binding: { linked_capsule_id: 'CAP-SYN-MINI-MISMATCH-001', linked_capsule_payload_sha256: mismatchCapObj.seal.payload_sha256 }
+      });
+      validateEvidenceBinding(tmpDir, chk);
+    }, 'CAPSULE_ID_MISMATCH', 'NEG-67 (capsule ID mismatch)');
+
+    // NEG-68 (REPAIR 002R04): Linked capsule payload SHA mismatch
+    assertThrows(() => {
+      const chk = buildCheckpoint({
+        evidence_binding: { linked_capsule_id: 'CAP-SYN-MINI-TEST-001-20261005-001', linked_capsule_payload_sha256: 'f'.repeat(64) }
+      });
+      validateEvidenceBinding(tmpDir, chk);
+    }, 'CAPSULE_PAYLOAD_SHA_MISMATCH', 'NEG-68 (payload SHA mismatch)');
+
+    // NEG-69 (REPAIR 002R04): Tampered linked capsule payload/seal
+    const tamperedCapPath = path.join(tmpDir, '.synthesis', 'task-capsules', 'CAP-SYN-MINI-TAMPERED-001.json');
+    const tamperedCapObj = makeTestCapsule('CAP-SYN-MINI-TAMPERED-001');
+    tamperedCapObj.seal.payload_sha256 = 'e'.repeat(64);
+    fs.writeFileSync(tamperedCapPath, JSON.stringify(tamperedCapObj, null, 2));
+    assertThrows(() => {
+      const chk = buildCheckpoint({
+        evidence_binding: { linked_capsule_id: 'CAP-SYN-MINI-TAMPERED-001', linked_capsule_payload_sha256: 'e'.repeat(64) }
+      });
+      validateEvidenceBinding(tmpDir, chk);
+    }, 'CAPSULE_SEAL_MISMATCH', 'NEG-69 (tampered capsule seal)');
+
+    // NEG-70 (REPAIR 002R04): Linked capsule not present in target commit
+    const notInCommitCapPath = path.join(tmpDir, '.synthesis', 'task-capsules', 'CAP-SYN-MINI-NOT-IN-COMMIT-001.json');
+    const notInCommitCapObj = makeTestCapsule('CAP-SYN-MINI-NOT-IN-COMMIT-001');
+    fs.writeFileSync(notInCommitCapPath, JSON.stringify(notInCommitCapObj, null, 2));
+    assertThrows(() => {
+      const chk = buildCheckpoint({
+        evidence_binding: { linked_capsule_id: 'CAP-SYN-MINI-NOT-IN-COMMIT-001', linked_capsule_payload_sha256: notInCommitCapObj.seal.payload_sha256 }
+      });
+      validateEvidenceBinding(tmpDir, chk);
+    }, 'CAPSULE_NOT_IN_TARGET_COMMIT', 'NEG-70 (capsule not in target commit)');
+
+    // NEG-71 (REPAIR 002R04): Linked capsule belongs to wrong command
+    const wrongCmdCapPath = path.join(tmpDir, '.synthesis', 'task-capsules', 'CAP-SYN-MINI-WRONG-CMD-001.json');
+    const wrongCmdCapObj = makeTestCapsule('CAP-SYN-MINI-WRONG-CMD-001', 'SYN-MINI-TEST-001', 'CMD-OTHER-COMMAND-999');
+    fs.writeFileSync(wrongCmdCapPath, JSON.stringify(wrongCmdCapObj, null, 2));
+    execGit(['add', '.synthesis/task-capsules/CAP-SYN-MINI-WRONG-CMD-001.json'], tmpDir);
+    execGit(['commit', '-m', 'add wrong cmd capsule'], tmpDir);
+    const cWrongCmdSha = execGit(['rev-parse', 'HEAD'], tmpDir);
+    assertThrows(() => {
+      const chk = buildCheckpoint({
+        target_commit: { commit_sha: cWrongCmdSha, parent_sha: c2Sha, commit_timestamp_utc: '2026-10-05T00:00:00Z' },
+        evidence_binding: { linked_capsule_id: 'CAP-SYN-MINI-WRONG-CMD-001', linked_capsule_payload_sha256: wrongCmdCapObj.seal.payload_sha256 }
+      });
+      validateEvidenceBinding(tmpDir, chk);
+    }, 'CAPSULE_SEMANTIC_MISMATCH', 'NEG-71 (wrong command capsule)');
+
+    // NEG-72 (REPAIR 002R04): Linked capsule belongs to wrong task
+    const wrongTaskCapPath = path.join(tmpDir, '.synthesis', 'task-capsules', 'CAP-SYN-MINI-WRONG-TASK-001.json');
+    const wrongTaskCapObj = makeTestCapsule('CAP-SYN-MINI-WRONG-TASK-001', 'SYN-MINI-OTHER-TASK-888', 'CMD-SYN-MINI-TEST-001-001');
+    fs.writeFileSync(wrongTaskCapPath, JSON.stringify(wrongTaskCapObj, null, 2));
+    execGit(['add', '.synthesis/task-capsules/CAP-SYN-MINI-WRONG-TASK-001.json'], tmpDir);
+    execGit(['commit', '-m', 'add wrong task capsule'], tmpDir);
+    const cWrongTaskSha = execGit(['rev-parse', 'HEAD'], tmpDir);
+    assertThrows(() => {
+      const chk = buildCheckpoint({
+        target_commit: { commit_sha: cWrongTaskSha, parent_sha: c2Sha, commit_timestamp_utc: '2026-10-05T00:00:00Z' },
+        evidence_binding: { linked_capsule_id: 'CAP-SYN-MINI-WRONG-TASK-001', linked_capsule_payload_sha256: wrongTaskCapObj.seal.payload_sha256 }
+      });
+      validateEvidenceBinding(tmpDir, chk);
+    }, 'CAPSULE_SEMANTIC_MISMATCH', 'NEG-72 (wrong task capsule)');
+
+    // Setup dedicated clean directory for global lineage negative tests
+    const lineageRepo = path.join(tmpDir, 'lineage-test-repo');
+    const testChkDir = path.join(lineageRepo, '.synthesis', 'checkpoints');
+    fs.mkdirSync(testChkDir, { recursive: true });
+
+    // NEG-73 (REPAIR 002R04): Duplicate checkpoint_id in two files
+    const dupChkObj = buildCheckpoint({ checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-073' });
+    fs.writeFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-073.json'), JSON.stringify(dupChkObj, null, 2));
+    fs.writeFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-073-copy.json'), JSON.stringify(dupChkObj, null, 2));
+    assertThrows(() => {
+      verifyAllCheckpointLineage(lineageRepo);
+    }, 'CHECKPOINT_FILE_NAME_MISMATCH', 'NEG-73 (duplicate checkpoint ID / filename mismatch)');
+
+    // Clear test checkpoints
+    fs.rmSync(testChkDir, { recursive: true, force: true });
+    fs.mkdirSync(testChkDir, { recursive: true });
+
+    // NEG-74 (REPAIR 002R04): Two-node lineage cycle
+    const cycleA = buildCheckpoint({
+      checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-074',
+      checkpoint_lineage: {
+        parent_checkpoint: {
+          checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-075',
+          file_path: '.synthesis/checkpoints/CHK-SYN-MINI-TEST-001-20261005-075.json',
+          raw_file_sha256: '0'.repeat(64)
+        }
+      }
+    });
+    const cycleB = buildCheckpoint({
+      checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-075',
+      checkpoint_lineage: {
+        parent_checkpoint: {
+          checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-074',
+          file_path: '.synthesis/checkpoints/CHK-SYN-MINI-TEST-001-20261005-074.json',
+          raw_file_sha256: '0'.repeat(64)
+        }
+      }
+    });
+    fs.writeFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-074.json'), JSON.stringify(cycleA, null, 2));
+    fs.writeFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-075.json'), JSON.stringify(cycleB, null, 2));
+    cycleA.payload.checkpoint_lineage.parent_checkpoint.raw_file_sha256 = computeRawFileSha256(fs.readFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-075.json')));
+    cycleB.payload.checkpoint_lineage.parent_checkpoint.raw_file_sha256 = computeRawFileSha256(fs.readFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-074.json')));
+    cycleA.seal.payload_sha256 = computePayloadSha256(cycleA.payload).sha256Hex;
+    cycleB.seal.payload_sha256 = computePayloadSha256(cycleB.payload).sha256Hex;
+    fs.writeFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-074.json'), JSON.stringify(cycleA, null, 2));
+    fs.writeFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-075.json'), JSON.stringify(cycleB, null, 2));
+
+    assertThrows(() => {
+      verifyAllCheckpointLineage(lineageRepo);
+    }, 'CHECKPOINT_LINEAGE_CYCLE', 'NEG-74 (two-node lineage cycle)');
+
+    // Clear test checkpoints
+    fs.rmSync(testChkDir, { recursive: true, force: true });
+    fs.mkdirSync(testChkDir, { recursive: true });
+
+    // NEG-75 (REPAIR 002R04): Three-node lineage cycle
+    const cycle1 = buildCheckpoint({ checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-081', checkpoint_lineage: { parent_checkpoint: { checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-083', file_path: '.synthesis/checkpoints/CHK-SYN-MINI-TEST-001-20261005-083.json', raw_file_sha256: '' } } });
+    const cycle2 = buildCheckpoint({ checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-082', checkpoint_lineage: { parent_checkpoint: { checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-081', file_path: '.synthesis/checkpoints/CHK-SYN-MINI-TEST-001-20261005-081.json', raw_file_sha256: '' } } });
+    const cycle3 = buildCheckpoint({ checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-083', checkpoint_lineage: { parent_checkpoint: { checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-082', file_path: '.synthesis/checkpoints/CHK-SYN-MINI-TEST-001-20261005-082.json', raw_file_sha256: '' } } });
+    fs.writeFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-081.json'), JSON.stringify(cycle1, null, 2));
+    fs.writeFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-082.json'), JSON.stringify(cycle2, null, 2));
+    fs.writeFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-083.json'), JSON.stringify(cycle3, null, 2));
+    cycle1.payload.checkpoint_lineage.parent_checkpoint.raw_file_sha256 = computeRawFileSha256(fs.readFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-083.json')));
+    cycle2.payload.checkpoint_lineage.parent_checkpoint.raw_file_sha256 = computeRawFileSha256(fs.readFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-081.json')));
+    cycle3.payload.checkpoint_lineage.parent_checkpoint.raw_file_sha256 = computeRawFileSha256(fs.readFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-082.json')));
+    cycle1.seal.payload_sha256 = computePayloadSha256(cycle1.payload).sha256Hex;
+    cycle2.seal.payload_sha256 = computePayloadSha256(cycle2.payload).sha256Hex;
+    cycle3.seal.payload_sha256 = computePayloadSha256(cycle3.payload).sha256Hex;
+    fs.writeFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-081.json'), JSON.stringify(cycle1, null, 2));
+    fs.writeFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-082.json'), JSON.stringify(cycle2, null, 2));
+    fs.writeFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-083.json'), JSON.stringify(cycle3, null, 2));
+
+    assertThrows(() => {
+      verifyAllCheckpointLineage(lineageRepo);
+    }, 'CHECKPOINT_LINEAGE_CYCLE', 'NEG-75 (three-node lineage cycle)');
+
+    // Clear test checkpoints
+    fs.rmSync(testChkDir, { recursive: true, force: true });
+    fs.mkdirSync(testChkDir, { recursive: true });
+
+    // NEG-76 (REPAIR 002R04): Fork: two children reference same parent
+    const forkParent = buildCheckpoint({ checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-090', checkpoint_lineage: { parent_checkpoint: null } });
+    fs.writeFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-090.json'), JSON.stringify(forkParent, null, 2));
+    const forkPRawSha = computeRawFileSha256(fs.readFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-090.json')));
+
+    const forkChild1 = buildCheckpoint({
+      checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-091',
+      checkpoint_lineage: { parent_checkpoint: { checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-090', file_path: '.synthesis/checkpoints/CHK-SYN-MINI-TEST-001-20261005-090.json', raw_file_sha256: forkPRawSha } }
+    });
+    const forkChild2 = buildCheckpoint({
+      checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-092',
+      checkpoint_lineage: { parent_checkpoint: { checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-090', file_path: '.synthesis/checkpoints/CHK-SYN-MINI-TEST-001-20261005-090.json', raw_file_sha256: forkPRawSha } }
+    });
+    fs.writeFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-091.json'), JSON.stringify(forkChild1, null, 2));
+    fs.writeFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-092.json'), JSON.stringify(forkChild2, null, 2));
+
+    assertThrows(() => {
+      verifyAllCheckpointLineage(lineageRepo);
+    }, 'LINEAGE_FORK_REJECTED', 'NEG-76 (fork rejection)');
+
+    // Clear test checkpoints
+    fs.rmSync(testChkDir, { recursive: true, force: true });
+    fs.mkdirSync(testChkDir, { recursive: true });
+
+    // NEG-77 (REPAIR 002R04): Parent task mismatch
+    const parentTask1 = buildCheckpoint({ checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-095', task_id: 'SYN-TASK-001', checkpoint_lineage: { parent_checkpoint: null } });
+    fs.writeFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-095.json'), JSON.stringify(parentTask1, null, 2));
+    const pTaskRawSha = computeRawFileSha256(fs.readFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-095.json')));
+
+    const childTask2 = buildCheckpoint({
+      checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-096',
+      task_id: 'SYN-TASK-002',
+      checkpoint_lineage: { parent_checkpoint: { checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-095', file_path: '.synthesis/checkpoints/CHK-SYN-MINI-TEST-001-20261005-095.json', raw_file_sha256: pTaskRawSha } }
+    });
+    fs.writeFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-096.json'), JSON.stringify(childTask2, null, 2));
+
+    assertThrows(() => {
+      verifyAllCheckpointLineage(lineageRepo);
+    }, 'LINEAGE_INCOMPATIBILITY', 'NEG-77 (parent task mismatch)');
+
+    // Clear test checkpoints
+    fs.rmSync(testChkDir, { recursive: true, force: true });
+    fs.mkdirSync(testChkDir, { recursive: true });
+
+    // NEG-78 (REPAIR 002R04): Parent branch mismatch
+    const parentBr1 = buildCheckpoint({
+      checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-097',
+      repository: { name: 'jirisar7-eng/synthesis-cms-mini', id: 1401215700, branch: 'main', base_main_sha: c0Sha },
+      checkpoint_lineage: { parent_checkpoint: null }
+    });
+    fs.writeFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-097.json'), JSON.stringify(parentBr1, null, 2));
+    const pBrRawSha = computeRawFileSha256(fs.readFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-097.json')));
+
+    const childBr2 = buildCheckpoint({
+      checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-098',
+      repository: { name: 'jirisar7-eng/synthesis-cms-mini', id: 1401215700, branch: 'task/SYN-MINI-TEST-001', base_main_sha: c0Sha },
+      checkpoint_lineage: { parent_checkpoint: { checkpoint_id: 'CHK-SYN-MINI-TEST-001-20261005-097', file_path: '.synthesis/checkpoints/CHK-SYN-MINI-TEST-001-20261005-097.json', raw_file_sha256: pBrRawSha } }
+    });
+    fs.writeFileSync(path.join(testChkDir, 'CHK-SYN-MINI-TEST-001-20261005-098.json'), JSON.stringify(childBr2, null, 2));
+
+    assertThrows(() => {
+      verifyAllCheckpointLineage(lineageRepo);
+    }, 'LINEAGE_INCOMPATIBILITY', 'NEG-78 (parent branch mismatch)');
+
+    // Clear test checkpoints
+    fs.rmSync(testChkDir, { recursive: true, force: true });
+    fs.mkdirSync(testChkDir, { recursive: true });
+
+    // NEG-79 (REPAIR 002R04): Unexpected / non-checkpoint file in directory
+    fs.writeFileSync(path.join(testChkDir, 'random-file.txt'), 'not a checkpoint');
+    assertThrows(() => {
+      verifyAllCheckpointLineage(lineageRepo);
+    }, 'UNEXPECTED_DIRECTORY_ENTRY', 'NEG-79 (unexpected file in checkpoints dir)');
+
   } finally {
     try {
       fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -1343,27 +1940,26 @@ Usage:
   }
 
   if (parsed.mode === 'VERIFY_ALL') {
-    const chkDir = path.join(DEFAULT_REPO_ROOT, '.synthesis', 'checkpoints');
-    if (!fs.existsSync(chkDir)) {
-      console.error('NO_CHECKPOINTS_AVAILABLE: Checkpoint directory .synthesis/checkpoints does not exist');
+    try {
+      verifyAllCheckpointLineage(DEFAULT_REPO_ROOT);
+      const chkDir = path.join(DEFAULT_REPO_ROOT, '.synthesis', 'checkpoints');
+      const files = fs.readdirSync(chkDir).filter(f => f.startsWith('CHK-') && f.endsWith('.json'));
+      console.log(`Verifying ${files.length} remote checkpoint(s)...`);
+      for (const f of files) {
+        const p = path.join(chkDir, f);
+        const { obj } = loadCheckpointStrict(p, DEFAULT_REPO_ROOT);
+        validateCheckpointCommitBinding(DEFAULT_REPO_ROOT, obj);
+        validateCheckpointLineage(DEFAULT_REPO_ROOT, obj);
+        validateRecordedRemoteEvidence(obj, DEFAULT_REPO_ROOT);
+        validateEvidenceBinding(DEFAULT_REPO_ROOT, obj);
+        console.log(`Verified checkpoint: ${f}`);
+      }
+      console.log('REMOTE_CHECKPOINT_VERIFICATION: PASS');
+      process.exit(0);
+    } catch (err) {
+      console.error(`VERIFY_ALL_FAIL: ${err.message}`);
       process.exit(1);
     }
-    const files = fs.readdirSync(chkDir).filter(f => f.startsWith('CHK-') && f.endsWith('.json'));
-    if (files.length === 0) {
-      console.error('NO_CHECKPOINTS_AVAILABLE: No checkpoint files found in .synthesis/checkpoints');
-      process.exit(1);
-    }
-    console.log(`Verifying ${files.length} remote checkpoint(s)...`);
-    for (const f of files) {
-      const p = path.join(chkDir, f);
-      const { obj } = loadCheckpointStrict(p, DEFAULT_REPO_ROOT);
-      validateCheckpointCommitBinding(DEFAULT_REPO_ROOT, obj);
-      validateCheckpointLineage(DEFAULT_REPO_ROOT, obj);
-      validateRecordedRemoteEvidence(obj, DEFAULT_REPO_ROOT);
-      console.log(`Verified checkpoint: ${f}`);
-    }
-    console.log('REMOTE_CHECKPOINT_VERIFICATION: PASS');
-    process.exit(0);
   }
 
   if (parsed.mode === 'VERIFY') {
@@ -1373,6 +1969,7 @@ Usage:
       validateCheckpointCommitBinding(DEFAULT_REPO_ROOT, obj);
       validateCheckpointLineage(DEFAULT_REPO_ROOT, obj);
       validateRecordedRemoteEvidence(obj, DEFAULT_REPO_ROOT);
+      validateEvidenceBinding(DEFAULT_REPO_ROOT, obj);
       console.log(`CHECKPOINT_VERIFY_PASS: ${targetPath}`);
       process.exit(0);
     } catch (err) {
