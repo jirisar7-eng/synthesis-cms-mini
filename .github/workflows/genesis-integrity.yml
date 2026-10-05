@@ -142,7 +142,13 @@ jobs:
         run: node --check scripts/governance/validate_capability_registry.mjs
 
       - name: Run Capability Registry validator self-tests
-        run: node scripts/governance/validate_capability_registry.mjs --self-test
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(node scripts/governance/validate_capability_registry.mjs --self-test)"
+          printf '%s\n' "$output"
+          grep -Fq "Summary: 3 positive passed, 24 negative passed, 0 failed." <<< "$output"
+          echo 'CAPABILITY_REGISTRY_SELFTEST: {"positivePassed":3,"negativePassed":24,"totalTests":27}'
 
       - name: Verify committed Capability Registry instance
         run: node scripts/governance/validate_capability_registry.mjs --verify-all
@@ -169,6 +175,72 @@ jobs:
 
       - name: Verify committed Remote Checkpoints
         run: node scripts/governance/verify_remote_checkpoint.mjs --verify-all
+
+      - name: Check Activation Proof verifier syntax
+        run: node --check scripts/governance/verify_activation_proof.mjs
+
+      - name: Run Activation Proof verifier self-tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(node scripts/governance/verify_activation_proof.mjs --self-test)"
+          printf '%s\n' "$output"
+          grep -Fxq 'ACTIVATION_PROOF_SELFTEST: {"positivePassed":2,"negativePassed":26,"totalTests":28}' <<< "$output"
+
+      - name: Verify Activation Proof staging state
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(node scripts/governance/verify_activation_proof.mjs --verify)"
+          printf '%s\n' "$output"
+          grep -Fxq 'ACTIVATION_PROOF_STATUS: BOOTSTRAP_PENDING_ACTIVATION' <<< "$output"
+
+      - name: Check Contract Registry verifier syntax
+        run: node --check scripts/governance/verify_contract_registry.mjs
+
+      - name: Run Contract Registry verifier self-tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(node scripts/governance/verify_contract_registry.mjs --self-test)"
+          printf '%s\n' "$output"
+          grep -Fxq 'CONTRACT_REGISTRY_SELFTEST: {"positivePassed":2,"negativePassed":29,"totalTests":31}' <<< "$output"
+
+      - name: Verify committed Contract Registry instance
+        run: node scripts/governance/verify_contract_registry.mjs --verify-all
+
+      - name: Check Governance Lock verifier syntax
+        run: node --check scripts/governance/verify_governance_lock.mjs
+
+      - name: Run Governance Lock verifier self-tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(node scripts/governance/verify_governance_lock.mjs --self-test)"
+          printf '%s\n' "$output"
+          grep -Fxq 'GOVERNANCE_LOCK_SELFTEST: {"positivePassed":2,"negativePassed":29,"totalTests":31}' <<< "$output"
+
+      - name: Verify committed Governance Lock instance
+        run: node scripts/governance/verify_governance_lock.mjs --verify-all
+
+      - name: Check Global Governance Health verifier syntax
+        run: node --check scripts/governance/verify_global_governance_health.mjs
+
+      - name: Run Global Governance Health verifier self-tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(node scripts/governance/verify_global_governance_health.mjs --self-test)"
+          printf '%s\n' "$output"
+          grep -Fxq 'GLOBAL_GOVERNANCE_HEALTH_SELFTEST: {"positivePassed":2,"negativePassed":8,"totalTests":10}' <<< "$output"
+
+      - name: Verify Global Governance Health gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(node scripts/governance/verify_global_governance_health.mjs --verify-all)"
+          printf '%s\n' "$output"
+          grep -Fq 'GLOBAL_GOVERNANCE_HEALTH: BOOTSTRAP_NOT_YET_ACTIVE' <<< "$output"
 
       - name: Check Scope & Diff Firewall validator syntax
         run: node --check scripts/governance/verify_scope_diff_firewall.mjs

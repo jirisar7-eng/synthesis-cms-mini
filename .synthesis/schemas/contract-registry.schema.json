@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://synthesis-cms-mini.org/schemas/contract-registry.schema.json",
+  "title": "Synthesis CMS mini Contract Registry Schema",
+  "description": "Formal schema for the machine-readable Governance Contract Registry with (contract_id, version) identity, effective_from_sha tracking, and bidirectional lock validation.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "format_version",
+    "record_kind",
+    "lifecycle_state",
+    "contracts"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "contract-registry.v1"
+    },
+    "format_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "record_kind": {
+      "type": "string",
+      "const": "CONTRACT_REGISTRY"
+    },
+    "lifecycle_state": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "STAGED",
+        "ACTIVE"
+      ]
+    },
+    "contracts": {
+      "type": "array",
+      "description": "Registered governance contract versions.",
+      "items": {
+        "$ref": "#/$defs/contract_entry"
+      }
+    }
+  },
+  "$defs": {
+    "contract_entry": {
+      "type": "object",
+      "required": [
+        "contract_id",
+        "version",
+        "title",
+        "status",
+        "snapshot_path",
+        "snapshot_sha256",
+        "effective_from_sha"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "contract_id": {
+          "type": "string",
+          "pattern": "^CONTRACT-[A-Z0-9-]+$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "title": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "DRAFT",
+            "STAGED",
+            "ACTIVE",
+            "SUPERSEDED"
+          ]
+        },
+        "snapshot_path": {
+          "type": "string"
+        },
+        "snapshot_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "effective_from_sha": {
+          "type": ["string", "null"]
+        },
+        "introducing_task_id": {
+          "type": "string"
+        },
+        "supersedes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "superseded_by": {
+          "type": ["string", "null"]
+        }
+      }
+    }
+  }
+}

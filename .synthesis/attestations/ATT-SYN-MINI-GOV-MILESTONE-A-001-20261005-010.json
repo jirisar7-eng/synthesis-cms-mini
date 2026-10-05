@@ -1,0 +1,25 @@
+{
+  "format_version": "1.0.0",
+  "record_kind": "LINKED_CAPSULE_FILE_ATTESTATION",
+  "attestation_id": "ATT-SYN-MINI-GOV-MILESTONE-A-001-20261005-010",
+  "status": "OBSERVED_UNANCHORED",
+  "observed_at_utc": "2026-10-05T18:23:12.493Z",
+  "source_repository": "jirisar7-eng/synthesis-cms-mini",
+  "genesis_anchor_reference": {
+    "genesis_file": ".synthesis/lineage/genesis.json",
+    "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+  },
+  "parent_attestation": {
+    "attestation_id": "ATT-SYN-MINI-GOV-MILESTONE-A-001-20261005-009",
+    "file_path": ".synthesis/attestations/ATT-SYN-MINI-GOV-MILESTONE-A-001-20261005-009.json",
+    "raw_file_sha256": "90629f40ec49d0393867dba52ffa5b819b44a7182cb45d5431f37bcd8a02cc23"
+  },
+  "new_capsule": {
+    "capsule_id": "CAP-SYN-MINI-GOV-MILESTONE-A-001-20261005-010",
+    "file_path": ".synthesis/task-capsules/CAP-SYN-MINI-GOV-MILESTONE-A-001-20261005-010.json",
+    "payload_sha256": "91af709ffafe02634675367045715229f863c28ca9f41c876160d334cd42d372",
+    "raw_file_sha256": "a69568337978e97337ebbce5559af4ec1150a99173c5e28d23dd8a7d753fb582",
+    "git_blob_sha": "b3388f569bdc24065cce89037113eff1df40fdb0",
+    "file_size_bytes": 26941
+  }
+}

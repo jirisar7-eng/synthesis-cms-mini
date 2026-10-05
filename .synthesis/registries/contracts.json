@@ -1,0 +1,80 @@
+{
+  "schema_version": "contract-registry.v1",
+  "format_version": "1.0.0",
+  "record_kind": "CONTRACT_REGISTRY",
+  "lifecycle_state": "STAGED",
+  "contracts": [
+    {
+      "contract_id": "CONTRACT-GOV-GENESIS-ANCHOR-001",
+      "version": "1.0.0",
+      "title": "Synthesis Genesis Anchor and Lineage Root Contract",
+      "status": "STAGED",
+      "snapshot_path": ".synthesis/contracts/CONTRACT-GOV-GENESIS-ANCHOR-001/v1.0.0.json",
+      "snapshot_sha256": "17e359563b1c6ef9e3c0b6e79fda9b168b4653eefc8d459527afb86f9fee3f12",
+      "effective_from_sha": "256a1400f03a01b0bd6229b0c68af913b88ddbe3",
+      "introducing_task_id": "SYN-MINI-GOV-MILESTONE-A-001",
+      "supersedes": [],
+      "superseded_by": null
+    },
+    {
+      "contract_id": "CONTRACT-GOV-COMMAND-CAPSULE-001",
+      "version": "1.0.0",
+      "title": "Synthesis Command Capsule and Cryptographic Seal Contract",
+      "status": "STAGED",
+      "snapshot_path": ".synthesis/contracts/CONTRACT-GOV-COMMAND-CAPSULE-001/v1.0.0.json",
+      "snapshot_sha256": "2bb5e65c8a9f56345b9b1b9d55feb393edf1f225c6181801d11f2639ada5cd23",
+      "effective_from_sha": "256a1400f03a01b0bd6229b0c68af913b88ddbe3",
+      "introducing_task_id": "SYN-MINI-GOV-MILESTONE-A-001",
+      "supersedes": [],
+      "superseded_by": null
+    },
+    {
+      "contract_id": "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+      "version": "1.0.0",
+      "title": "Synthesis Capability Registry and Lifecycle Contract",
+      "status": "STAGED",
+      "snapshot_path": ".synthesis/contracts/CONTRACT-GOV-CAPABILITY-REGISTRY-001/v1.0.0.json",
+      "snapshot_sha256": "d5d58207e349aea4a7168f05cee03761030d9663f9ec73b0027db07b46d03723",
+      "effective_from_sha": "256a1400f03a01b0bd6229b0c68af913b88ddbe3",
+      "introducing_task_id": "SYN-MINI-GOV-MILESTONE-A-001",
+      "supersedes": [],
+      "superseded_by": null
+    },
+    {
+      "contract_id": "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+      "version": "1.0.0",
+      "title": "Synthesis Two-Phase Scope Diff Firewall Contract",
+      "status": "STAGED",
+      "snapshot_path": ".synthesis/contracts/CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001/v1.0.0.json",
+      "snapshot_sha256": "d4953aea7871794b91a21795576a466e9a03f016adfb4b18112e8b7332f733af",
+      "effective_from_sha": "256a1400f03a01b0bd6229b0c68af913b88ddbe3",
+      "introducing_task_id": "SYN-MINI-GOV-MILESTONE-A-001",
+      "supersedes": [],
+      "superseded_by": null
+    },
+    {
+      "contract_id": "CONTRACT-GOV-STATELESS-WORKER-001",
+      "version": "1.0.0",
+      "title": "Synthesis Stateless Worker Recovery and Isolation Contract",
+      "status": "STAGED",
+      "snapshot_path": ".synthesis/contracts/CONTRACT-GOV-STATELESS-WORKER-001/v1.0.0.json",
+      "snapshot_sha256": "72b4c66cfa0aa329cd49bbc49847d6bfbb17353ddca0e14e901d159566f9e3a8",
+      "effective_from_sha": "256a1400f03a01b0bd6229b0c68af913b88ddbe3",
+      "introducing_task_id": "SYN-MINI-GOV-MILESTONE-A-001",
+      "supersedes": [],
+      "superseded_by": null
+    },
+    {
+      "contract_id": "CONTRACT-GOV-REMOTE-CHECKPOINT-001",
+      "version": "1.0.0",
+      "title": "Synthesis Remote File Checkpoint and Durability Protocol Contract",
+      "status": "STAGED",
+      "snapshot_path": ".synthesis/contracts/CONTRACT-GOV-REMOTE-CHECKPOINT-001/v1.0.0.json",
+      "snapshot_sha256": "f73460462e1f03c7369f42537420fd39de16fdad2ea52e6e9beac76e2e759bbd",
+      "effective_from_sha": "256a1400f03a01b0bd6229b0c68af913b88ddbe3",
+      "introducing_task_id": "SYN-MINI-GOV-MILESTONE-A-001",
+      "supersedes": [],
+      "superseded_by": null
+    }
+  ]
+}

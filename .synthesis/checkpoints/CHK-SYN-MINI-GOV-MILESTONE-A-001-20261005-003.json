@@ -1,0 +1,64 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "record_kind": "REMOTE_FILE_CHECKPOINT",
+    "checkpoint_id": "CHK-SYN-MINI-GOV-MILESTONE-A-001-20261005-003",
+    "checkpoint_type": "SINGLE_FILE",
+    "checkpoint_state": "CHECKPOINT_COMPLETE",
+    "task_id": "SYN-MINI-GOV-MILESTONE-A-001",
+    "command_id": "CMD-SYN-MINI-GOV-MILESTONE-A-001-007-INTEGRATE-ACTIVATION-CI",
+    "roadmap_step": "6/60 — Integrating Milestone A activation verifiers, selftests, and staging gates into CI workflow",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "created_at_utc": "2026-10-05T18:01:16.406Z",
+    "repository": {
+      "name": "jirisar7-eng/synthesis-cms-mini",
+      "id": 1401215700,
+      "branch": "task/SYN-MINI-GOV-MILESTONE-A-001",
+      "base_main_sha": "256a1400f03a01b0bd6229b0c68af913b88ddbe3"
+    },
+    "target_commit": {
+      "commit_sha": "313878a68c978d073724b054b4553c0de570eef5",
+      "parent_sha": "d076a25da2058cdd1ebb64787b3717c8a0ec5651",
+      "commit_timestamp_utc": "2026-10-05T17:53:05Z"
+    },
+    "remote_verification": {
+      "verification_method": "GIT_LS_REMOTE",
+      "observed_remote_ref": "refs/heads/task/SYN-MINI-GOV-MILESTONE-A-001",
+      "observed_remote_sha": "313878a68c978d073724b054b4553c0de570eef5",
+      "remote_relationship": "EXACT_HEAD",
+      "verified_at_utc": "2026-10-05T18:01:16.406Z"
+    },
+    "checkpoint_lineage": {
+      "parent_checkpoint": {
+        "checkpoint_id": "CHK-SYN-MINI-GOV-MILESTONE-A-001-20261005-002",
+        "file_path": ".synthesis/checkpoints/CHK-SYN-MINI-GOV-MILESTONE-A-001-20261005-002.json",
+        "raw_file_sha256": "2824d8c5e9ac64e539fa140cba9e753e5636dc98c5b0d2166a83fb4549b32c97"
+      }
+    },
+    "checkpointed_files": [
+      {
+        "file_path": ".github/workflows/genesis-integrity.yml",
+        "operation": "MODIFY",
+        "source_blob_sha": "e6ac97084146c3a22984c19e24b2b716cc9b00f3",
+        "result_blob_sha": "e8eaf870013e4dd1b6d489b7af66902ec29b343d",
+        "file_size_bytes": 19422
+      }
+    ],
+    "evidence_binding": {
+      "linked_capsule_id": "CAP-SYN-MINI-GOV-MILESTONE-A-001-20261005-007",
+      "linked_capsule_payload_sha256": "897571cad866caa1bf71a2a23fbf405e7cc9138dc056d92d04e5a55d1e8fc12a"
+    },
+    "recovery_semantics": {
+      "durability_state": "REMOTE_DURABLE",
+      "skippable_on_recovery": true
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "29ef9c1974769366968e453974408b5dfdb5862876f8ab236fa763fb77d96455",
+    "sealed_at": "2026-10-05T18:01:16.406Z",
+    "sealed_by": "AI Studio Engineer"
+  }
+}
