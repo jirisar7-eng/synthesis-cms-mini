@@ -1,0 +1,25 @@
+{
+  "format_version": "1.0.0",
+  "record_kind": "LINKED_CAPSULE_FILE_ATTESTATION",
+  "attestation_id": "ATT-SYN-MINI-GOV-STATELESS-WORKER-CLOSEOUT-001-20261005-003",
+  "status": "OBSERVED_UNANCHORED",
+  "observed_at_utc": "2026-10-05T05:11:51.808Z",
+  "source_repository": "jirisar7-eng/synthesis-cms-mini",
+  "genesis_anchor_reference": {
+    "genesis_file": ".synthesis/lineage/genesis.json",
+    "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+  },
+  "parent_attestation": {
+    "attestation_id": "ATT-SYN-MINI-GOV-STATELESS-WORKER-CLOSEOUT-001-20261005-002",
+    "file_path": ".synthesis/attestations/ATT-SYN-MINI-GOV-STATELESS-WORKER-CLOSEOUT-001-20261005-002.json",
+    "raw_file_sha256": "763de39e1a405eff05158770cb160e87c212a52a50eda153f39885b18ca1e9d2"
+  },
+  "new_capsule": {
+    "capsule_id": "CAP-SYN-MINI-GOV-STATELESS-WORKER-CLOSEOUT-001-20261005-003",
+    "file_path": ".synthesis/task-capsules/CAP-SYN-MINI-GOV-STATELESS-WORKER-CLOSEOUT-001-20261005-003.json",
+    "payload_sha256": "70f74fb5e7a2c197d53db84c0e1d949ed075e3e982aaf92bc6093af4e63e82a1",
+    "raw_file_sha256": "e556e81c011d16bf5805a2923856411d76b7304b23c2e79246e1e5c0209d0a62",
+    "git_blob_sha": "bfef16ba954ee318b983e797f2898424bb82dda0",
+    "file_size_bytes": 19497
+  }
+}
