@@ -248,7 +248,7 @@
           "properties": {
             "linked_capsule_id": {
               "type": "string",
-              "pattern": "^CAP-[A-Z0-9_-]+-[0-9]{8}-[0-9]{3}$"
+              "pattern": "^CAP-[A-Z0-9_-]+$"
             },
             "linked_capsule_payload_sha256": {
               "type": "string",

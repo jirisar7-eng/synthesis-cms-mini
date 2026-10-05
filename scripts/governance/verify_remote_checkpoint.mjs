@@ -278,7 +278,7 @@ export function validateCheckpointSchema(obj) {
   // Evidence binding
   const eb = payload.evidence_binding;
   if (!eb || typeof eb !== 'object') throw new Error('SCHEMA_ERROR: evidence_binding object required');
-  if (!/^CAP-[A-Z0-9_-]+-[0-9]{8}-[0-9]{3}$/.test(eb.linked_capsule_id || '')) {
+  if (!/^CAP-[A-Z0-9_-]+$/.test(eb.linked_capsule_id || '')) {
     throw new Error(`INVALID_CAPSULE_ID: ${eb.linked_capsule_id}`);
   }
   if (!/^[0-9a-f]{64}$/.test(eb.linked_capsule_payload_sha256 || '')) {
@@ -840,6 +840,23 @@ export function runSelfTests() {
     assert(validateOriginUrl('git@github.com:jirisar7-eng/synthesis-cms-mini.git'), 'POS-12 ssh origin');
     posPassed++;
 
+    // POS-13 (REPAIR 002R03): Actual-style repair capsule ID accepted
+    assert(validateCheckpointSeal(buildCheckpoint({
+      evidence_binding: {
+        linked_capsule_id: 'CAP-SYN-MINI-GOV-REMOTE-FILE-CHECKPOINT-001-20261005-002R02',
+        linked_capsule_payload_sha256: 'a'.repeat(64)
+      }
+    })), 'POS-13 repair capsule id');
+    posPassed++;
+
+    // POS-14 (REPAIR 002R03): Standard non-repair capsule ID accepted
+    assert(validateCheckpointSeal(buildCheckpoint({
+      evidence_binding: {
+        linked_capsule_id: 'CAP-SYN-MINI-GOV-REMOTE-FILE-CHECKPOINT-001-20261005-001',
+        linked_capsule_payload_sha256: 'a'.repeat(64)
+      }
+    })), 'POS-14 standard capsule id');
+
     // NEG-01: Local commit without remote proof (invalid verification method)
     assertThrows(() => {
       validateCheckpointSeal(buildCheckpoint({ remote_verification: { verification_method: 'LOCAL_REV_PARSE' } }));
@@ -1240,6 +1257,41 @@ export function runSelfTests() {
         throw new Error('NO_CHECKPOINTS_AVAILABLE: No checkpoint files found in .synthesis/checkpoints');
       }
     }, 'NO_CHECKPOINTS_AVAILABLE', 'NEG-60 (empty chk dir)');
+
+    // NEG-61 (REPAIR 002R03): Missing CAP- prefix rejected
+    assertThrows(() => {
+      validateCheckpointSeal(buildCheckpoint({
+        evidence_binding: { linked_capsule_id: 'NO_PREFIX_ID-001', linked_capsule_payload_sha256: 'a'.repeat(64) }
+      }));
+    }, 'INVALID_CAPSULE_ID', 'NEG-61 (missing CAP- prefix)');
+
+    // NEG-62 (REPAIR 002R03): Lowercase capsule ID rejected
+    assertThrows(() => {
+      validateCheckpointSeal(buildCheckpoint({
+        evidence_binding: { linked_capsule_id: 'cap-syn-mini-001', linked_capsule_payload_sha256: 'a'.repeat(64) }
+      }));
+    }, 'INVALID_CAPSULE_ID', 'NEG-62 (lowercase capsule ID)');
+
+    // NEG-63 (REPAIR 002R03): Capsule ID containing slash rejected
+    assertThrows(() => {
+      validateCheckpointSeal(buildCheckpoint({
+        evidence_binding: { linked_capsule_id: 'CAP-SYN/MINI-001', linked_capsule_payload_sha256: 'a'.repeat(64) }
+      }));
+    }, 'INVALID_CAPSULE_ID', 'NEG-63 (slash in capsule ID)');
+
+    // NEG-64 (REPAIR 002R03): Capsule ID containing whitespace rejected
+    assertThrows(() => {
+      validateCheckpointSeal(buildCheckpoint({
+        evidence_binding: { linked_capsule_id: 'CAP-SYN MINI-001', linked_capsule_payload_sha256: 'a'.repeat(64) }
+      }));
+    }, 'INVALID_CAPSULE_ID', 'NEG-64 (whitespace in capsule ID)');
+
+    // NEG-65 (REPAIR 002R03): Empty linked_capsule_id rejected
+    assertThrows(() => {
+      validateCheckpointSeal(buildCheckpoint({
+        evidence_binding: { linked_capsule_id: '', linked_capsule_payload_sha256: 'a'.repeat(64) }
+      }));
+    }, 'INVALID_CAPSULE_ID', 'NEG-65 (empty capsule ID)');
 
   } finally {
     try {
