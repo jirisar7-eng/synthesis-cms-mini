@@ -1,0 +1,25 @@
+{
+  "format_version": "1.0.0",
+  "record_kind": "LINKED_CAPSULE_FILE_ATTESTATION",
+  "attestation_id": "ATT-SYN-MINI-GOV-REMOTE-FILE-CHECKPOINT-001-20261005-005",
+  "status": "OBSERVED_UNANCHORED",
+  "observed_at_utc": "2026-10-05T11:20:37.416Z",
+  "source_repository": "jirisar7-eng/synthesis-cms-mini",
+  "genesis_anchor_reference": {
+    "genesis_file": ".synthesis/lineage/genesis.json",
+    "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+  },
+  "parent_attestation": {
+    "attestation_id": "ATT-SYN-MINI-GOV-REMOTE-FILE-CHECKPOINT-001-20261005-004",
+    "file_path": ".synthesis/attestations/ATT-SYN-MINI-GOV-REMOTE-FILE-CHECKPOINT-001-20261005-004.json",
+    "raw_file_sha256": "2f7b4055dc34ccd7165a4fa156484c3605975a022dd8660a61bb5111d1742150"
+  },
+  "new_capsule": {
+    "capsule_id": "CAP-SYN-MINI-GOV-REMOTE-FILE-CHECKPOINT-001-20261005-005",
+    "file_path": ".synthesis/task-capsules/CAP-SYN-MINI-GOV-REMOTE-FILE-CHECKPOINT-001-20261005-005.json",
+    "payload_sha256": "1fdd83f6f7ebec46c32b8809b87090992c59c1c2364bd7cf3ce2862ab5c84166",
+    "raw_file_sha256": "fbc86f5e00bb08f90f73a20d8765d337b002d94b5b9ca244656c90e4b831b0bc",
+    "git_blob_sha": "22f7203fa79ddcb085da06964a3a24511a91eb0d",
+    "file_size_bytes": 20834
+  }
+}

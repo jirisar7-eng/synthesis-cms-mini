@@ -156,6 +156,20 @@ jobs:
       - name: Verify committed source-blob provenance
         run: node scripts/governance/verify_source_blob_provenance.mjs --verify-all
 
+      - name: Check Remote Checkpoint verifier syntax
+        run: node --check scripts/governance/verify_remote_checkpoint.mjs
+
+      - name: Run Remote Checkpoint security self-tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(node scripts/governance/verify_remote_checkpoint.mjs --self-test)"
+          printf '%s\n' "$output"
+          grep -Fxq 'REMOTE_CHECKPOINT_SELFTEST: {"positivePassed":18,"negativePassed":79,"totalTests":97}' <<< "$output"
+
+      - name: Verify committed Remote Checkpoints
+        run: node scripts/governance/verify_remote_checkpoint.mjs --verify-all
+
       - name: Check Scope & Diff Firewall validator syntax
         run: node --check scripts/governance/verify_scope_diff_firewall.mjs
 
