@@ -7,6 +7,9 @@
  * Verifies immutable, sealed remote file checkpoints (CHK-*.json)
  * ensuring cryptographic binding, remote durability verification,
  * git commit/tree provenance, and recovery semantics without self-reference.
+ *
+ * REPAIR 002R01: Reuses authoritative shared RFC-8785 canonicalizer,
+ * timingSafeHexCompare, and strict I-JSON parsing from verify_capsule_seal.mjs.
  */
 
 import fs from 'node:fs';
@@ -15,52 +18,19 @@ import crypto from 'node:crypto';
 import child_process from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+import {
+  canonicalizeRfc8785,
+  computePayloadSha256,
+  parseStrictIJson,
+  timingSafeHexCompare
+} from './verify_capsule_seal.mjs';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DEFAULT_REPO_ROOT = path.resolve(__dirname, '..', '..');
 
-// RFC-8785 Canonicalization
-export function canonicalizeRfc8785(data) {
-  if (data === null) return 'null';
-  const type = typeof data;
-  if (type === 'boolean') return data ? 'true' : 'false';
-  if (type === 'number') {
-    if (!Number.isFinite(data)) throw new TypeError('Non-finite numbers cannot be canonicalized');
-    return String(data);
-  }
-  if (type === 'string') return JSON.stringify(data);
-  if (Array.isArray(data)) {
-    let out = '[';
-    for (let i = 0; i < data.length; i++) {
-      if (i > 0) out += ',';
-      out += canonicalizeRfc8785(data[i]);
-    }
-    out += ']';
-    return out;
-  }
-  if (type === 'object') {
-    const keys = Object.keys(data).sort((a, b) => {
-      const aBuf = Buffer.from(a, 'utf16le');
-      const bBuf = Buffer.from(b, 'utf16le');
-      return aBuf.compare(bBuf);
-    });
-    let out = '{';
-    for (let i = 0; i < keys.length; i++) {
-      const k = keys[i];
-      if (i > 0) out += ',';
-      out += JSON.stringify(k) + ':' + canonicalizeRfc8785(data[k]);
-    }
-    out += '}';
-    return out;
-  }
-  throw new TypeError(`Cannot canonicalize unsupported type: ${type}`);
-}
-
-export function computePayloadSha256(payload) {
-  const canonicalJson = canonicalizeRfc8785(payload);
-  const sha256Hex = crypto.createHash('sha256').update(canonicalJson, 'utf8').digest('hex');
-  return { canonicalJson, sha256Hex };
-}
+// Re-export shared canonicalization functions for external consumers
+export { canonicalizeRfc8785, computePayloadSha256, parseStrictIJson, timingSafeHexCompare };
 
 export function computeRawFileSha256(fileBytes) {
   return crypto.createHash('sha256').update(fileBytes).digest('hex');
@@ -251,10 +221,29 @@ export function validateCheckpointSchema(obj) {
 export function validateCheckpointSeal(obj) {
   validateCheckpointSchema(obj);
   const { sha256Hex } = computePayloadSha256(obj.payload);
-  if (sha256Hex !== obj.seal.payload_sha256) {
+  if (!timingSafeHexCompare(sha256Hex, obj.seal.payload_sha256)) {
     throw new Error(`SEAL_MISMATCH: Computed payload SHA-256 (${sha256Hex}) !== seal (${obj.seal.payload_sha256})`);
   }
   return true;
+}
+
+// Strict I-JSON Checkpoint Loader
+export function loadCheckpointStrict(filePath, repoRoot = DEFAULT_REPO_ROOT) {
+  const resolvedPath = path.isAbsolute(filePath) ? filePath : path.resolve(repoRoot, filePath);
+  if (!fs.existsSync(resolvedPath)) {
+    throw new Error(`CHECKPOINT_FILE_NOT_FOUND: ${filePath}`);
+  }
+  const rawBytes = fs.readFileSync(resolvedPath);
+  const rawText = rawBytes.toString('utf8');
+  
+  // Verify strict UTF-8 roundtrip
+  if (Buffer.from(rawText, 'utf8').compare(rawBytes) !== 0) {
+    throw new Error(`MALFORMED_UTF8: File contains invalid UTF-8 encoding: ${filePath}`);
+  }
+
+  const obj = parseStrictIJson(rawText);
+  validateCheckpointSeal(obj);
+  return { obj, rawBytes, rawText };
 }
 
 // Commit & Git Tree Binding Validator
@@ -350,14 +339,11 @@ export function validateCheckpointLineage(repoRoot, checkpointObj) {
     throw new Error(`PARENT_CHECKPOINT_MISSING: Parent checkpoint file not found: ${parentRef.file_path}`);
   }
 
-  const parentBytes = fs.readFileSync(parentPath);
+  const { obj: parentObj, rawBytes: parentBytes } = loadCheckpointStrict(parentPath, repoRoot);
   const parentRawSha256 = computeRawFileSha256(parentBytes);
   if (parentRawSha256 !== parentRef.raw_file_sha256) {
     throw new Error(`PARENT_CHECKPOINT_RAW_SHA_MISMATCH: Parent file ${parentRef.file_path} SHA256 (${parentRawSha256}) !== claimed (${parentRef.raw_file_sha256})`);
   }
-
-  const parentObj = JSON.parse(parentBytes.toString('utf8'));
-  validateCheckpointSeal(parentObj);
 
   if (parentObj.payload.checkpoint_id !== parentRef.checkpoint_id) {
     throw new Error(`PARENT_CHECKPOINT_ID_MISMATCH: Claimed parent ID ${parentRef.checkpoint_id} !== found ${parentObj.payload.checkpoint_id}`);
@@ -650,6 +636,17 @@ export function runSelfTests() {
     assert(validateCheckpointLineage(tmpDir, chkPos06), 'POS-06 lineage check');
     posPassed++;
 
+    // POS-07 (REPAIR): Shared canonicalizer UTF-16 code unit ordering on Unicode property keys
+    const testObj = { "\u0100": 2, "A": 1 }; // "Ā" (U+0100) vs "A" (U+0041)
+    const canonStr = canonicalizeRfc8785(testObj);
+    assert(canonStr === '{"A":1,"\u0100":2}', `POS-07 canonical UTF-16 ordering: ${canonStr}`);
+    posPassed++;
+
+    // POS-08 (REPAIR): Strict I-JSON loader parses valid formatted JSON
+    const loadedPos08 = loadCheckpointStrict(p1Path, tmpDir);
+    assert(loadedPos08.obj.payload.checkpoint_id === 'CHK-SYN-MINI-TEST-001-20261005-001', 'POS-08 strict loader');
+    posPassed++;
+
     // NEG-01: Local commit without remote proof (invalid verification method)
     assertThrows(() => {
       validateCheckpointSeal(buildCheckpoint({ remote_verification: { verification_method: 'LOCAL_REV_PARSE' } }));
@@ -904,6 +901,38 @@ export function runSelfTests() {
     assert(rec35.status === 'REMOTE_DURABLE_BUT_SUPERSEDED', 'NEG-35 superseded check');
     negPassed++;
 
+    // NEG-36 (REPAIR): Duplicate JSON key rejected by strict I-JSON parser
+    assertThrows(() => {
+      parseStrictIJson('{"a":1,"a":2}');
+    }, 'Duplicate object key detected', 'NEG-36 (duplicate key)');
+
+    // NEG-37 (REPAIR): Lone high surrogate rejected by strict parser
+    assertThrows(() => {
+      parseStrictIJson('{"bad":"\uD800"}');
+    }, 'Lone surrogate', 'NEG-37 (lone high surrogate)');
+
+    // NEG-38 (REPAIR): Lone low surrogate rejected by strict parser
+    assertThrows(() => {
+      parseStrictIJson('{"bad":"\uDC00"}');
+    }, 'Lone surrogate', 'NEG-38 (lone low surrogate)');
+
+    // NEG-39 (REPAIR): Lone surrogate in object key rejected
+    assertThrows(() => {
+      parseStrictIJson('{"\uD800": 1}');
+    }, 'Lone surrogate', 'NEG-39 (lone surrogate key)');
+
+    // NEG-40 (REPAIR): Malformed JSON rejected
+    assertThrows(() => {
+      parseStrictIJson('{bad_json: 1}');
+    }, 'I_JSON_ERROR', 'NEG-40 (malformed JSON)');
+
+    // NEG-41 (REPAIR): Parent checkpoint with duplicate key fails strict loading
+    const badParentPath = path.join(tmpDir, '.synthesis', 'checkpoints', 'CHK-BAD-PARENT.json');
+    fs.writeFileSync(badParentPath, '{"payload":{},"payload":{}}');
+    assertThrows(() => {
+      loadCheckpointStrict(badParentPath, tmpDir);
+    }, 'Duplicate object key detected', 'NEG-41 (bad parent strict loading)');
+
   } finally {
     try {
       fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -957,9 +986,7 @@ Usage:
     console.log(`Verifying ${files.length} remote checkpoint(s)...`);
     for (const f of files) {
       const p = path.join(chkDir, f);
-      const raw = fs.readFileSync(p, 'utf8');
-      const obj = JSON.parse(raw);
-      validateCheckpointSeal(obj);
+      const { obj } = loadCheckpointStrict(p, DEFAULT_REPO_ROOT);
       validateCheckpointCommitBinding(DEFAULT_REPO_ROOT, obj);
       validateCheckpointLineage(DEFAULT_REPO_ROOT, obj);
       console.log(`Verified checkpoint: ${f}`);
@@ -971,9 +998,7 @@ Usage:
   const verifyIdx = args.indexOf('--verify');
   if (verifyIdx !== -1 && args[verifyIdx + 1]) {
     const targetPath = path.resolve(process.cwd(), args[verifyIdx + 1]);
-    const raw = fs.readFileSync(targetPath, 'utf8');
-    const obj = JSON.parse(raw);
-    validateCheckpointSeal(obj);
+    const { obj } = loadCheckpointStrict(targetPath, DEFAULT_REPO_ROOT);
     validateCheckpointCommitBinding(DEFAULT_REPO_ROOT, obj);
     validateCheckpointLineage(DEFAULT_REPO_ROOT, obj);
     console.log(`CHECKPOINT_VERIFY_PASS: ${targetPath}`);
