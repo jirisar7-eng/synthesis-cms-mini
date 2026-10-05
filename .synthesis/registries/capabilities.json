@@ -85,6 +85,52 @@
       "origin_payload_sha256": "2939099d99a746e75c423adcb075bff7c89de0043a4a7c1fedfbde7f1d58bc43",
       "introducing_commit_sha": null,
       "superseded_by": null
+    },
+    {
+      "capability_id": "gov.checkpoint.remote_protocol",
+      "name": "Remote File Checkpoint Protocol",
+      "description": "Provides cryptographically sealed per-file remote durability checkpoints, independent live remote verification, checkpoint lineage validation, and deterministic recovery evidence for stateless AI work.",
+      "layer": "Stable Contracts",
+      "owner_domain": "gov.checkpoint",
+      "status": "PROPOSED",
+      "head_revision": 1,
+      "legacy_aliases": [
+        "REMOTE_FILE_CHECKPOINT_PROTOCOL"
+      ],
+      "governing_contracts": [
+        "remote-checkpoint.v1"
+      ],
+      "provides": [
+        "checkpoint.remote_durable",
+        "checkpoint.live_verification",
+        "checkpoint.recovery"
+      ],
+      "requires": [
+        {
+          "type": "capability",
+          "id": "gov.capsule.persistence",
+          "min_revision": 1
+        },
+        {
+          "type": "capability",
+          "id": "gov.capsule.lineage",
+          "min_revision": 1
+        },
+        {
+          "type": "capability",
+          "id": "gov.capsule.cryptographic_seal",
+          "min_revision": 1
+        },
+        {
+          "type": "capability",
+          "id": "gov.scope.diff_firewall",
+          "min_revision": 1
+        }
+      ],
+      "origin_capsule_id": null,
+      "origin_payload_sha256": null,
+      "introducing_commit_sha": null,
+      "superseded_by": null
     }
   ]
 }
