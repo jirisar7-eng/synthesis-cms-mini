@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://synthesis-cms-mini.org/schemas/governance-lock.schema.json",
+  "title": "Synthesis CMS mini Governance Lockfile Schema",
+  "description": "Formal specification for the cryptographic governance requirements lockfile (governance.lock.json).",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "lockfile_kind",
+    "locked_at_utc",
+    "root_governance_health_gate",
+    "genesis_anchor",
+    "pinned_items"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "lockfile_kind": {
+      "type": "string",
+      "const": "GOVERNANCE_REQUIREMENTS_LOCK"
+    },
+    "locked_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "root_governance_health_gate": {
+      "type": "string",
+      "enum": [
+        "BOOTSTRAP_NOT_YET_ACTIVE",
+        "PASS",
+        "FAIL"
+      ]
+    },
+    "genesis_anchor": {
+      "type": "object",
+      "required": ["path", "pinned_sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string" },
+        "pinned_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "pinned_items": {
+      "type": "array",
+      "description": "Collection of pinned governance files with cryptographic hashes.",
+      "items": {
+        "type": "object",
+        "required": ["item_type", "path", "sha256"],
+        "additionalProperties": false,
+        "properties": {
+          "item_type": {
+            "type": "string",
+            "enum": [
+              "SCHEMA",
+              "CONTRACT_SNAPSHOT",
+              "REGISTRY",
+              "VERIFIER_SCRIPT"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "identifier": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

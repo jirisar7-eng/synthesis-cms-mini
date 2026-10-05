@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://synthesis-cms-mini.org/schemas/activation-proof.schema.json",
+  "title": "Synthesis CMS mini Milestone Activation Proof Schema",
+  "description": "Formal schema for post-merge exact-main activation evidence.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "record_kind",
+    "milestone_id",
+    "activation_status",
+    "exact_main_commit_sha",
+    "parent_commit_shas",
+    "merge_tree_sha",
+    "governance_lock_sha256",
+    "ci_workflow_run_id",
+    "verified_at_utc",
+    "verified_by"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "record_kind": {
+      "type": "string",
+      "const": "MILESTONE_ACTIVATION_PROOF"
+    },
+    "milestone_id": {
+      "type": "string"
+    },
+    "activation_status": {
+      "type": "string",
+      "enum": [
+        "PENDING_EXACT_MAIN",
+        "ACTIVE",
+        "REVOKED"
+      ]
+    },
+    "exact_main_commit_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "parent_commit_shas": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{40}$"
+      },
+      "minItems": 1
+    },
+    "merge_tree_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "governance_lock_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "ci_workflow_run_id": {
+      "type": "integer"
+    },
+    "verified_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "verified_by": {
+      "type": "string"
+    }
+  }
+}
