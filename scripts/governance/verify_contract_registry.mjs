@@ -3,18 +3,20 @@
  * SYNTHESIS CMS MINI — GOVERNANCE CONTRACT REGISTRY VERIFIER
  *
  * Verifies machine-readable Governance Contract Registry instances and snapshots.
- * Supports multi-version contracts, enforces (contract_id, version) uniqueness,
- * supersession / current-version consistency, snapshot SHA-256 integrity,
- * safe regular file guarantees (no symlinks), and lifecycle state invariants.
+ * Supports multi-version contracts (contract_id + version identity), effective_from_sha
+ * git provenance & ancestry checks, RFC-8785 canonical JSON snapshot enforcement,
+ * supersession consistency, SHA-256 integrity, and regular-file (no symlink) safety.
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import child_process from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import {
   parseStrictIJson,
+  canonicalizeRfc8785,
   timingSafeHexCompare
 } from './verify_capsule_seal.mjs';
 
@@ -24,6 +26,19 @@ const DEFAULT_REPO_ROOT = path.resolve(__dirname, '..', '..');
 
 export const VALID_LIFECYCLE_STATES = new Set(['DRAFT', 'STAGED', 'ACTIVE']);
 export const VALID_CONTRACT_STATUSES = new Set(['DRAFT', 'STAGED', 'ACTIVE', 'SUPERSEDED']);
+
+export function defaultGitExecutor(args, cwd = DEFAULT_REPO_ROOT) {
+  try {
+    return child_process.execFileSync('git', args, {
+      cwd,
+      shell: false,
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+  } catch (err) {
+    throw new Error(`GIT_COMMAND_FAILED [git ${args.join(' ')}]: ${err.stderr || err.message}`);
+  }
+}
 
 export function computeFileSha256(filePath) {
   const bytes = fs.readFileSync(filePath);
@@ -47,7 +62,9 @@ export function validateSafeRelativePath(relPath) {
   return normalized;
 }
 
-export function validateContractRegistry(registryObj, repoRoot = DEFAULT_REPO_ROOT) {
+export function validateContractRegistry(registryObj, repoRoot = DEFAULT_REPO_ROOT, options = {}) {
+  const gitExecutor = options.gitExecutor || defaultGitExecutor;
+
   if (!registryObj || typeof registryObj !== 'object' || Array.isArray(registryObj)) {
     return { valid: false, error: 'MALFORMED_REGISTRY: Registry root must be a non-null object' };
   }
@@ -73,14 +90,24 @@ export function validateContractRegistry(registryObj, repoRoot = DEFAULT_REPO_RO
   const activeContractsById = new Map();
   const allEntriesByKey = new Map();
 
-  // First pass: validate entry structure and uniqueness of (contract_id, version)
+  // First pass: structural, identity, and snapshot integrity
   for (let i = 0; i < registryObj.contracts.length; i++) {
     const entry = registryObj.contracts[i];
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
       return { valid: false, error: `MALFORMED_ENTRY: Entry at index ${i} must be a non-null object` };
     }
 
-    const { contract_id, version, title, status, snapshot_path, snapshot_sha256, supersedes = [], superseded_by = null } = entry;
+    const {
+      contract_id,
+      version,
+      title,
+      status,
+      snapshot_path,
+      snapshot_sha256,
+      effective_from_sha = null,
+      supersedes = [],
+      superseded_by = null
+    } = entry;
 
     if (typeof contract_id !== 'string' || !/^CONTRACT-[A-Z0-9-]+$/.test(contract_id)) {
       return { valid: false, error: `INVALID_CONTRACT_ID: Entry ${i} has invalid contract_id: ${contract_id}` };
@@ -101,6 +128,31 @@ export function validateContractRegistry(registryObj, repoRoot = DEFAULT_REPO_RO
     }
     if (!VALID_CONTRACT_STATUSES.has(status)) {
       return { valid: false, error: `INVALID_CONTRACT_STATUS: Contract ${versionKey} has invalid status: ${status}` };
+    }
+
+    // effective_from_sha validation
+    if (status === 'STAGED' || status === 'ACTIVE') {
+      if (typeof effective_from_sha !== 'string' || !/^[a-f0-9]{40}$/.test(effective_from_sha)) {
+        return { valid: false, error: `MISSING_EFFECTIVE_FROM_SHA: Contract ${versionKey} with status ${status} requires a 40-char hex effective_from_sha` };
+      }
+    } else if (effective_from_sha !== null) {
+      if (typeof effective_from_sha !== 'string' || !/^[a-f0-9]{40}$/.test(effective_from_sha)) {
+        return { valid: false, error: `INVALID_EFFECTIVE_FROM_SHA_FORMAT: Contract ${versionKey} has invalid effective_from_sha format` };
+      }
+    }
+
+    // Git ancestry check for effective_from_sha if provided
+    if (repoRoot && gitExecutor && typeof effective_from_sha === 'string' && /^[a-f0-9]{40}$/.test(effective_from_sha)) {
+      try {
+        gitExecutor(['rev-parse', '--verify', `${effective_from_sha}^{commit}`], repoRoot);
+      } catch (e) {
+        return { valid: false, error: `EFFECTIVE_SHA_NONEXISTENT: effective_from_sha ${effective_from_sha} for ${versionKey} does not exist in repository` };
+      }
+      try {
+        gitExecutor(['merge-base', '--is-ancestor', effective_from_sha, 'HEAD'], repoRoot);
+      } catch (e) {
+        return { valid: false, error: `EFFECTIVE_SHA_NON_ANCESTOR: effective_from_sha ${effective_from_sha} for ${versionKey} is not an ancestor of current HEAD` };
+      }
     }
 
     try {
@@ -132,7 +184,21 @@ export function validateContractRegistry(registryObj, repoRoot = DEFAULT_REPO_RO
       } catch (err) {
         return { valid: false, error: `SNAPSHOT_STAT_ERROR: Cannot stat snapshot ${snapshot_path}: ${err.message}` };
       }
-      const actualSha = computeFileSha256(fullPath);
+
+      const rawBytes = fs.readFileSync(fullPath, 'utf8');
+      let parsedSnapshot;
+      try {
+        parsedSnapshot = parseStrictIJson(rawBytes);
+      } catch (err) {
+        return { valid: false, error: `NON_CANONICAL_SNAPSHOT_PARSE_ERROR: Snapshot ${snapshot_path} parse failed: ${err.message}` };
+      }
+
+      const canonicalString = canonicalizeRfc8785(parsedSnapshot);
+      if (rawBytes.trim() !== canonicalString) {
+        return { valid: false, error: `NON_CANONICAL_SNAPSHOT_JSON: Snapshot ${snapshot_path} is not in RFC-8785 canonical JSON format` };
+      }
+
+      const actualSha = crypto.createHash('sha256').update(Buffer.from(rawBytes, 'utf8')).digest('hex');
       if (!timingSafeHexCompare(actualSha, snapshot_sha256)) {
         return { valid: false, error: `SNAPSHOT_SHA_MISMATCH: Contract ${versionKey} snapshot hash mismatch: expected ${snapshot_sha256}, actual ${actualSha}` };
       }
@@ -162,7 +228,6 @@ export function validateContractRegistry(registryObj, repoRoot = DEFAULT_REPO_RO
       if (!superseded_by || typeof superseded_by !== 'string') {
         return { valid: false, error: `SUPERSEDED_WITHOUT_POINTER: SUPERSEDED contract ${key} must declare non-empty superseded_by` };
       }
-      // Target key can be CONTRACT-ID@VER or just version if same ID
       const targetKey = superseded_by.includes('@') ? superseded_by : `${contract_id}@${superseded_by}`;
       if (!allEntriesByKey.has(targetKey)) {
         return { valid: false, error: `INVALID_SUPERSEDED_BY_TARGET: Contract ${key} references non-existent superseded_by target ${targetKey}` };
@@ -183,7 +248,7 @@ export function validateContractRegistry(registryObj, repoRoot = DEFAULT_REPO_RO
     }
   }
 
-  // Lifecycle consistency: if root is ACTIVE, all contracts must be ACTIVE or SUPERSEDED
+  // Lifecycle consistency
   if (registryObj.lifecycle_state === 'ACTIVE') {
     for (const c of registryObj.contracts) {
       if (c.status === 'DRAFT' || c.status === 'STAGED') {
@@ -212,6 +277,7 @@ export function runSelfTest() {
         status: 'SUPERSEDED',
         snapshot_path: '.synthesis/contracts/CONTRACT-GOV-TEST-001/v1.0.0.json',
         snapshot_sha256: 'a'.repeat(64),
+        effective_from_sha: '1'.repeat(40),
         supersedes: [],
         superseded_by: '1.1.0'
       },
@@ -222,13 +288,14 @@ export function runSelfTest() {
         status: 'ACTIVE',
         snapshot_path: '.synthesis/contracts/CONTRACT-GOV-TEST-001/v1.1.0.json',
         snapshot_sha256: 'b'.repeat(64),
+        effective_from_sha: '2'.repeat(40),
         supersedes: ['1.0.0'],
         superseded_by: null
       }
     ]
   };
 
-  const res = validateContractRegistry(validMock, null);
+  const res = validateContractRegistry(validMock, null, { gitExecutor: null });
   if (res.valid) positivePassed++;
   else throw new Error(`Initial valid mock failed: ${JSON.stringify(res)}`);
 
@@ -246,6 +313,8 @@ export function runSelfTest() {
     { name: 'Bad version format', generate: m => { m.contracts[0].version = 'v1'; return m; }, expected: 'INVALID_CONTRACT_VERSION' },
     { name: 'Empty title', generate: m => { m.contracts[0].title = '   '; return m; }, expected: 'INVALID_CONTRACT_TITLE' },
     { name: 'Bad status', generate: m => { m.contracts[0].status = 'UNKNOWN'; return m; }, expected: 'INVALID_CONTRACT_STATUS' },
+    { name: 'Missing effective_from_sha on ACTIVE', generate: m => { m.contracts[1].effective_from_sha = null; return m; }, expected: 'MISSING_EFFECTIVE_FROM_SHA' },
+    { name: 'Bad effective_from_sha format', generate: m => { m.contracts[1].effective_from_sha = 'short'; return m; }, expected: 'MISSING_EFFECTIVE_FROM_SHA' },
     { name: 'Path traversal', generate: m => { m.contracts[0].snapshot_path = '../../secret.json'; return m; }, expected: 'UNSAFE_SNAPSHOT_PATH' },
     { name: 'Duplicate snapshot path', generate: m => { m.contracts[1].snapshot_path = m.contracts[0].snapshot_path; return m; }, expected: 'DUPLICATE_SNAPSHOT_PATH' },
     { name: 'Bad sha format', generate: m => { m.contracts[0].snapshot_sha256 = 'abc'; return m; }, expected: 'INVALID_SNAPSHOT_SHA256' },
@@ -255,13 +324,13 @@ export function runSelfTest() {
     { name: 'SUPERSEDED with invalid target', generate: m => { m.contracts[0].superseded_by = '9.9.9'; return m; }, expected: 'INVALID_SUPERSEDED_BY_TARGET' },
     { name: 'Invalid supersedes reference', generate: m => { m.contracts[1].supersedes = ['non-existent']; return m; }, expected: 'INVALID_SUPERSEDES_TARGET' },
     { name: 'Superseded target not marked SUPERSEDED', generate: m => { m.contracts[0].status = 'DRAFT'; return m; }, expected: 'SUPERSEDED_TARGET_NOT_SUPERSEDED' },
-    { name: 'ACTIVE root with DRAFT contract', generate: m => { m.lifecycle_state = 'ACTIVE'; m.contracts = [{ contract_id: 'CONTRACT-GOV-TEST-002', version: '1.0.0', title: 'Single', status: 'DRAFT', snapshot_path: '.synthesis/contracts/CONTRACT-GOV-TEST-002/v1.0.0.json', snapshot_sha256: 'a'.repeat(64) }]; return m; }, expected: 'LIFECYCLE_STATE_INCONSISTENCY' }
+    { name: 'ACTIVE root with DRAFT contract', generate: m => { m.lifecycle_state = 'ACTIVE'; m.contracts = [{ contract_id: 'CONTRACT-GOV-TEST-002', version: '1.0.0', title: 'Single', status: 'DRAFT', snapshot_path: '.synthesis/contracts/CONTRACT-GOV-TEST-002/v1.0.0.json', snapshot_sha256: 'a'.repeat(64), effective_from_sha: null }]; return m; }, expected: 'LIFECYCLE_STATE_INCONSISTENCY' }
   ];
 
   for (const tc of negativeCases) {
     const clone = JSON.parse(JSON.stringify(validMock));
     const testObj = tc.generate(clone);
-    const r = validateContractRegistry(testObj, null);
+    const r = validateContractRegistry(testObj, null, { gitExecutor: null });
     if (!r.valid && r.error && r.error.includes(tc.expected)) {
       negativePassed++;
     } else {
@@ -269,17 +338,38 @@ export function runSelfTest() {
     }
   }
 
-  // Symlink test
+  // Disk tests (canonical snapshot, symlink, effective SHA Git verification)
   const tempDir = fs.mkdtempSync(path.join('/tmp', 'contract-reg-test-'));
   try {
     const contractsDir = path.join(tempDir, '.synthesis', 'contracts', 'CONTRACT-GOV-TEST-001');
     fs.mkdirSync(contractsDir, { recursive: true });
-    const realFile = path.join(contractsDir, 'real.json');
-    fs.writeFileSync(realFile, '{}');
-    const symlinkFile = path.join(contractsDir, 'v1.0.0.json');
-    fs.symlinkSync(realFile, symlinkFile);
 
-    const symlinkMock = {
+    const canonicalContractObj = {
+      authority_domain: 'GOVERNANCE',
+      contract_id: 'CONTRACT-GOV-TEST-001',
+      contract_version: '1.0.0',
+      effective_from_step: '1',
+      invariants: ['INV1'],
+      lifecycle_state: 'ACTIVE',
+      provisions: [{ enforcement: 'STRICT', rule_id: 'R1', statement: 'Rule 1' }],
+      record_kind: 'GOVERNANCE_CONTRACT_SNAPSHOT',
+      schema_version: '1.0.0',
+      scope: 'TEST',
+      title: 'Canonical Test'
+    };
+    const canonicalBytes = canonicalizeRfc8785(canonicalContractObj);
+    const snapFile = path.join(contractsDir, 'v1.0.0.json');
+    fs.writeFileSync(snapFile, canonicalBytes);
+    const snapSha = crypto.createHash('sha256').update(Buffer.from(canonicalBytes, 'utf8')).digest('hex');
+
+    const mockGit = (args) => {
+      const cmd = args.join(' ');
+      if (cmd.includes('rev-parse --verify') && cmd.includes('1'.repeat(40))) return '1'.repeat(40) + '\n';
+      if (cmd.includes('merge-base --is-ancestor')) return '';
+      throw new Error(`Unexpected mock cmd: ${cmd}`);
+    };
+
+    const validDiskMock = {
       schema_version: 'contract-registry.v1',
       format_version: '1.0.0',
       record_kind: 'CONTRACT_REGISTRY',
@@ -289,19 +379,62 @@ export function runSelfTest() {
           contract_id: 'CONTRACT-GOV-TEST-001',
           version: '1.0.0',
           title: 'Test Contract',
-          status: 'STAGED',
+          status: 'ACTIVE',
           snapshot_path: '.synthesis/contracts/CONTRACT-GOV-TEST-001/v1.0.0.json',
-          snapshot_sha256: computeFileSha256(realFile)
+          snapshot_sha256: snapSha,
+          effective_from_sha: '1'.repeat(40),
+          supersedes: [],
+          superseded_by: null
         }
       ]
     };
 
-    const symRes = validateContractRegistry(symlinkMock, tempDir);
-    if (!symRes.valid && symRes.error && symRes.error.includes('UNSAFE_FILE_TYPE')) {
-      negativePassed++;
+    const diskRes = validateContractRegistry(validDiskMock, tempDir, { gitExecutor: mockGit });
+    if (diskRes.valid) {
+      positivePassed++;
     } else {
-      throw new Error(`Self-test symlink negative test failed, got: ${JSON.stringify(symRes)}`);
+      throw new Error(`Valid disk contract registry test failed: ${JSON.stringify(diskRes)}`);
     }
+
+    // Negative Disk 1: Non-canonical JSON formatting (extra spaces)
+    const nonCanonicalFile = path.join(contractsDir, 'v1.0.0.json');
+    fs.writeFileSync(nonCanonicalFile, JSON.stringify(canonicalContractObj, null, 4));
+    const nonCanonSha = crypto.createHash('sha256').update(fs.readFileSync(nonCanonicalFile)).digest('hex');
+    const nonCanonMock = JSON.parse(JSON.stringify(validDiskMock));
+    nonCanonMock.contracts[0].snapshot_sha256 = nonCanonSha;
+    const resNonCanon = validateContractRegistry(nonCanonMock, tempDir, { gitExecutor: mockGit });
+    if (!resNonCanon.valid && resNonCanon.error.includes('NON_CANONICAL_SNAPSHOT_JSON')) negativePassed++;
+    else throw new Error(`Expected NON_CANONICAL_SNAPSHOT_JSON, got: ${JSON.stringify(resNonCanon)}`);
+
+    // Restore canonical
+    fs.writeFileSync(snapFile, canonicalBytes);
+
+    // Negative Disk 2: Symlink snapshot
+    const symlinkFile = path.join(contractsDir, 'sym.json');
+    fs.symlinkSync(snapFile, symlinkFile);
+    const symMock = JSON.parse(JSON.stringify(validDiskMock));
+    symMock.contracts[0].snapshot_path = '.synthesis/contracts/CONTRACT-GOV-TEST-001/sym.json';
+    const resSym = validateContractRegistry(symMock, tempDir, { gitExecutor: mockGit });
+    if (!resSym.valid && resSym.error.includes('UNSAFE_FILE_TYPE')) negativePassed++;
+    else throw new Error(`Expected UNSAFE_FILE_TYPE, got: ${JSON.stringify(resSym)}`);
+
+    // Negative Disk 3: Non-ancestor effective_from_sha
+    const nonAncestorGit = (args) => {
+      const cmd = args.join(' ');
+      if (cmd.includes('rev-parse --verify')) return '1'.repeat(40) + '\n';
+      if (cmd.includes('merge-base --is-ancestor')) throw new Error('Not an ancestor');
+      throw new Error(`Unexpected cmd: ${cmd}`);
+    };
+    const resNonAnc = validateContractRegistry(validDiskMock, tempDir, { gitExecutor: nonAncestorGit });
+    if (!resNonAnc.valid && resNonAnc.error.includes('EFFECTIVE_SHA_NON_ANCESTOR')) negativePassed++;
+    else throw new Error(`Expected EFFECTIVE_SHA_NON_ANCESTOR, got: ${JSON.stringify(resNonAnc)}`);
+
+    // Negative Disk 4: Nonexistent effective_from_sha in Git
+    const badCommitGit = () => { throw new Error('fatal: Not a valid object name'); };
+    const resBadComm = validateContractRegistry(validDiskMock, tempDir, { gitExecutor: badCommitGit });
+    if (!resBadComm.valid && resBadComm.error.includes('EFFECTIVE_SHA_NONEXISTENT')) negativePassed++;
+    else throw new Error(`Expected EFFECTIVE_SHA_NONEXISTENT, got: ${JSON.stringify(resBadComm)}`);
+
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }

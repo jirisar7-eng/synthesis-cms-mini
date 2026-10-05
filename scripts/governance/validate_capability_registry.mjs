@@ -15,6 +15,7 @@ import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { parseStrictIJson } from "./verify_capsule_seal.mjs";
+import { verifyActivationProofRecord } from "./verify_activation_proof.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -77,6 +78,26 @@ export function validateCapabilityRegistry(registryObj, options = {}) {
   const repoRoot = options.repoRoot || findRepoRoot();
   const checkCapsuleExistence = options.checkCapsuleExistence !== false;
 
+  // Verify activation proof independently if provided (never allow caller booleans alone!)
+  let verifiedActivationProof = null;
+  if (options.activationProof) {
+    let proofObj = options.activationProof;
+    if (typeof proofObj === 'string') {
+      try {
+        const fullProofPath = path.resolve(repoRoot, proofObj);
+        if (fs.existsSync(fullProofPath)) {
+          proofObj = parseStrictIJson(fs.readFileSync(fullProofPath, 'utf8'));
+        }
+      } catch (e) {
+        proofObj = null;
+      }
+    }
+    const proofRes = verifyActivationProofRecord(proofObj, repoRoot, options.gitExecutor || null);
+    if (proofRes && proofRes.valid) {
+      verifiedActivationProof = proofRes.proof;
+    }
+  }
+
   if (!registryObj || typeof registryObj !== "object" || Array.isArray(registryObj)) {
     return { valid: false, stage: "REGISTRY_ROOT_TYPE_INVALID", error: "Root registry must be a non-null JSON object." };
   }
@@ -107,9 +128,9 @@ export function validateCapabilityRegistry(registryObj, options = {}) {
   if (!VALID_ROOT_STATUSES.has(registryObj.status)) {
     return { valid: false, stage: "INVALID_ROOT_STATUS", error: `Invalid root status: "${registryObj.status}"` };
   }
-  // Fail-closed guard: root registry cannot be declared ACTIVE without global activation evidence
+  // Fail-closed guard: root registry cannot be declared ACTIVE without independently verified activation proof
   if (registryObj.status === "ACTIVE") {
-    if (!options.allowActiveWithProof || !options.activationProofVerified) {
+    if (!verifiedActivationProof) {
       return {
         valid: false,
         stage: "REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED",
@@ -329,8 +350,8 @@ export function validateCapabilityRegistry(registryObj, options = {}) {
           error: `Capability "${capId}" is declared ACTIVE without required complete provenance evidence (origin_capsule_id, origin_payload_sha256, introducing_commit_sha).`
         };
       }
-      // Fail-closed guard: effective ACTIVE status requires external activation proof protocol
-      if (!options.allowActiveWithProof || !options.activationProofVerified) {
+      // Fail-closed guard: effective ACTIVE status requires independent activation proof
+      if (!verifiedActivationProof) {
         return {
           valid: false,
           stage: "ACTIVE_EXTERNAL_PROOF_REQUIRED",
@@ -519,6 +540,20 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
   } catch (err) { failTest("Positive 2: valid DAG", err); }
 
   // POSITIVE 3: ACTIVE root and capability accepted when verified activation proof is provided
+  const validProofObj = {
+    schema_version: "1.0.0",
+    record_kind: "MILESTONE_ACTIVATION_PROOF",
+    milestone_id: "MILESTONE_A",
+    activation_status: "ACTIVE",
+    exact_main_commit_sha: "1".repeat(40),
+    parent_commit_shas: ["2".repeat(40), "3".repeat(40)],
+    merge_tree_sha: "4".repeat(40),
+    governance_lock_sha256: "5".repeat(64),
+    ci_workflow_run_id: 123456,
+    verified_at_utc: "2026-10-05T12:00:00.000Z",
+    verified_by: "Test Verifier"
+  };
+
   try {
     const clone = JSON.parse(JSON.stringify(validObj));
     clone.status = "ACTIVE";
@@ -526,7 +561,7 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
     clone.capabilities[0].origin_capsule_id = "CAP-SYN-MINI-GENESIS-20261005-001";
     clone.capabilities[0].origin_payload_sha256 = "6a3286f77c385ceb52f190bc983ad2bb7b0bcf9e6ec154c16a4e32d3989c679b";
     clone.capabilities[0].introducing_commit_sha = "b3d47a6f732512a9f5b19668a07bb4d2c662adf3";
-    const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: false, allowActiveWithProof: true, activationProofVerified: true });
+    const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: false, activationProof: validProofObj });
     if (res.valid) {
       passPositive("ACTIVE root and capability accepted with verified activation proof");
     } else {
@@ -701,6 +736,18 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
   assertNegative("NEG-23", "Root status ACTIVE rejected (REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED)", c => {
     c.status = "ACTIVE";
   }, "REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED");
+
+  // NEG-24: Forged ACTIVE boolean bypass attempt rejected without valid proof object
+  try {
+    const clone = JSON.parse(JSON.stringify(validObj));
+    clone.status = "ACTIVE";
+    const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: false, allowActiveWithProof: true, activationProofVerified: true });
+    if (!res.valid && res.stage === "REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED") {
+      passNegative("NEG-24", "Forged ACTIVE boolean bypass rejected (REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED)");
+    } else {
+      failTest("NEG-24: Forged ACTIVE boolean bypass rejected", new Error(`Expected REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED, got ${res.stage}`));
+    }
+  } catch (err) { failTest("NEG-24: Forged boolean bypass", err); }
 
   console.log(`[CAPABILITY-REGISTRY-VALIDATOR] Summary: ${positivePassed} positive passed, ${negativePassed} negative passed, ${failed} failed.`);
   return { positivePassed, negativePassed, failed, ok: failed === 0 };

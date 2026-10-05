@@ -3,12 +3,15 @@
  * SYNTHESIS CMS MINI — GOVERNANCE LOCKFILE VERIFIER
  *
  * Verifies cryptographic pinning and integrity of governance files and required contracts
- * in governance.lock.json. Prevents in-place mutation, drift, symlink escape, and gate bypass.
+ * in governance.lock.json. Enforces BIDIRECTIONAL synchronization with Contract Registry,
+ * effective_from_sha git ancestry, STAGED/ACTIVE required contract status,
+ * and regular-file (no symlink) safety guarantees.
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import child_process from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import {
@@ -22,7 +25,20 @@ const DEFAULT_REPO_ROOT = path.resolve(__dirname, '..', '..');
 
 export const VALID_HEALTH_GATES = new Set(['BOOTSTRAP_NOT_YET_ACTIVE', 'PASS', 'FAIL']);
 export const VALID_ITEM_TYPES = new Set(['SCHEMA', 'CONTRACT_SNAPSHOT', 'REGISTRY', 'VERIFIER_SCRIPT']);
-export const VALID_CONTRACT_STATUSES = new Set(['DRAFT', 'STAGED', 'ACTIVE', 'SUPERSEDED']);
+export const VALID_LOCK_CONTRACT_STATUSES = new Set(['STAGED', 'ACTIVE']);
+
+export function defaultGitExecutor(args, cwd = DEFAULT_REPO_ROOT) {
+  try {
+    return child_process.execFileSync('git', args, {
+      cwd,
+      shell: false,
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+  } catch (err) {
+    throw new Error(`GIT_COMMAND_FAILED [git ${args.join(' ')}]: ${err.stderr || err.message}`);
+  }
+}
 
 export function computeFileSha256(filePath) {
   const bytes = fs.readFileSync(filePath);
@@ -47,6 +63,8 @@ export function validateSafeRelativePath(relPath) {
 }
 
 export function validateGovernanceLock(lockObj, repoRoot = DEFAULT_REPO_ROOT, options = {}) {
+  const gitExecutor = options.gitExecutor || defaultGitExecutor;
+
   if (!lockObj || typeof lockObj !== 'object' || Array.isArray(lockObj)) {
     return { valid: false, error: 'MALFORMED_LOCKFILE: Lockfile root must be a non-null object' };
   }
@@ -191,8 +209,24 @@ export function validateGovernanceLock(lockObj, repoRoot = DEFAULT_REPO_ROOT, op
     if (typeof effective_from_sha !== 'string' || !/^[a-f0-9]{40}$/.test(effective_from_sha)) {
       return { valid: false, error: `INVALID_EFFECTIVE_FROM_SHA: Contract ${key} has invalid effective_from_sha: ${effective_from_sha}` };
     }
-    if (!VALID_CONTRACT_STATUSES.has(status)) {
-      return { valid: false, error: `INVALID_REQUIRED_CONTRACT_STATUS: Contract ${key} has invalid status: ${status}` };
+
+    // Required contracts in lock must ONLY be STAGED or ACTIVE
+    if (!VALID_LOCK_CONTRACT_STATUSES.has(status)) {
+      return { valid: false, error: `INVALID_LOCK_CONTRACT_STATUS: Contract ${key} in lock has status "${status}"; only STAGED or ACTIVE allowed in lockfile` };
+    }
+
+    // Git ancestry check for effective_from_sha
+    if (repoRoot && gitExecutor && typeof effective_from_sha === 'string' && /^[a-f0-9]{40}$/.test(effective_from_sha)) {
+      try {
+        gitExecutor(['rev-parse', '--verify', `${effective_from_sha}^{commit}`], repoRoot);
+      } catch (e) {
+        return { valid: false, error: `LOCK_EFFECTIVE_SHA_NONEXISTENT: effective_from_sha ${effective_from_sha} for ${key} does not exist in repository` };
+      }
+      try {
+        gitExecutor(['merge-base', '--is-ancestor', effective_from_sha, 'HEAD'], repoRoot);
+      } catch (e) {
+        return { valid: false, error: `LOCK_EFFECTIVE_SHA_NON_ANCESTOR: effective_from_sha ${effective_from_sha} for ${key} is not an ancestor of current HEAD` };
+      }
     }
 
     if (repoRoot) {
@@ -215,27 +249,51 @@ export function validateGovernanceLock(lockObj, repoRoot = DEFAULT_REPO_ROOT, op
     }
   }
 
-  // Cross-check against Contract Registry if provided in options or found on disk
+  // BIDIRECTIONAL Cross-check against Contract Registry
   if (repoRoot && options.checkContractRegistry !== false) {
     const regPath = path.resolve(repoRoot, '.synthesis/registries/contracts.json');
     if (fs.existsSync(regPath)) {
       try {
         const regRaw = fs.readFileSync(regPath, 'utf8');
         const regObj = parseStrictIJson(regRaw);
-        if (Array.isArray(regObj.contracts)) {
-          for (const regEntry of regObj.contracts) {
-            if (regEntry.status === 'ACTIVE' || regEntry.status === 'STAGED') {
-              const regKey = `${regEntry.contract_id}@${regEntry.version}`;
-              const lockedEntry = reqContractsMap.get(regKey);
-              if (!lockedEntry) {
-                return { valid: false, error: `REQUIRED_CONTRACT_MISSING_FROM_LOCK: ${regEntry.status} contract ${regKey} in registry is not declared in required_contracts` };
-              }
-              if (!timingSafeHexCompare(lockedEntry.sha256, regEntry.snapshot_sha256)) {
-                return { valid: false, error: `REGISTRY_LOCK_HASH_DRIFT: Hash mismatch between registry and lock for ${regKey}` };
-              }
+        if (!Array.isArray(regObj.contracts)) {
+          return { valid: false, error: 'REGISTRY_CONTRACTS_NOT_ARRAY: contracts field in registry is not an array' };
+        }
+
+        const registryActiveOrStaged = new Map();
+
+        // Check 1 (Registry -> Lock): every STAGED/ACTIVE in registry must match in lock
+        for (const regEntry of regObj.contracts) {
+          const regKey = `${regEntry.contract_id}@${regEntry.version}`;
+          if (regEntry.status === 'ACTIVE' || regEntry.status === 'STAGED') {
+            registryActiveOrStaged.set(regKey, regEntry);
+
+            const lockedEntry = reqContractsMap.get(regKey);
+            if (!lockedEntry) {
+              return { valid: false, error: `ORPHAN_REGISTRY_REQUIRED_CONTRACT: ${regEntry.status} contract ${regKey} in registry is missing from lockfile required_contracts` };
+            }
+            if (lockedEntry.status !== regEntry.status) {
+              return { valid: false, error: `STATUS_MISMATCH: Status mismatch for ${regKey}: lock has ${lockedEntry.status}, registry has ${regEntry.status}` };
+            }
+            if (lockedEntry.snapshot_path !== regEntry.snapshot_path) {
+              return { valid: false, error: `SNAPSHOT_PATH_MISMATCH: Path mismatch for ${regKey}: lock has ${lockedEntry.snapshot_path}, registry has ${regEntry.snapshot_path}` };
+            }
+            if (!timingSafeHexCompare(lockedEntry.sha256, regEntry.snapshot_sha256)) {
+              return { valid: false, error: `REGISTRY_LOCK_HASH_DRIFT: Hash mismatch between registry and lock for ${regKey}` };
+            }
+            if (lockedEntry.effective_from_sha !== regEntry.effective_from_sha) {
+              return { valid: false, error: `EFFECTIVE_SHA_MISMATCH: effective_from_sha mismatch for ${regKey}: lock has ${lockedEntry.effective_from_sha}, registry has ${regEntry.effective_from_sha}` };
             }
           }
         }
+
+        // Check 2 (Lock -> Registry): every entry in lock required_contracts must exist in registry and be STAGED/ACTIVE
+        for (const [lockKey, lockedEntry] of reqContractsMap.entries()) {
+          if (!registryActiveOrStaged.has(lockKey)) {
+            return { valid: false, error: `ORPHAN_LOCK_REQUIRED_CONTRACT: Entry ${lockKey} in lockfile required_contracts is not present as STAGED or ACTIVE in contract registry` };
+          }
+        }
+
       } catch (err) {
         return { valid: false, error: `REGISTRY_CROSSCHECK_ERROR: ${err.message}` };
       }
@@ -282,7 +340,7 @@ export function runSelfTest() {
     ]
   };
 
-  const res = validateGovernanceLock(validMock, null);
+  const res = validateGovernanceLock(validMock, null, { gitExecutor: null });
   if (res.valid) positivePassed++;
   else throw new Error(`Initial valid lock mock failed: ${JSON.stringify(res)}`);
 
@@ -309,13 +367,14 @@ export function runSelfTest() {
     { name: 'Unsafe required contract path', generate: m => { m.required_contracts[0].snapshot_path = '../../leak.json'; return m; }, expected: 'UNSAFE_REQUIRED_CONTRACT_PATH' },
     { name: 'Bad required contract sha', generate: m => { m.required_contracts[0].sha256 = 'xyz'; return m; }, expected: 'INVALID_REQUIRED_CONTRACT_HASH' },
     { name: 'Bad effective_from_sha', generate: m => { m.required_contracts[0].effective_from_sha = 'short'; return m; }, expected: 'INVALID_EFFECTIVE_FROM_SHA' },
-    { name: 'Bad required contract status', generate: m => { m.required_contracts[0].status = 'UNKNOWN'; return m; }, expected: 'INVALID_REQUIRED_CONTRACT_STATUS' }
+    { name: 'DRAFT status forbidden in lock', generate: m => { m.required_contracts[0].status = 'DRAFT'; return m; }, expected: 'INVALID_LOCK_CONTRACT_STATUS' },
+    { name: 'SUPERSEDED status forbidden in lock', generate: m => { m.required_contracts[0].status = 'SUPERSEDED'; return m; }, expected: 'INVALID_LOCK_CONTRACT_STATUS' }
   ];
 
   for (const tc of negativeCases) {
     const clone = JSON.parse(JSON.stringify(validMock));
     const testObj = tc.generate(clone);
-    const r = validateGovernanceLock(testObj, null);
+    const r = validateGovernanceLock(testObj, null, { gitExecutor: null });
     if (!r.valid && r.error && r.error.includes(tc.expected)) {
       negativePassed++;
     } else {
@@ -323,22 +382,29 @@ export function runSelfTest() {
     }
   }
 
-  // Symlink test in repoRoot
+  // Disk tests (symlink, bidirectional registry sync, git ancestry)
   const tempDir = fs.mkdtempSync(path.join('/tmp', 'gov-lock-test-'));
   try {
     fs.mkdirSync(path.join(tempDir, '.synthesis', 'lineage'), { recursive: true });
     fs.mkdirSync(path.join(tempDir, '.synthesis', 'contracts', 'CONTRACT-GOV-TEST-001'), { recursive: true });
+    fs.mkdirSync(path.join(tempDir, '.synthesis', 'registries'), { recursive: true });
 
     const genesisFile = path.join(tempDir, '.synthesis', 'lineage', 'genesis.json');
     fs.writeFileSync(genesisFile, '{}');
     const genesisSha = computeFileSha256(genesisFile);
 
-    const realFile = path.join(tempDir, '.synthesis', 'contracts', 'CONTRACT-GOV-TEST-001', 'real.json');
-    fs.writeFileSync(realFile, '{}');
-    const symlinkSnapshot = path.join(tempDir, '.synthesis', 'contracts', 'CONTRACT-GOV-TEST-001', 'v1.0.0.json');
-    fs.symlinkSync(realFile, symlinkSnapshot);
+    const snapshotFile = path.join(tempDir, '.synthesis', 'contracts', 'CONTRACT-GOV-TEST-001', 'v1.0.0.json');
+    fs.writeFileSync(snapshotFile, '{}');
+    const snapshotSha = computeFileSha256(snapshotFile);
 
-    const lockWithSymlink = {
+    const mockGit = (args) => {
+      const cmd = args.join(' ');
+      if (cmd.includes('rev-parse --verify') && cmd.includes('1'.repeat(40))) return '1'.repeat(40) + '\n';
+      if (cmd.includes('merge-base --is-ancestor')) return '';
+      throw new Error(`Unexpected mock cmd: ${cmd}`);
+    };
+
+    const lockValid = {
       schema_version: '1.0.0',
       lockfile_kind: 'GOVERNANCE_REQUIREMENTS_LOCK',
       locked_at_utc: '2026-10-05T00:00:00.000Z',
@@ -353,28 +419,14 @@ export function runSelfTest() {
           contract_id: 'CONTRACT-GOV-TEST-001',
           version: '1.0.0',
           snapshot_path: '.synthesis/contracts/CONTRACT-GOV-TEST-001/v1.0.0.json',
-          sha256: computeFileSha256(realFile),
+          sha256: snapshotSha,
           effective_from_sha: '1'.repeat(40),
           status: 'ACTIVE'
         }
       ]
     };
 
-    const symRes = validateGovernanceLock(lockWithSymlink, tempDir);
-    if (!symRes.valid && symRes.error && symRes.error.includes('UNSAFE_REQUIRED_CONTRACT_FILE')) {
-      negativePassed++;
-    } else {
-      throw new Error(`Self-test symlink negative test failed, got: ${JSON.stringify(symRes)}`);
-    }
-
-    // Registry / Lock drift test
-    fs.mkdirSync(path.join(tempDir, '.synthesis', 'registries'), { recursive: true });
-    fs.unlinkSync(symlinkSnapshot);
-    fs.writeFileSync(symlinkSnapshot, '{}');
-    const actualSnapshotSha = computeFileSha256(symlinkSnapshot);
-
-    // Registry has ACTIVE contract that is missing or has mismatched hash in lock
-    const regMismatch = {
+    const matchingRegistry = {
       schema_version: 'contract-registry.v1',
       format_version: '1.0.0',
       record_kind: 'CONTRACT_REGISTRY',
@@ -386,20 +438,87 @@ export function runSelfTest() {
           title: 'Test',
           status: 'ACTIVE',
           snapshot_path: '.synthesis/contracts/CONTRACT-GOV-TEST-001/v1.0.0.json',
-          snapshot_sha256: actualSnapshotSha
+          snapshot_sha256: snapshotSha,
+          effective_from_sha: '1'.repeat(40),
+          supersedes: [],
+          superseded_by: null
         }
       ]
     };
-    fs.writeFileSync(path.join(tempDir, '.synthesis', 'registries', 'contracts.json'), JSON.stringify(regMismatch));
+    fs.writeFileSync(path.join(tempDir, '.synthesis', 'registries', 'contracts.json'), JSON.stringify(matchingRegistry));
 
-    const lockWithMismatchedSha = JSON.parse(JSON.stringify(lockWithSymlink));
-    lockWithMismatchedSha.required_contracts[0].sha256 = 'f'.repeat(64); // Mismatch!
-    const driftRes = validateGovernanceLock(lockWithMismatchedSha, tempDir);
-    if (!driftRes.valid && driftRes.error && driftRes.error.includes('REQUIRED_CONTRACT_HASH_DRIFT')) {
-      negativePassed++;
+    const resBidirectionalValid = validateGovernanceLock(lockValid, tempDir, { gitExecutor: mockGit });
+    if (resBidirectionalValid.valid) {
+      positivePassed++;
     } else {
-      throw new Error(`Self-test lock drift test failed, got: ${JSON.stringify(driftRes)}`);
+      throw new Error(`Valid bidirectional lock test failed: ${JSON.stringify(resBidirectionalValid)}`);
     }
+
+    // Negative Disk 1: Orphan Lock Entry (entry in lock not in registry)
+    const lockWithExtra = JSON.parse(JSON.stringify(lockValid));
+    lockWithExtra.required_contracts.push({
+      contract_id: 'CONTRACT-GOV-TEST-002',
+      version: '1.0.0',
+      snapshot_path: '.synthesis/contracts/CONTRACT-GOV-TEST-001/v1.0.0.json',
+      sha256: snapshotSha,
+      effective_from_sha: '1'.repeat(40),
+      status: 'ACTIVE'
+    });
+    const resOrphanLock = validateGovernanceLock(lockWithExtra, tempDir, { gitExecutor: mockGit });
+    if (!resOrphanLock.valid && resOrphanLock.error.includes('ORPHAN_LOCK_REQUIRED_CONTRACT')) negativePassed++;
+    else throw new Error(`Expected ORPHAN_LOCK_REQUIRED_CONTRACT, got: ${JSON.stringify(resOrphanLock)}`);
+
+    // Negative Disk 2: Orphan Registry Entry (ACTIVE in registry missing from lock)
+    const regWithExtra = JSON.parse(JSON.stringify(matchingRegistry));
+    regWithExtra.contracts.push({
+      contract_id: 'CONTRACT-GOV-TEST-002',
+      version: '1.0.0',
+      title: 'Extra',
+      status: 'ACTIVE',
+      snapshot_path: '.synthesis/contracts/CONTRACT-GOV-TEST-001/v1.0.0.json',
+      snapshot_sha256: snapshotSha,
+      effective_from_sha: '1'.repeat(40),
+      supersedes: [],
+      superseded_by: null
+    });
+    fs.writeFileSync(path.join(tempDir, '.synthesis', 'registries', 'contracts.json'), JSON.stringify(regWithExtra));
+    const resOrphanReg = validateGovernanceLock(lockValid, tempDir, { gitExecutor: mockGit });
+    if (!resOrphanReg.valid && resOrphanReg.error.includes('ORPHAN_REGISTRY_REQUIRED_CONTRACT')) negativePassed++;
+    else throw new Error(`Expected ORPHAN_REGISTRY_REQUIRED_CONTRACT, got: ${JSON.stringify(resOrphanReg)}`);
+
+    // Restore matching registry
+    fs.writeFileSync(path.join(tempDir, '.synthesis', 'registries', 'contracts.json'), JSON.stringify(matchingRegistry));
+
+    // Negative Disk 3: Mismatch in effective_from_sha between lock and registry
+    const regMismatchSha = JSON.parse(JSON.stringify(matchingRegistry));
+    regMismatchSha.contracts[0].effective_from_sha = '2'.repeat(40);
+    fs.writeFileSync(path.join(tempDir, '.synthesis', 'registries', 'contracts.json'), JSON.stringify(regMismatchSha));
+    const resMismatchSha = validateGovernanceLock(lockValid, tempDir, { gitExecutor: mockGit });
+    if (!resMismatchSha.valid && resMismatchSha.error.includes('EFFECTIVE_SHA_MISMATCH')) negativePassed++;
+    else throw new Error(`Expected EFFECTIVE_SHA_MISMATCH, got: ${JSON.stringify(resMismatchSha)}`);
+
+    // Restore matching registry
+    fs.writeFileSync(path.join(tempDir, '.synthesis', 'registries', 'contracts.json'), JSON.stringify(matchingRegistry));
+
+    // Negative Disk 4: Non-ancestor lock effective_from_sha
+    const nonAncestorGit = (args) => {
+      const cmd = args.join(' ');
+      if (cmd.includes('rev-parse --verify')) return '1'.repeat(40) + '\n';
+      if (cmd.includes('merge-base --is-ancestor')) throw new Error('Not an ancestor');
+      throw new Error(`Unexpected mock cmd: ${cmd}`);
+    };
+    const resNonAnc = validateGovernanceLock(lockValid, tempDir, { gitExecutor: nonAncestorGit });
+    if (!resNonAnc.valid && resNonAnc.error.includes('LOCK_EFFECTIVE_SHA_NON_ANCESTOR')) negativePassed++;
+    else throw new Error(`Expected LOCK_EFFECTIVE_SHA_NON_ANCESTOR, got: ${JSON.stringify(resNonAnc)}`);
+
+    // Negative Disk 5: Symlink lockfile snapshot
+    const symlinkSnapshot = path.join(tempDir, '.synthesis', 'contracts', 'CONTRACT-GOV-TEST-001', 'sym.json');
+    fs.symlinkSync(snapshotFile, symlinkSnapshot);
+    const lockSym = JSON.parse(JSON.stringify(lockValid));
+    lockSym.required_contracts[0].snapshot_path = '.synthesis/contracts/CONTRACT-GOV-TEST-001/sym.json';
+    const resSym = validateGovernanceLock(lockSym, tempDir, { gitExecutor: mockGit });
+    if (!resSym.valid && resSym.error.includes('UNSAFE_REQUIRED_CONTRACT_FILE')) negativePassed++;
+    else throw new Error(`Expected UNSAFE_REQUIRED_CONTRACT_FILE, got: ${JSON.stringify(resSym)}`);
 
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://synthesis-cms-mini.org/schemas/governance-lock.schema.json",
   "title": "Synthesis CMS mini Governance Lockfile Schema",
-  "description": "Formal specification for the cryptographic governance requirements lockfile (governance.lock.json) with required contracts representation.",
+  "description": "Formal specification for the cryptographic governance requirements lockfile with bidirectional contract registry synchronization.",
   "type": "object",
   "required": [
     "schema_version",
@@ -76,7 +76,7 @@
     },
     "required_contracts": {
       "type": "array",
-      "description": "Explicit required governance contracts pinned to effective commits and hashes.",
+      "description": "Explicit required governance contracts pinned to effective commits and hashes. Must be STAGED or ACTIVE.",
       "items": {
         "type": "object",
         "required": [
@@ -111,10 +111,8 @@
           "status": {
             "type": "string",
             "enum": [
-              "DRAFT",
               "STAGED",
-              "ACTIVE",
-              "SUPERSEDED"
+              "ACTIVE"
             ]
           }
         }
