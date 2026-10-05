@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://synthesis-cms-mini.org/schemas/contract-registry.schema.json",
   "title": "Synthesis CMS mini Contract Registry Schema",
-  "description": "Formal schema for the machine-readable Governance Contract Registry.",
+  "description": "Formal schema for the machine-readable Governance Contract Registry supporting multi-version contracts and supersession tracking.",
   "type": "object",
   "required": [
     "schema_version",
@@ -35,7 +35,7 @@
     },
     "contracts": {
       "type": "array",
-      "description": "Registered governance contracts.",
+      "description": "Registered governance contract versions.",
       "items": {
         "$ref": "#/$defs/contract_entry"
       }

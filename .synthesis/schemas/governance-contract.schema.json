@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://synthesis-cms-mini.org/schemas/governance-contract.schema.json",
   "title": "Synthesis CMS mini Governance Contract Schema",
-  "description": "Formal schema for versioned, immutable governance contract snapshots.",
+  "description": "Formal schema for versioned, immutable governance contract snapshots supporting multi-version tracking and explicit supersession.",
   "type": "object",
   "required": [
     "schema_version",
@@ -79,18 +79,31 @@
       }
     },
     "superseded_by": {
-      "type": ["string", "null"]
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "provisions": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["rule_id", "statement", "enforcement"],
+        "required": [
+          "rule_id",
+          "statement",
+          "enforcement"
+        ],
         "additionalProperties": false,
         "properties": {
-          "rule_id": { "type": "string" },
-          "statement": { "type": "string" },
-          "enforcement": { "type": "string" }
+          "rule_id": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string"
+          },
+          "enforcement": {
+            "type": "string"
+          }
         }
       },
       "minItems": 1

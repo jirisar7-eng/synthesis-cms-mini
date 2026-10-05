@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://synthesis-cms-mini.org/schemas/activation-proof.schema.json",
   "title": "Synthesis CMS mini Milestone Activation Proof Schema",
-  "description": "Formal schema for post-merge exact-main activation evidence.",
+  "description": "Formal schema for post-merge exact-main activation evidence verified against real Git commit objects, trees, and parents.",
   "type": "object",
   "required": [
     "schema_version",

@@ -2,8 +2,8 @@
 /**
  * SYNTHESIS CMS MINI — GOVERNANCE LOCKFILE VERIFIER
  *
- * Verifies cryptographic pinning and integrity of governance files in governance.lock.json.
- * Prevents in-place mutation and anti-drift gate bypass.
+ * Verifies cryptographic pinning and integrity of governance files and required contracts
+ * in governance.lock.json. Prevents in-place mutation, drift, symlink escape, and gate bypass.
  */
 
 import fs from 'node:fs';
@@ -22,6 +22,7 @@ const DEFAULT_REPO_ROOT = path.resolve(__dirname, '..', '..');
 
 export const VALID_HEALTH_GATES = new Set(['BOOTSTRAP_NOT_YET_ACTIVE', 'PASS', 'FAIL']);
 export const VALID_ITEM_TYPES = new Set(['SCHEMA', 'CONTRACT_SNAPSHOT', 'REGISTRY', 'VERIFIER_SCRIPT']);
+export const VALID_CONTRACT_STATUSES = new Set(['DRAFT', 'STAGED', 'ACTIVE', 'SUPERSEDED']);
 
 export function computeFileSha256(filePath) {
   const bytes = fs.readFileSync(filePath);
@@ -45,7 +46,7 @@ export function validateSafeRelativePath(relPath) {
   return normalized;
 }
 
-export function validateGovernanceLock(lockObj, repoRoot = DEFAULT_REPO_ROOT) {
+export function validateGovernanceLock(lockObj, repoRoot = DEFAULT_REPO_ROOT, options = {}) {
   if (!lockObj || typeof lockObj !== 'object' || Array.isArray(lockObj)) {
     return { valid: false, error: 'MALFORMED_LOCKFILE: Lockfile root must be a non-null object' };
   }
@@ -80,12 +81,21 @@ export function validateGovernanceLock(lockObj, repoRoot = DEFAULT_REPO_ROOT) {
     if (!fs.existsSync(genesisPath)) {
       return { valid: false, error: `GENESIS_FILE_NOT_FOUND: Genesis anchor file not found: ${anchor.path}` };
     }
+    try {
+      const stat = fs.lstatSync(genesisPath);
+      if (!stat.isFile() || stat.isSymbolicLink()) {
+        return { valid: false, error: `UNSAFE_GENESIS_FILE: Genesis file must be a regular file, not a symlink` };
+      }
+    } catch (e) {
+      return { valid: false, error: `GENESIS_STAT_ERROR: Cannot stat genesis anchor: ${e.message}` };
+    }
     const actualGenesisSha = computeFileSha256(genesisPath);
     if (!timingSafeHexCompare(actualGenesisSha, anchor.pinned_sha256)) {
       return { valid: false, error: `GENESIS_ANCHOR_DRIFT: Genesis hash mismatch: expected ${anchor.pinned_sha256}, actual ${actualGenesisSha}` };
     }
   }
 
+  // Pinned items validation
   if (!Array.isArray(lockObj.pinned_items)) {
     return { valid: false, error: 'INVALID_PINNED_ITEMS: pinned_items must be an array' };
   }
@@ -124,6 +134,14 @@ export function validateGovernanceLock(lockObj, repoRoot = DEFAULT_REPO_ROOT) {
       if (!fs.existsSync(fullPath)) {
         return { valid: false, error: `PINNED_FILE_MISSING: Pinned file does not exist on disk: ${itemPath}` };
       }
+      try {
+        const stat = fs.lstatSync(fullPath);
+        if (!stat.isFile() || stat.isSymbolicLink()) {
+          return { valid: false, error: `UNSAFE_PINNED_FILE: Pinned item ${itemPath} must be a regular file, not a symlink` };
+        }
+      } catch (e) {
+        return { valid: false, error: `PINNED_FILE_STAT_ERROR: Cannot stat pinned file ${itemPath}: ${e.message}` };
+      }
       const actualSha = computeFileSha256(fullPath);
       if (!timingSafeHexCompare(actualSha, sha256)) {
         return { valid: false, error: `PINNED_FILE_DRIFT: Pinned file ${itemPath} hash drift: expected ${sha256}, actual ${actualSha}` };
@@ -131,7 +149,104 @@ export function validateGovernanceLock(lockObj, repoRoot = DEFAULT_REPO_ROOT) {
     }
   }
 
-  return { valid: true, pinnedCount: lockObj.pinned_items.length };
+  // Required contracts validation
+  if (!Array.isArray(lockObj.required_contracts)) {
+    return { valid: false, error: 'INVALID_REQUIRED_CONTRACTS: required_contracts must be an array' };
+  }
+
+  const seenReqContractKeys = new Set();
+  const reqContractsMap = new Map();
+
+  for (let i = 0; i < lockObj.required_contracts.length; i++) {
+    const rc = lockObj.required_contracts[i];
+    if (!rc || typeof rc !== 'object' || Array.isArray(rc)) {
+      return { valid: false, error: `MALFORMED_REQUIRED_CONTRACT: Entry at index ${i} must be an object` };
+    }
+
+    const { contract_id, version, snapshot_path, sha256, effective_from_sha, status } = rc;
+
+    if (typeof contract_id !== 'string' || !/^CONTRACT-[A-Z0-9-]+$/.test(contract_id)) {
+      return { valid: false, error: `INVALID_REQUIRED_CONTRACT_ID: Entry ${i} has invalid contract_id: ${contract_id}` };
+    }
+    if (typeof version !== 'string' || !/^[0-9]+\.[0-9]+\.[0-9]+$/.test(version)) {
+      return { valid: false, error: `INVALID_REQUIRED_CONTRACT_VERSION: Contract ${contract_id} has invalid version: ${version}` };
+    }
+
+    const key = `${contract_id}@${version}`;
+    if (seenReqContractKeys.has(key)) {
+      return { valid: false, error: `DUPLICATE_REQUIRED_CONTRACT: Duplicate (contract_id, version) in required_contracts: ${key}` };
+    }
+    seenReqContractKeys.add(key);
+    reqContractsMap.set(key, rc);
+
+    try {
+      validateSafeRelativePath(snapshot_path);
+    } catch (e) {
+      return { valid: false, error: `UNSAFE_REQUIRED_CONTRACT_PATH: Contract ${key} path error: ${e.message}` };
+    }
+
+    if (typeof sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(sha256)) {
+      return { valid: false, error: `INVALID_REQUIRED_CONTRACT_HASH: Contract ${key} has invalid sha256 format` };
+    }
+    if (typeof effective_from_sha !== 'string' || !/^[a-f0-9]{40}$/.test(effective_from_sha)) {
+      return { valid: false, error: `INVALID_EFFECTIVE_FROM_SHA: Contract ${key} has invalid effective_from_sha: ${effective_from_sha}` };
+    }
+    if (!VALID_CONTRACT_STATUSES.has(status)) {
+      return { valid: false, error: `INVALID_REQUIRED_CONTRACT_STATUS: Contract ${key} has invalid status: ${status}` };
+    }
+
+    if (repoRoot) {
+      const fullPath = path.resolve(repoRoot, snapshot_path);
+      if (!fs.existsSync(fullPath)) {
+        return { valid: false, error: `REQUIRED_CONTRACT_SNAPSHOT_MISSING: Snapshot for ${key} missing: ${snapshot_path}` };
+      }
+      try {
+        const stat = fs.lstatSync(fullPath);
+        if (!stat.isFile() || stat.isSymbolicLink()) {
+          return { valid: false, error: `UNSAFE_REQUIRED_CONTRACT_FILE: Snapshot for ${key} must be a regular file, not a symlink` };
+        }
+      } catch (e) {
+        return { valid: false, error: `REQUIRED_CONTRACT_STAT_ERROR: Cannot stat snapshot for ${key}: ${e.message}` };
+      }
+      const actualSha = computeFileSha256(fullPath);
+      if (!timingSafeHexCompare(actualSha, sha256)) {
+        return { valid: false, error: `REQUIRED_CONTRACT_HASH_DRIFT: Contract ${key} snapshot hash drift: expected ${sha256}, actual ${actualSha}` };
+      }
+    }
+  }
+
+  // Cross-check against Contract Registry if provided in options or found on disk
+  if (repoRoot && options.checkContractRegistry !== false) {
+    const regPath = path.resolve(repoRoot, '.synthesis/registries/contracts.json');
+    if (fs.existsSync(regPath)) {
+      try {
+        const regRaw = fs.readFileSync(regPath, 'utf8');
+        const regObj = parseStrictIJson(regRaw);
+        if (Array.isArray(regObj.contracts)) {
+          for (const regEntry of regObj.contracts) {
+            if (regEntry.status === 'ACTIVE' || regEntry.status === 'STAGED') {
+              const regKey = `${regEntry.contract_id}@${regEntry.version}`;
+              const lockedEntry = reqContractsMap.get(regKey);
+              if (!lockedEntry) {
+                return { valid: false, error: `REQUIRED_CONTRACT_MISSING_FROM_LOCK: ${regEntry.status} contract ${regKey} in registry is not declared in required_contracts` };
+              }
+              if (!timingSafeHexCompare(lockedEntry.sha256, regEntry.snapshot_sha256)) {
+                return { valid: false, error: `REGISTRY_LOCK_HASH_DRIFT: Hash mismatch between registry and lock for ${regKey}` };
+              }
+            }
+          }
+        }
+      } catch (err) {
+        return { valid: false, error: `REGISTRY_CROSSCHECK_ERROR: ${err.message}` };
+      }
+    }
+  }
+
+  return {
+    valid: true,
+    pinnedCount: lockObj.pinned_items.length,
+    requiredContractsCount: lockObj.required_contracts.length
+  };
 }
 
 export function runSelfTest() {
@@ -154,11 +269,22 @@ export function runSelfTest() {
         sha256: '0'.repeat(64),
         identifier: 'SCHEMA-GOVERNANCE-LOCK'
       }
+    ],
+    required_contracts: [
+      {
+        contract_id: 'CONTRACT-GOV-TEST-001',
+        version: '1.0.0',
+        snapshot_path: '.synthesis/contracts/CONTRACT-GOV-TEST-001/v1.0.0.json',
+        sha256: 'a'.repeat(64),
+        effective_from_sha: '1'.repeat(40),
+        status: 'ACTIVE'
+      }
     ]
   };
 
   const res = validateGovernanceLock(validMock, null);
   if (res.valid) positivePassed++;
+  else throw new Error(`Initial valid lock mock failed: ${JSON.stringify(res)}`);
 
   const negativeCases = [
     { name: 'Null lockfile', generate: () => null, expected: 'MALFORMED_LOCKFILE' },
@@ -175,7 +301,15 @@ export function runSelfTest() {
     { name: 'Bad item type', generate: m => { m.pinned_items[0].item_type = 'UNKNOWN'; return m; }, expected: 'INVALID_ITEM_TYPE' },
     { name: 'Path traversal in pinned path', generate: m => { m.pinned_items[0].path = '../../secret'; return m; }, expected: 'UNSAFE_PINNED_PATH' },
     { name: 'Duplicate pinned path', generate: m => { m.pinned_items.push({ ...m.pinned_items[0] }); return m; }, expected: 'DUPLICATE_PINNED_PATH' },
-    { name: 'Bad sha in pinned item', generate: m => { m.pinned_items[0].sha256 = 'short'; return m; }, expected: 'INVALID_PINNED_HASH' }
+    { name: 'Bad sha in pinned item', generate: m => { m.pinned_items[0].sha256 = 'short'; return m; }, expected: 'INVALID_PINNED_HASH' },
+    { name: 'Required contracts not array', generate: m => { m.required_contracts = 'not-array'; return m; }, expected: 'INVALID_REQUIRED_CONTRACTS' },
+    { name: 'Malformed required contract', generate: m => { m.required_contracts = [null]; return m; }, expected: 'MALFORMED_REQUIRED_CONTRACT' },
+    { name: 'Bad required contract_id', generate: m => { m.required_contracts[0].contract_id = 'bad-id'; return m; }, expected: 'INVALID_REQUIRED_CONTRACT_ID' },
+    { name: 'Duplicate required contract', generate: m => { m.required_contracts.push({ ...m.required_contracts[0] }); return m; }, expected: 'DUPLICATE_REQUIRED_CONTRACT' },
+    { name: 'Unsafe required contract path', generate: m => { m.required_contracts[0].snapshot_path = '../../leak.json'; return m; }, expected: 'UNSAFE_REQUIRED_CONTRACT_PATH' },
+    { name: 'Bad required contract sha', generate: m => { m.required_contracts[0].sha256 = 'xyz'; return m; }, expected: 'INVALID_REQUIRED_CONTRACT_HASH' },
+    { name: 'Bad effective_from_sha', generate: m => { m.required_contracts[0].effective_from_sha = 'short'; return m; }, expected: 'INVALID_EFFECTIVE_FROM_SHA' },
+    { name: 'Bad required contract status', generate: m => { m.required_contracts[0].status = 'UNKNOWN'; return m; }, expected: 'INVALID_REQUIRED_CONTRACT_STATUS' }
   ];
 
   for (const tc of negativeCases) {
@@ -187,6 +321,88 @@ export function runSelfTest() {
     } else {
       throw new Error(`Self-test negative case '${tc.name}' failed. Expected ${tc.expected}, got: ${JSON.stringify(r)}`);
     }
+  }
+
+  // Symlink test in repoRoot
+  const tempDir = fs.mkdtempSync(path.join('/tmp', 'gov-lock-test-'));
+  try {
+    fs.mkdirSync(path.join(tempDir, '.synthesis', 'lineage'), { recursive: true });
+    fs.mkdirSync(path.join(tempDir, '.synthesis', 'contracts', 'CONTRACT-GOV-TEST-001'), { recursive: true });
+
+    const genesisFile = path.join(tempDir, '.synthesis', 'lineage', 'genesis.json');
+    fs.writeFileSync(genesisFile, '{}');
+    const genesisSha = computeFileSha256(genesisFile);
+
+    const realFile = path.join(tempDir, '.synthesis', 'contracts', 'CONTRACT-GOV-TEST-001', 'real.json');
+    fs.writeFileSync(realFile, '{}');
+    const symlinkSnapshot = path.join(tempDir, '.synthesis', 'contracts', 'CONTRACT-GOV-TEST-001', 'v1.0.0.json');
+    fs.symlinkSync(realFile, symlinkSnapshot);
+
+    const lockWithSymlink = {
+      schema_version: '1.0.0',
+      lockfile_kind: 'GOVERNANCE_REQUIREMENTS_LOCK',
+      locked_at_utc: '2026-10-05T00:00:00.000Z',
+      root_governance_health_gate: 'BOOTSTRAP_NOT_YET_ACTIVE',
+      genesis_anchor: {
+        path: '.synthesis/lineage/genesis.json',
+        pinned_sha256: genesisSha
+      },
+      pinned_items: [],
+      required_contracts: [
+        {
+          contract_id: 'CONTRACT-GOV-TEST-001',
+          version: '1.0.0',
+          snapshot_path: '.synthesis/contracts/CONTRACT-GOV-TEST-001/v1.0.0.json',
+          sha256: computeFileSha256(realFile),
+          effective_from_sha: '1'.repeat(40),
+          status: 'ACTIVE'
+        }
+      ]
+    };
+
+    const symRes = validateGovernanceLock(lockWithSymlink, tempDir);
+    if (!symRes.valid && symRes.error && symRes.error.includes('UNSAFE_REQUIRED_CONTRACT_FILE')) {
+      negativePassed++;
+    } else {
+      throw new Error(`Self-test symlink negative test failed, got: ${JSON.stringify(symRes)}`);
+    }
+
+    // Registry / Lock drift test
+    fs.mkdirSync(path.join(tempDir, '.synthesis', 'registries'), { recursive: true });
+    fs.unlinkSync(symlinkSnapshot);
+    fs.writeFileSync(symlinkSnapshot, '{}');
+    const actualSnapshotSha = computeFileSha256(symlinkSnapshot);
+
+    // Registry has ACTIVE contract that is missing or has mismatched hash in lock
+    const regMismatch = {
+      schema_version: 'contract-registry.v1',
+      format_version: '1.0.0',
+      record_kind: 'CONTRACT_REGISTRY',
+      lifecycle_state: 'DRAFT',
+      contracts: [
+        {
+          contract_id: 'CONTRACT-GOV-TEST-001',
+          version: '1.0.0',
+          title: 'Test',
+          status: 'ACTIVE',
+          snapshot_path: '.synthesis/contracts/CONTRACT-GOV-TEST-001/v1.0.0.json',
+          snapshot_sha256: actualSnapshotSha
+        }
+      ]
+    };
+    fs.writeFileSync(path.join(tempDir, '.synthesis', 'registries', 'contracts.json'), JSON.stringify(regMismatch));
+
+    const lockWithMismatchedSha = JSON.parse(JSON.stringify(lockWithSymlink));
+    lockWithMismatchedSha.required_contracts[0].sha256 = 'f'.repeat(64); // Mismatch!
+    const driftRes = validateGovernanceLock(lockWithMismatchedSha, tempDir);
+    if (!driftRes.valid && driftRes.error && driftRes.error.includes('REQUIRED_CONTRACT_HASH_DRIFT')) {
+      negativePassed++;
+    } else {
+      throw new Error(`Self-test lock drift test failed, got: ${JSON.stringify(driftRes)}`);
+    }
+
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
   }
 
   const result = {
@@ -216,7 +432,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       console.error(`GOVERNANCE_LOCK_VERIFICATION_FAILED: ${res.error}`);
       process.exit(1);
     }
-    console.log(`GOVERNANCE_LOCK_VERIFIED: ${res.pinnedCount} pinned items match.`);
+    console.log(`GOVERNANCE_LOCK_VERIFIED: ${res.pinnedCount} pinned items and ${res.requiredContractsCount} required contracts match.`);
     process.exit(0);
   } else {
     console.log('Usage: node verify_governance_lock.mjs [--self-test|--verify-all]');

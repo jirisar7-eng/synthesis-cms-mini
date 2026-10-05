@@ -109,11 +109,13 @@ export function validateCapabilityRegistry(registryObj, options = {}) {
   }
   // Fail-closed guard: root registry cannot be declared ACTIVE without global activation evidence
   if (registryObj.status === "ACTIVE") {
-    return {
-      valid: false,
-      stage: "REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED",
-      error: "Root registry cannot be declared ACTIVE until an independently verifiable global activation protocol is established."
-    };
+    if (!options.allowActiveWithProof || !options.activationProofVerified) {
+      return {
+        valid: false,
+        stage: "REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED",
+        error: "Root registry cannot be declared ACTIVE until an independently verifiable global activation protocol is established."
+      };
+    }
   }
   if (!Array.isArray(registryObj.capabilities)) {
     return { valid: false, stage: "CAPABILITIES_NOT_ARRAY", error: "capabilities must be an array." };
@@ -328,11 +330,13 @@ export function validateCapabilityRegistry(registryObj, options = {}) {
         };
       }
       // Fail-closed guard: effective ACTIVE status requires external activation proof protocol
-      return {
-        valid: false,
-        stage: "ACTIVE_EXTERNAL_PROOF_REQUIRED",
-        error: `Capability "${capId}" claims ACTIVE status, but independent runtime/governance activation evidence protocol is not yet active during bootstrap.`
-      };
+      if (!options.allowActiveWithProof || !options.activationProofVerified) {
+        return {
+          valid: false,
+          stage: "ACTIVE_EXTERNAL_PROOF_REQUIRED",
+          error: `Capability "${capId}" claims ACTIVE status, but independent runtime/governance activation evidence protocol is not yet active during bootstrap.`
+        };
+      }
     }
 
     // 4.3 Origin capsule verification against filesystem if present
@@ -513,6 +517,22 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
       throw new Error(`Expected valid DAG to pass, got: ${res.stage}: ${res.error}`);
     }
   } catch (err) { failTest("Positive 2: valid DAG", err); }
+
+  // POSITIVE 3: ACTIVE root and capability accepted when verified activation proof is provided
+  try {
+    const clone = JSON.parse(JSON.stringify(validObj));
+    clone.status = "ACTIVE";
+    clone.capabilities[0].status = "ACTIVE";
+    clone.capabilities[0].origin_capsule_id = "CAP-SYN-MINI-GENESIS-20261005-001";
+    clone.capabilities[0].origin_payload_sha256 = "6a3286f77c385ceb52f190bc983ad2bb7b0bcf9e6ec154c16a4e32d3989c679b";
+    clone.capabilities[0].introducing_commit_sha = "b3d47a6f732512a9f5b19668a07bb4d2c662adf3";
+    const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: false, allowActiveWithProof: true, activationProofVerified: true });
+    if (res.valid) {
+      passPositive("ACTIVE root and capability accepted with verified activation proof");
+    } else {
+      throw new Error(`Expected ACTIVE with proof to pass, got: ${res.stage}: ${res.error}`);
+    }
+  } catch (err) { failTest("Positive 3: ACTIVE with verified proof", err); }
 
   // Negative test helper
   function assertNegative(code, name, modifier, expectedStage) {

@@ -3,8 +3,9 @@
  * SYNTHESIS CMS MINI — GOVERNANCE CONTRACT REGISTRY VERIFIER
  *
  * Verifies machine-readable Governance Contract Registry instances and snapshots.
- * Enforces contract schema conformance, SHA-256 snapshot integrity, lifecycle state
- * invariants, and ensures separation between Capability Registry and Contract Registry.
+ * Supports multi-version contracts, enforces (contract_id, version) uniqueness,
+ * supersession / current-version consistency, snapshot SHA-256 integrity,
+ * safe regular file guarantees (no symlinks), and lifecycle state invariants.
  */
 
 import fs from 'node:fs';
@@ -67,39 +68,45 @@ export function validateContractRegistry(registryObj, repoRoot = DEFAULT_REPO_RO
     return { valid: false, error: 'INVALID_CONTRACTS_ARRAY: contracts field must be an array' };
   }
 
-  const seenIds = new Set();
+  const seenVersionKeys = new Set();
   const seenPaths = new Set();
+  const activeContractsById = new Map();
+  const allEntriesByKey = new Map();
 
+  // First pass: validate entry structure and uniqueness of (contract_id, version)
   for (let i = 0; i < registryObj.contracts.length; i++) {
     const entry = registryObj.contracts[i];
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
       return { valid: false, error: `MALFORMED_ENTRY: Entry at index ${i} must be a non-null object` };
     }
 
-    const { contract_id, version, title, status, snapshot_path, snapshot_sha256 } = entry;
+    const { contract_id, version, title, status, snapshot_path, snapshot_sha256, supersedes = [], superseded_by = null } = entry;
 
     if (typeof contract_id !== 'string' || !/^CONTRACT-[A-Z0-9-]+$/.test(contract_id)) {
       return { valid: false, error: `INVALID_CONTRACT_ID: Entry ${i} has invalid contract_id: ${contract_id}` };
     }
-    if (seenIds.has(contract_id)) {
-      return { valid: false, error: `DUPLICATE_CONTRACT_ID: Duplicate contract_id detected: ${contract_id}` };
-    }
-    seenIds.add(contract_id);
-
     if (typeof version !== 'string' || !/^[0-9]+\.[0-9]+\.[0-9]+$/.test(version)) {
       return { valid: false, error: `INVALID_CONTRACT_VERSION: Contract ${contract_id} has invalid version: ${version}` };
     }
+
+    const versionKey = `${contract_id}@${version}`;
+    if (seenVersionKeys.has(versionKey)) {
+      return { valid: false, error: `DUPLICATE_CONTRACT_VERSION: Duplicate (contract_id, version) detected: ${versionKey}` };
+    }
+    seenVersionKeys.add(versionKey);
+    allEntriesByKey.set(versionKey, entry);
+
     if (typeof title !== 'string' || title.trim().length === 0) {
-      return { valid: false, error: `INVALID_CONTRACT_TITLE: Contract ${contract_id} has empty title` };
+      return { valid: false, error: `INVALID_CONTRACT_TITLE: Contract ${versionKey} has empty title` };
     }
     if (!VALID_CONTRACT_STATUSES.has(status)) {
-      return { valid: false, error: `INVALID_CONTRACT_STATUS: Contract ${contract_id} has invalid status: ${status}` };
+      return { valid: false, error: `INVALID_CONTRACT_STATUS: Contract ${versionKey} has invalid status: ${status}` };
     }
 
     try {
       validateSafeRelativePath(snapshot_path);
     } catch (e) {
-      return { valid: false, error: `UNSAFE_SNAPSHOT_PATH: Contract ${contract_id} path error: ${e.message}` };
+      return { valid: false, error: `UNSAFE_SNAPSHOT_PATH: Contract ${versionKey} path error: ${e.message}` };
     }
 
     if (seenPaths.has(snapshot_path)) {
@@ -108,18 +115,70 @@ export function validateContractRegistry(registryObj, repoRoot = DEFAULT_REPO_RO
     seenPaths.add(snapshot_path);
 
     if (typeof snapshot_sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(snapshot_sha256)) {
-      return { valid: false, error: `INVALID_SNAPSHOT_SHA256: Contract ${contract_id} has invalid snapshot_sha256 format` };
+      return { valid: false, error: `INVALID_SNAPSHOT_SHA256: Contract ${versionKey} has invalid snapshot_sha256 format` };
     }
 
     // Verify snapshot file on disk if repoRoot provided and status requires it
-    if (repoRoot && (status === 'STAGED' || status === 'ACTIVE')) {
+    if (repoRoot && (status === 'STAGED' || status === 'ACTIVE' || status === 'SUPERSEDED')) {
       const fullPath = path.resolve(repoRoot, snapshot_path);
       if (!fs.existsSync(fullPath)) {
-        return { valid: false, error: `MISSING_SNAPSHOT_FILE: Snapshot for ${contract_id} does not exist: ${snapshot_path}` };
+        return { valid: false, error: `MISSING_SNAPSHOT_FILE: Snapshot for ${versionKey} does not exist: ${snapshot_path}` };
+      }
+      try {
+        const stat = fs.lstatSync(fullPath);
+        if (!stat.isFile() || stat.isSymbolicLink()) {
+          return { valid: false, error: `UNSAFE_FILE_TYPE: Snapshot ${snapshot_path} must be a regular file, not a symlink or directory` };
+        }
+      } catch (err) {
+        return { valid: false, error: `SNAPSHOT_STAT_ERROR: Cannot stat snapshot ${snapshot_path}: ${err.message}` };
       }
       const actualSha = computeFileSha256(fullPath);
       if (!timingSafeHexCompare(actualSha, snapshot_sha256)) {
-        return { valid: false, error: `SNAPSHOT_SHA_MISMATCH: Contract ${contract_id} snapshot hash mismatch: expected ${snapshot_sha256}, actual ${actualSha}` };
+        return { valid: false, error: `SNAPSHOT_SHA_MISMATCH: Contract ${versionKey} snapshot hash mismatch: expected ${snapshot_sha256}, actual ${actualSha}` };
+      }
+    }
+
+    // Track active versions per contract_id
+    if (status === 'ACTIVE') {
+      if (activeContractsById.has(contract_id)) {
+        return {
+          valid: false,
+          error: `MULTIPLE_ACTIVE_VERSIONS: Contract ${contract_id} has multiple ACTIVE versions: ${activeContractsById.get(contract_id)} and ${version}`
+        };
+      }
+      activeContractsById.set(contract_id, version);
+    }
+  }
+
+  // Second pass: Supersession consistency checks
+  for (const [key, entry] of allEntriesByKey.entries()) {
+    const { contract_id, version, status, supersedes = [], superseded_by } = entry;
+
+    if (status === 'ACTIVE' && superseded_by !== null) {
+      return { valid: false, error: `ACTIVE_CONTRACT_SUPERSEDED: ACTIVE contract ${key} cannot have superseded_by set` };
+    }
+
+    if (status === 'SUPERSEDED') {
+      if (!superseded_by || typeof superseded_by !== 'string') {
+        return { valid: false, error: `SUPERSEDED_WITHOUT_POINTER: SUPERSEDED contract ${key} must declare non-empty superseded_by` };
+      }
+      // Target key can be CONTRACT-ID@VER or just version if same ID
+      const targetKey = superseded_by.includes('@') ? superseded_by : `${contract_id}@${superseded_by}`;
+      if (!allEntriesByKey.has(targetKey)) {
+        return { valid: false, error: `INVALID_SUPERSEDED_BY_TARGET: Contract ${key} references non-existent superseded_by target ${targetKey}` };
+      }
+    }
+
+    if (Array.isArray(supersedes) && supersedes.length > 0) {
+      for (const s of supersedes) {
+        const supersededKey = s.includes('@') ? s : `${contract_id}@${s}`;
+        const targetEntry = allEntriesByKey.get(supersededKey);
+        if (!targetEntry) {
+          return { valid: false, error: `INVALID_SUPERSEDES_TARGET: Contract ${key} declares supersedes target that does not exist: ${supersededKey}` };
+        }
+        if (targetEntry.status !== 'SUPERSEDED') {
+          return { valid: false, error: `SUPERSEDED_TARGET_NOT_SUPERSEDED: Contract ${key} supersedes ${supersededKey}, but target status is ${targetEntry.status}, not SUPERSEDED` };
+        }
       }
     }
   }
@@ -128,7 +187,7 @@ export function validateContractRegistry(registryObj, repoRoot = DEFAULT_REPO_RO
   if (registryObj.lifecycle_state === 'ACTIVE') {
     for (const c of registryObj.contracts) {
       if (c.status === 'DRAFT' || c.status === 'STAGED') {
-        return { valid: false, error: `LIFECYCLE_STATE_INCONSISTENCY: Root is ACTIVE but contract ${c.contract_id} is ${c.status}` };
+        return { valid: false, error: `LIFECYCLE_STATE_INCONSISTENCY: Root is ACTIVE but contract ${c.contract_id}@${c.version} is ${c.status}` };
       }
     }
   }
@@ -149,16 +208,29 @@ export function runSelfTest() {
       {
         contract_id: 'CONTRACT-GOV-TEST-001',
         version: '1.0.0',
-        title: 'Test Contract',
-        status: 'DRAFT',
+        title: 'Test Contract v1',
+        status: 'SUPERSEDED',
         snapshot_path: '.synthesis/contracts/CONTRACT-GOV-TEST-001/v1.0.0.json',
-        snapshot_sha256: 'a'.repeat(64)
+        snapshot_sha256: 'a'.repeat(64),
+        supersedes: [],
+        superseded_by: '1.1.0'
+      },
+      {
+        contract_id: 'CONTRACT-GOV-TEST-001',
+        version: '1.1.0',
+        title: 'Test Contract v1.1',
+        status: 'ACTIVE',
+        snapshot_path: '.synthesis/contracts/CONTRACT-GOV-TEST-001/v1.1.0.json',
+        snapshot_sha256: 'b'.repeat(64),
+        supersedes: ['1.0.0'],
+        superseded_by: null
       }
     ]
   };
 
   const res = validateContractRegistry(validMock, null);
   if (res.valid) positivePassed++;
+  else throw new Error(`Initial valid mock failed: ${JSON.stringify(res)}`);
 
   const negativeCases = [
     { name: 'Null registry', generate: () => null, expected: 'MALFORMED_REGISTRY' },
@@ -170,14 +242,20 @@ export function runSelfTest() {
     { name: 'Contracts not array', generate: m => { m.contracts = 'not-array'; return m; }, expected: 'INVALID_CONTRACTS_ARRAY' },
     { name: 'Malformed entry', generate: m => { m.contracts = [null]; return m; }, expected: 'MALFORMED_ENTRY' },
     { name: 'Bad contract_id', generate: m => { m.contracts[0].contract_id = 'bad_id'; return m; }, expected: 'INVALID_CONTRACT_ID' },
-    { name: 'Duplicate contract_id', generate: m => { m.contracts.push({ ...m.contracts[0], snapshot_path: 'other.json' }); return m; }, expected: 'DUPLICATE_CONTRACT_ID' },
+    { name: 'Duplicate contract version', generate: m => { m.contracts[1].version = '1.0.0'; return m; }, expected: 'DUPLICATE_CONTRACT_VERSION' },
     { name: 'Bad version format', generate: m => { m.contracts[0].version = 'v1'; return m; }, expected: 'INVALID_CONTRACT_VERSION' },
     { name: 'Empty title', generate: m => { m.contracts[0].title = '   '; return m; }, expected: 'INVALID_CONTRACT_TITLE' },
     { name: 'Bad status', generate: m => { m.contracts[0].status = 'UNKNOWN'; return m; }, expected: 'INVALID_CONTRACT_STATUS' },
     { name: 'Path traversal', generate: m => { m.contracts[0].snapshot_path = '../../secret.json'; return m; }, expected: 'UNSAFE_SNAPSHOT_PATH' },
-    { name: 'Duplicate snapshot path', generate: m => { m.contracts.push({ ...m.contracts[0], contract_id: 'CONTRACT-GOV-TEST-002' }); return m; }, expected: 'DUPLICATE_SNAPSHOT_PATH' },
+    { name: 'Duplicate snapshot path', generate: m => { m.contracts[1].snapshot_path = m.contracts[0].snapshot_path; return m; }, expected: 'DUPLICATE_SNAPSHOT_PATH' },
     { name: 'Bad sha format', generate: m => { m.contracts[0].snapshot_sha256 = 'abc'; return m; }, expected: 'INVALID_SNAPSHOT_SHA256' },
-    { name: 'ACTIVE root with DRAFT contract', generate: m => { m.lifecycle_state = 'ACTIVE'; m.contracts[0].status = 'DRAFT'; return m; }, expected: 'LIFECYCLE_STATE_INCONSISTENCY' }
+    { name: 'Multiple ACTIVE versions of same contract_id', generate: m => { m.contracts[0].status = 'ACTIVE'; m.contracts[0].superseded_by = null; return m; }, expected: 'MULTIPLE_ACTIVE_VERSIONS' },
+    { name: 'ACTIVE contract with superseded_by set', generate: m => { m.contracts[1].superseded_by = '2.0.0'; return m; }, expected: 'ACTIVE_CONTRACT_SUPERSEDED' },
+    { name: 'SUPERSEDED without superseded_by', generate: m => { m.contracts[0].superseded_by = null; return m; }, expected: 'SUPERSEDED_WITHOUT_POINTER' },
+    { name: 'SUPERSEDED with invalid target', generate: m => { m.contracts[0].superseded_by = '9.9.9'; return m; }, expected: 'INVALID_SUPERSEDED_BY_TARGET' },
+    { name: 'Invalid supersedes reference', generate: m => { m.contracts[1].supersedes = ['non-existent']; return m; }, expected: 'INVALID_SUPERSEDES_TARGET' },
+    { name: 'Superseded target not marked SUPERSEDED', generate: m => { m.contracts[0].status = 'DRAFT'; return m; }, expected: 'SUPERSEDED_TARGET_NOT_SUPERSEDED' },
+    { name: 'ACTIVE root with DRAFT contract', generate: m => { m.lifecycle_state = 'ACTIVE'; m.contracts = [{ contract_id: 'CONTRACT-GOV-TEST-002', version: '1.0.0', title: 'Single', status: 'DRAFT', snapshot_path: '.synthesis/contracts/CONTRACT-GOV-TEST-002/v1.0.0.json', snapshot_sha256: 'a'.repeat(64) }]; return m; }, expected: 'LIFECYCLE_STATE_INCONSISTENCY' }
   ];
 
   for (const tc of negativeCases) {
@@ -189,6 +267,43 @@ export function runSelfTest() {
     } else {
       throw new Error(`Self-test negative case '${tc.name}' failed. Expected ${tc.expected}, got: ${JSON.stringify(r)}`);
     }
+  }
+
+  // Symlink test
+  const tempDir = fs.mkdtempSync(path.join('/tmp', 'contract-reg-test-'));
+  try {
+    const contractsDir = path.join(tempDir, '.synthesis', 'contracts', 'CONTRACT-GOV-TEST-001');
+    fs.mkdirSync(contractsDir, { recursive: true });
+    const realFile = path.join(contractsDir, 'real.json');
+    fs.writeFileSync(realFile, '{}');
+    const symlinkFile = path.join(contractsDir, 'v1.0.0.json');
+    fs.symlinkSync(realFile, symlinkFile);
+
+    const symlinkMock = {
+      schema_version: 'contract-registry.v1',
+      format_version: '1.0.0',
+      record_kind: 'CONTRACT_REGISTRY',
+      lifecycle_state: 'DRAFT',
+      contracts: [
+        {
+          contract_id: 'CONTRACT-GOV-TEST-001',
+          version: '1.0.0',
+          title: 'Test Contract',
+          status: 'STAGED',
+          snapshot_path: '.synthesis/contracts/CONTRACT-GOV-TEST-001/v1.0.0.json',
+          snapshot_sha256: computeFileSha256(realFile)
+        }
+      ]
+    };
+
+    const symRes = validateContractRegistry(symlinkMock, tempDir);
+    if (!symRes.valid && symRes.error && symRes.error.includes('UNSAFE_FILE_TYPE')) {
+      negativePassed++;
+    } else {
+      throw new Error(`Self-test symlink negative test failed, got: ${JSON.stringify(symRes)}`);
+    }
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
   }
 
   const result = {
