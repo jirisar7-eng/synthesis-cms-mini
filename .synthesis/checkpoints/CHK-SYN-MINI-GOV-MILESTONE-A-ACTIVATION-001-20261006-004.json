@@ -1,0 +1,92 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "record_kind": "REMOTE_FILE_CHECKPOINT",
+    "checkpoint_id": "CHK-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-004",
+    "checkpoint_type": "ATOMIC_GROUP",
+    "checkpoint_state": "CHECKPOINT_COMPLETE",
+    "task_id": "SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001",
+    "command_id": "CMD-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-007-ATOMIC-ACTIVE-TRANSITION-RETRY",
+    "roadmap_step": "6/60 \u2014 ATOMIC ACTIVE TRANSITION CANDIDATE",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "created_at_utc": "2026-10-06T19:15:00.000Z",
+    "repository": {
+      "name": "jirisar7-eng/synthesis-cms-mini",
+      "id": 1401215700,
+      "branch": "task/SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001",
+      "base_main_sha": "5b74c007b9a3d69896d197037c0d5f9e5902832c"
+    },
+    "target_commit": {
+      "commit_sha": "ef14f93aba97fe5c96299d42c4449e5a51ee3392",
+      "parent_sha": "39399c62b1bdc97de2d8abf29e71f464dfe5f27d",
+      "commit_timestamp_utc": "2026-10-06T19:08:04Z"
+    },
+    "remote_verification": {
+      "verification_method": "GIT_LS_REMOTE",
+      "observed_remote_ref": "refs/heads/task/SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001",
+      "observed_remote_sha": "ef14f93aba97fe5c96299d42c4449e5a51ee3392",
+      "remote_relationship": "EXACT_HEAD",
+      "verified_at_utc": "2026-10-06T19:15:00.000Z"
+    },
+    "checkpoint_lineage": {
+      "parent_checkpoint": {
+        "checkpoint_id": "CHK-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-003",
+        "file_path": ".synthesis/checkpoints/CHK-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-003.json",
+        "raw_file_sha256": "a0af51783a906abddb4a15786304d9085929b91dc2ef214571f808e3670942eb"
+      }
+    },
+    "checkpointed_files": [
+      {
+        "file_path": ".github/workflows/genesis-integrity.yml",
+        "operation": "MODIFY",
+        "source_blob_sha": "caecd67637ab51bdafc18b55a54dcddb6dd47dfb",
+        "result_blob_sha": "affbb86ba912934f678c78342195637f1e4d92b4",
+        "file_size_bytes": 19485
+      },
+      {
+        "file_path": ".synthesis/activation/milestone-a-activation-proof.json",
+        "operation": "ADD",
+        "source_blob_sha": null,
+        "result_blob_sha": "e91d5f86fcfa65d3a10596573a80eeadb9541a18",
+        "file_size_bytes": 633
+      },
+      {
+        "file_path": ".synthesis/governance.lock.json",
+        "operation": "MODIFY",
+        "source_blob_sha": "248ca9d0390dfc4f518425eaefdfe27349f44eac",
+        "result_blob_sha": "226ac4d8500b80030899f83d538efb331f5d74ec",
+        "file_size_bytes": 8647
+      },
+      {
+        "file_path": ".synthesis/registries/capabilities.json",
+        "operation": "MODIFY",
+        "source_blob_sha": "15303a7d53c383f25347e5fd6cc144b2844b2749",
+        "result_blob_sha": "3b24a3e2a7b4466a7e3d24cbc8fa15485136d497",
+        "file_size_bytes": 5170
+      },
+      {
+        "file_path": ".synthesis/registries/contracts.json",
+        "operation": "MODIFY",
+        "source_blob_sha": "94b9794b696201442d0f295070f08e82cf371a46",
+        "result_blob_sha": "1ba965e096d05f03857963b81969e124984a3387",
+        "file_size_bytes": 3582
+      }
+    ],
+    "evidence_binding": {
+      "linked_capsule_id": "CAP-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-007",
+      "linked_capsule_payload_sha256": "07e9df79c7a39ec44bd198a14145395b63a57f268cbc341202585cfe32a11d19"
+    },
+    "recovery_semantics": {
+      "durability_state": "REMOTE_DURABLE",
+      "skippable_on_recovery": true
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "c9cb4a2c99c1390b6718530fec61b5bc200d547ef4ffa4187b806bf6611efdb7",
+    "sealed_at": "2026-10-06T19:15:00.000Z",
+    "sealed_by": "AI Studio Engineer"
+  }
+}
