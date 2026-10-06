@@ -1,0 +1,162 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-011",
+    "task_id": "SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001",
+    "command_id": "CMD-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-010-TWO-PHASE-ACTIVATION-MERGE",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "7/60 \u2014 TWO-PHASE ACTIVATION MERGE PREPARATION",
+    "actors": {
+      "owner": "Ji\u0159\u00ed \u0160\u00e1r",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-06T20:12:00.000Z",
+      "development_phase": "GOVERNANCE",
+      "execution_mode": "RESTRICTED_GOVERNANCE_BOOTSTRAP"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "5b74c007b9a3d69896d197037c0d5f9e5902832c",
+      "source_branch": "task/SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-010.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-010.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-011.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-011.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 2,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-010",
+          "command_id": "CMD-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-009R01-REPAIR-PR-EVIDENCE-TEMPORAL-INTEGRITY",
+          "payload_sha256": "7c0fbeb13582c77fae5ba4abdf0b18f81202de18d5c646020727aebfc1cc06ce",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-011.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-011.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-011.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-011.json"
+      ],
+      "commit_sha": "f8406277cf726d01177dca26820138811eb031f5",
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "OPEN",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "WAIT_FOR_OWNER_EXPLICIT_APPROVAL",
+      "stateless_recovery_context": {
+        "verified_task_head": "f8406277cf726d01177dca26820138811eb031f5",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-06T20:12:00.000Z",
+        "pull_request_number": 12,
+        "pull_request_state": "OPEN",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "step7_status": "NOT_STARTED",
+        "two_phase_merge_intent": {
+          "phase": "PREPARE_ONLY",
+          "pr_number": 12,
+          "pr_state": "OPEN",
+          "pr_merged": false,
+          "pr_base_sha": "5b74c007b9a3d69896d197037c0d5f9e5902832c",
+          "starting_head_sha": "f8406277cf726d01177dca26820138811eb031f5",
+          "current_verified_push_ci": 37523812305,
+          "current_verified_pr_ci": 37523819909,
+          "required_merge_method": "STANDARD_MERGE_COMMIT_ONLY",
+          "forbidden_merge_methods": [
+            "SQUASH",
+            "REBASE"
+          ],
+          "owner_exact_final_head_merge_authorization": "PENDING",
+          "merge_result": "PENDING_NOT_MERGED",
+          "semantic_rule": "PREPARE_ONLY evidence commit will advance the PR head. The exact resulting final PR head is unknown at seal time. Merge execution is forbidden until that resulting head has completed fresh push CI + pull_request CI and the owner explicitly authorizes that exact head."
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "a5a8d7584cb29c33056c1f2b5100c550b351a41880147b6e5b4520e272751c6a",
+    "sealed_at": "2026-10-06T20:12:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}

@@ -2,7 +2,7 @@
   "schema_version": "capability-registry.v1",
   "format_version": "1.0.0",
   "record_kind": "CAPABILITY_REGISTRY",
-  "status": "DRAFT",
+  "status": "ACTIVE",
   "capabilities": [
     {
       "capability_id": "gov.capsule.persistence",
@@ -10,7 +10,7 @@
       "description": "Provides durable storage, discovery, and file-level integrity validation for immutable Command Capsules in .synthesis/task-capsules.",
       "layer": "Stable Contracts",
       "owner_domain": "gov.capsule",
-      "status": "PROPOSED",
+      "status": "ACTIVE",
       "head_revision": 1,
       "legacy_aliases": [
         "CAPSULE_PERSISTENCE"
@@ -20,9 +20,9 @@
       ],
       "provides": [],
       "requires": [],
-      "origin_capsule_id": null,
-      "origin_payload_sha256": null,
-      "introducing_commit_sha": null,
+      "origin_capsule_id": "CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010",
+      "origin_payload_sha256": "013b25880c15906218b2c8dc326b727e5068a99c7a8db3ca9dd6edfa30b1cd38",
+      "introducing_commit_sha": "5b74c007b9a3d69896d197037c0d5f9e5902832c",
       "superseded_by": null
     },
     {
@@ -31,7 +31,7 @@
       "description": "Validates cryptographic parent-chain lineage, graph acyclicity, single Genesis root reachability, and historical ancestor continuity.",
       "layer": "Stable Contracts",
       "owner_domain": "gov.capsule",
-      "status": "PROPOSED",
+      "status": "ACTIVE",
       "head_revision": 1,
       "legacy_aliases": [
         "CAPSULE_LINEAGE"
@@ -41,9 +41,9 @@
       ],
       "provides": [],
       "requires": [],
-      "origin_capsule_id": null,
-      "origin_payload_sha256": null,
-      "introducing_commit_sha": null,
+      "origin_capsule_id": "CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010",
+      "origin_payload_sha256": "013b25880c15906218b2c8dc326b727e5068a99c7a8db3ca9dd6edfa30b1cd38",
+      "introducing_commit_sha": "5b74c007b9a3d69896d197037c0d5f9e5902832c",
       "superseded_by": null
     },
     {
@@ -52,7 +52,7 @@
       "description": "Computes and verifies deterministic canonical RFC 8785 JSON representation and SHA-256 cryptographic payload integrity seals.",
       "layer": "Stable Contracts",
       "owner_domain": "gov.capsule",
-      "status": "PROPOSED",
+      "status": "ACTIVE",
       "head_revision": 1,
       "legacy_aliases": [
         "CRYPTOGRAPHIC_SEAL"
@@ -62,9 +62,9 @@
       ],
       "provides": [],
       "requires": [],
-      "origin_capsule_id": null,
-      "origin_payload_sha256": null,
-      "introducing_commit_sha": null,
+      "origin_capsule_id": "CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010",
+      "origin_payload_sha256": "013b25880c15906218b2c8dc326b727e5068a99c7a8db3ca9dd6edfa30b1cd38",
+      "introducing_commit_sha": "5b74c007b9a3d69896d197037c0d5f9e5902832c",
       "superseded_by": null
     },
     {
@@ -73,7 +73,7 @@
       "description": "Deterministic validation of declared command write scope against actual Git index, working-tree and committed-diff evidence, with context-aware governance CI integration.",
       "layer": "Stable Contracts",
       "owner_domain": "gov.scope",
-      "status": "PROPOSED",
+      "status": "ACTIVE",
       "head_revision": 1,
       "legacy_aliases": [],
       "governing_contracts": [
@@ -83,7 +83,7 @@
       "requires": [],
       "origin_capsule_id": "CAP-SYN-MINI-GOV-SCOPE-DIFF-FIREWALL-001-20261003-003",
       "origin_payload_sha256": "2939099d99a746e75c423adcb075bff7c89de0043a4a7c1fedfbde7f1d58bc43",
-      "introducing_commit_sha": null,
+      "introducing_commit_sha": "5b74c007b9a3d69896d197037c0d5f9e5902832c",
       "superseded_by": null
     },
     {
@@ -92,7 +92,7 @@
       "description": "Provides cryptographically sealed per-file remote durability checkpoints, independent live remote verification, checkpoint lineage validation, and deterministic recovery evidence for stateless AI work.",
       "layer": "Stable Contracts",
       "owner_domain": "gov.checkpoint",
-      "status": "PROPOSED",
+      "status": "ACTIVE",
       "head_revision": 1,
       "legacy_aliases": [
         "REMOTE_FILE_CHECKPOINT_PROTOCOL"
@@ -127,9 +127,9 @@
           "min_revision": 1
         }
       ],
-      "origin_capsule_id": null,
-      "origin_payload_sha256": null,
-      "introducing_commit_sha": null,
+      "origin_capsule_id": "CAP-SYN-MINI-GOV-REMOTE-FILE-CHECKPOINT-001-20261005-002",
+      "origin_payload_sha256": "fd50854cc698e2ddbc50b70d6ad04eb3215b064f3dab2a9c53455abfed7e9085",
+      "introducing_commit_sha": "5b74c007b9a3d69896d197037c0d5f9e5902832c",
       "superseded_by": null
     }
   ]

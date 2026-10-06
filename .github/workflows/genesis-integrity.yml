@@ -147,8 +147,8 @@ jobs:
           set -euo pipefail
           output="$(node scripts/governance/validate_capability_registry.mjs --self-test)"
           printf '%s\n' "$output"
-          grep -Fq "Summary: 3 positive passed, 24 negative passed, 0 failed." <<< "$output"
-          echo 'CAPABILITY_REGISTRY_SELFTEST: {"positivePassed":3,"negativePassed":24,"totalTests":27}'
+          grep -Fq "Summary: 4 positive passed, 27 negative passed, 0 failed." <<< "$output"
+          echo 'CAPABILITY_REGISTRY_SELFTEST: {"positivePassed":4,"negativePassed":27,"totalTests":31}'
 
       - name: Verify committed Capability Registry instance
         run: node scripts/governance/validate_capability_registry.mjs --verify-all
@@ -193,7 +193,7 @@ jobs:
           set -euo pipefail
           output="$(node scripts/governance/verify_activation_proof.mjs --verify)"
           printf '%s\n' "$output"
-          grep -Fxq 'ACTIVATION_PROOF_STATUS: BOOTSTRAP_PENDING_ACTIVATION' <<< "$output"
+          grep -E '^(ACTIVATION_PROOF_STATUS: BOOTSTRAP_PENDING_ACTIVATION|ACTIVATION_PROOF_VERIFIED: Milestone .+ proof valid\.)' <<< "$output"
 
       - name: Check Contract Registry verifier syntax
         run: node --check scripts/governance/verify_contract_registry.mjs
@@ -232,7 +232,7 @@ jobs:
           set -euo pipefail
           output="$(node scripts/governance/verify_global_governance_health.mjs --self-test)"
           printf '%s\n' "$output"
-          grep -Fxq 'GLOBAL_GOVERNANCE_HEALTH_SELFTEST: {"positivePassed":2,"negativePassed":8,"totalTests":10}' <<< "$output"
+          grep -Fxq 'GLOBAL_GOVERNANCE_HEALTH_SELFTEST: {"positivePassed":2,"negativePassed":10,"totalTests":12}' <<< "$output"
 
       - name: Verify Global Governance Health gate
         shell: bash
@@ -240,7 +240,7 @@ jobs:
           set -euo pipefail
           output="$(node scripts/governance/verify_global_governance_health.mjs --verify-all)"
           printf '%s\n' "$output"
-          grep -Fq 'GLOBAL_GOVERNANCE_HEALTH: BOOTSTRAP_NOT_YET_ACTIVE' <<< "$output"
+          grep -E '^GLOBAL_GOVERNANCE_HEALTH: (BOOTSTRAP_NOT_YET_ACTIVE|PASS)' <<< "$output"
 
       - name: Check Scope & Diff Firewall validator syntax
         run: node --check scripts/governance/verify_scope_diff_firewall.mjs

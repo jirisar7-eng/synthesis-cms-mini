@@ -1,0 +1,155 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-001",
+    "task_id": "SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001",
+    "command_id": "CMD-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-001-HARDEN-ACTIVATION-ENTRY",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "3/60 \u2014 CAPABILITY / FEATURE REGISTRY",
+    "actors": {
+      "owner": "Ji\u0159\u00ed \u0160\u00e1r",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-06T02:05:00.000Z",
+      "development_phase": "IMPLEMENT",
+      "execution_mode": "RESTRICTED_GOVERNANCE_BOOTSTRAP"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "5b74c007b9a3d69896d197037c0d5f9e5902832c",
+      "source_branch": "task/SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        "scripts/governance/validate_capability_registry.mjs",
+        "scripts/governance/verify_global_governance_health.mjs",
+        ".synthesis/governance.lock.json",
+        ".github/workflows/genesis-integrity.yml"
+      ],
+      "permitted_write_paths": [
+        "scripts/governance/validate_capability_registry.mjs",
+        "scripts/governance/verify_global_governance_health.mjs",
+        ".synthesis/governance.lock.json",
+        ".github/workflows/genesis-integrity.yml",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-001.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-001.json"
+      ],
+      "protected_paths": [
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/contracts"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 6,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-GOV-MILESTONE-A-001-20261005-010",
+          "command_id": "CMD-SYN-MINI-GOV-MILESTONE-A-001-010-PREPARE-AND-MERGE-STAGING",
+          "payload_sha256": "91af709ffafe02634675367045715229f863c28ca9f41c876160d334cd42d372",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        "scripts/governance/validate_capability_registry.mjs",
+        "scripts/governance/verify_global_governance_health.mjs",
+        ".synthesis/governance.lock.json",
+        ".github/workflows/genesis-integrity.yml",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-001.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-001.json"
+      ],
+      "actual_changed_files": [
+        "scripts/governance/validate_capability_registry.mjs",
+        "scripts/governance/verify_global_governance_health.mjs",
+        ".synthesis/governance.lock.json",
+        ".github/workflows/genesis-integrity.yml",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-001.json",
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-001.json"
+      ],
+      "commit_sha": "5b74c007b9a3d69896d197037c0d5f9e5902832c",
+      "source_blob_shas": {
+        "scripts/governance/validate_capability_registry.mjs": "fb71da170f60fd9cf3583a3da08e02b91d9f2c26",
+        "scripts/governance/verify_global_governance_health.mjs": "92df410832ff5fb84a2a2d800c03d5ffed903b77",
+        ".synthesis/governance.lock.json": "74fd354e3a385a7f8b13bdc6e47889ff10543bec",
+        ".github/workflows/genesis-integrity.yml": "e8eaf870013e4dd1b6d489b7af66902ec29b343d"
+      }
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "OPEN",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "BOOTSTRAP_NOT_YET_ACTIVE",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "CMD-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-002-CHECKPOINT-HARDENING",
+      "stateless_recovery_context": {
+        "verified_task_head": "5b74c007b9a3d69896d197037c0d5f9e5902832c",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-06T02:05:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_CREATED",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "STAGED",
+        "contract_registry_staged_count": 6,
+        "capability_registry_status": "DRAFT",
+        "proposed_capabilities_count": 5,
+        "active_capabilities_count": 0,
+        "global_governance_health": "BOOTSTRAP_NOT_YET_ACTIVE",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "step7_status": "NOT_STARTED"
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "475142eda1d59e58ad6ea5cfdcf4e5e7b3d5641938c7f79afc06133655adaacf",
+    "sealed_at": "2026-10-06T02:05:00Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}

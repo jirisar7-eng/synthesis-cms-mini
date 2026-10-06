@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "record_kind": "MILESTONE_ACTIVATION_PROOF",
+  "milestone_id": "MILESTONE_A",
+  "activation_status": "ACTIVE",
+  "exact_main_commit_sha": "5b74c007b9a3d69896d197037c0d5f9e5902832c",
+  "parent_commit_shas": [
+    "256a1400f03a01b0bd6229b0c68af913b88ddbe3",
+    "3c635f0b5b34e8671f81edb300b2701397492f50"
+  ],
+  "merge_tree_sha": "b69fe89238fc72d3ac600ca213bf2474cfe8ed52",
+  "governance_lock_sha256": "bc0c9c9b72fbb5e5e9d3d5ee28f31d7129b3da596c2b84a904b3422782e580fc",
+  "ci_workflow_run_id": 37356049227,
+  "verified_at_utc": "2026-10-06T12:00:00Z",
+  "verified_by": "Ji\u0159\u00ed \u0160\u00e1r"
+}

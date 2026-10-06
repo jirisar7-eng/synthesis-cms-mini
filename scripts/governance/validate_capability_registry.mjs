@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import crypto from 'node:crypto';
 /**
  * Synthesis CMS mini — Semantic Capability Registry Validator
  *
@@ -15,7 +16,7 @@ import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { parseStrictIJson } from "./verify_capsule_seal.mjs";
-import { verifyActivationProofRecord } from "./verify_activation_proof.mjs";
+import { verifyActivationProofRecord, defaultGitExecutor } from "./verify_activation_proof.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -78,23 +79,38 @@ export function validateCapabilityRegistry(registryObj, options = {}) {
   const repoRoot = options.repoRoot || findRepoRoot();
   const checkCapsuleExistence = options.checkCapsuleExistence !== false;
 
-  // Verify activation proof independently if provided (never allow caller booleans alone!)
+  // Verify activation proof independently if provided or auto-loaded from standard path (never allow caller booleans alone!)
   let verifiedActivationProof = null;
-  if (options.activationProof) {
-    let proofObj = options.activationProof;
+  let proofSource = options.activationProof;
+
+  // Auto-load default proof if not explicitly disabled or overridden
+  if (proofSource === undefined && options.autoLoadDefaultProof !== false && options.disableProofAutoLoad !== true) {
+    const defaultProofPath = path.resolve(repoRoot, ".synthesis/activation/milestone-a-activation-proof.json");
+    if (fs.existsSync(defaultProofPath)) {
+      proofSource = defaultProofPath;
+    }
+  }
+
+  if (proofSource) {
+    let proofObj = proofSource;
     if (typeof proofObj === 'string') {
       try {
         const fullProofPath = path.resolve(repoRoot, proofObj);
         if (fs.existsSync(fullProofPath)) {
           proofObj = parseStrictIJson(fs.readFileSync(fullProofPath, 'utf8'));
+        } else {
+          proofObj = null;
         }
       } catch (e) {
         proofObj = null;
       }
     }
-    const proofRes = verifyActivationProofRecord(proofObj, repoRoot, options.gitExecutor || null);
-    if (proofRes && proofRes.valid) {
-      verifiedActivationProof = proofRes.proof;
+    if (proofObj) {
+      const gitExec = options.gitExecutor !== undefined ? options.gitExecutor : defaultGitExecutor;
+      const proofRes = verifyActivationProofRecord(proofObj, repoRoot, gitExec);
+      if (proofRes && proofRes.valid) {
+        verifiedActivationProof = proofRes.proof;
+      }
     }
   }
 
@@ -470,6 +486,22 @@ export function validateCapabilityRegistryFile(filePath, options = {}) {
 /**
  * Self-test suite for semantic Capability Registry validator.
  */
+/**
+ * Creates an isolated deterministic DRAFT baseline fixture from a source registry
+ * so synthetic non-live self-tests never inherit or depend on live lifecycle state.
+ */
+export function createDeterministicDraftFixture(sourceRegistry) {
+  const clone = JSON.parse(JSON.stringify(sourceRegistry));
+  clone.status = "DRAFT";
+  if (Array.isArray(clone.capabilities)) {
+    for (const cap of clone.capabilities) {
+      cap.status = "PROPOSED";
+      cap.superseded_by = null;
+    }
+  }
+  return clone;
+}
+
 export function runSelfTests(repoRoot = findRepoRoot()) {
   console.log("[CAPABILITY-REGISTRY-VALIDATOR] Running Behavioral Self-Tests...");
   let positivePassed = 0;
@@ -493,6 +525,12 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
   const validRaw = fs.readFileSync(registryPath, "utf-8");
   const validObj = parseStrictIJson(validRaw);
 
+  const deterministicDraft = createDeterministicDraftFixture(validObj);
+  const baseDraftCheck = validateCapabilityRegistry(deterministicDraft, { repoRoot, checkCapsuleExistence: false, autoLoadDefaultProof: false });
+  if (!baseDraftCheck.valid) {
+    throw new Error();
+  }
+
   // POSITIVE 1: Actual live registry file passes dynamically
   try {
     const res = validateCapabilityRegistryFile(registryPath, { repoRoot });
@@ -511,7 +549,7 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
 
   // POSITIVE 2: Multi-node valid acyclic graph (A -> B -> C) passes
   try {
-    const clone = JSON.parse(JSON.stringify(validObj));
+    const clone = createDeterministicDraftFixture(validObj);
     clone.capabilities.push({
       capability_id: "gov.capsule.export",
       name: "Command Capsule Exporter",
@@ -554,27 +592,110 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
     verified_by: "Test Verifier"
   };
 
+  const mockGitForProof = (args) => {
+    const cmd = args.join(" ");
+    if (cmd.includes("rev-parse --verify") && cmd.includes(validProofObj.exact_main_commit_sha)) {
+      return validProofObj.exact_main_commit_sha + "\n";
+    }
+    if (cmd.includes("rev-parse") && cmd.includes("^{tree}")) {
+      return validProofObj.merge_tree_sha + "\n";
+    }
+    if (cmd.includes("rev-parse") && cmd.includes("^@")) {
+      return validProofObj.parent_commit_shas.join(" ") + "\n";
+    }
+    if (cmd.includes("merge-base --is-ancestor")) {
+      return "\n";
+    }
+    throw new Error(`Unhandled mock git command: ${cmd}`);
+  };
+
+  const tempProofDir = fs.mkdtempSync(path.join(os.tmpdir(), "cap-reg-proof-test-"));
   try {
-    const clone = JSON.parse(JSON.stringify(validObj));
+    fs.mkdirSync(path.join(tempProofDir, ".synthesis", "activation"), { recursive: true });
+    fs.writeFileSync(path.join(tempProofDir, ".synthesis", "governance.lock.json"), "mock_lock_bytes");
+    const actualLockSha = crypto.createHash("sha256").update("mock_lock_bytes").digest("hex");
+    validProofObj.governance_lock_sha256 = actualLockSha;
+
+    const clone = createDeterministicDraftFixture(validObj);
     clone.status = "ACTIVE";
     clone.capabilities[0].status = "ACTIVE";
     clone.capabilities[0].origin_capsule_id = "CAP-SYN-MINI-GENESIS-20261005-001";
     clone.capabilities[0].origin_payload_sha256 = "6a3286f77c385ceb52f190bc983ad2bb7b0bcf9e6ec154c16a4e32d3989c679b";
     clone.capabilities[0].introducing_commit_sha = "b3d47a6f732512a9f5b19668a07bb4d2c662adf3";
-    const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: false, activationProof: validProofObj });
+    const res = validateCapabilityRegistry(clone, { repoRoot: tempProofDir, checkCapsuleExistence: false, activationProof: validProofObj, gitExecutor: mockGitForProof });
     if (res.valid) {
-      passPositive("ACTIVE root and capability accepted with verified activation proof");
+      passPositive("ACTIVE root and capability accepted with verified activation proof and mock Git");
     } else {
       throw new Error(`Expected ACTIVE with proof to pass, got: ${res.stage}: ${res.error}`);
     }
   } catch (err) { failTest("Positive 3: ACTIVE with verified proof", err); }
+  finally {
+    fs.rmSync(tempProofDir, { recursive: true, force: true });
+  }
+
+  // POSITIVE 4: Default proof auto-load succeeds from an isolated temp fixture with valid mocked Git evidence
+  const tempAutoLoadDir = fs.mkdtempSync(path.join(os.tmpdir(), "cap-reg-autoload-test-"));
+  try {
+    fs.mkdirSync(path.join(tempAutoLoadDir, ".synthesis", "activation"), { recursive: true });
+    fs.writeFileSync(path.join(tempAutoLoadDir, ".synthesis", "governance.lock.json"), "mock_lock_autoload");
+    const lockSha = crypto.createHash("sha256").update("mock_lock_autoload").digest("hex");
+
+    const autoProofObj = {
+      schema_version: "1.0.0",
+      record_kind: "MILESTONE_ACTIVATION_PROOF",
+      milestone_id: "MILESTONE_A",
+      activation_status: "ACTIVE",
+      exact_main_commit_sha: "a".repeat(40),
+      parent_commit_shas: ["b".repeat(40), "c".repeat(40)],
+      merge_tree_sha: "d".repeat(40),
+      governance_lock_sha256: lockSha,
+      ci_workflow_run_id: 999888,
+      verified_at_utc: "2026-10-06T00:00:00.000Z",
+      verified_by: "AutoLoad Verifier"
+    };
+    fs.writeFileSync(path.join(tempAutoLoadDir, ".synthesis", "activation", "milestone-a-activation-proof.json"), JSON.stringify(autoProofObj));
+
+    const mockGitAuto = (args) => {
+      const cmd = args.join(" ");
+      if (cmd.includes("rev-parse --verify") && cmd.includes(autoProofObj.exact_main_commit_sha)) {
+        return autoProofObj.exact_main_commit_sha + "\n";
+      }
+      if (cmd.includes("rev-parse") && cmd.includes("^{tree}")) {
+        return autoProofObj.merge_tree_sha + "\n";
+      }
+      if (cmd.includes("rev-parse") && cmd.includes("^@")) {
+        return autoProofObj.parent_commit_shas.join(" ") + "\n";
+      }
+      if (cmd.includes("merge-base --is-ancestor")) {
+        return "\n";
+      }
+      throw new Error(`Unhandled mock git command: ${cmd}`);
+    };
+
+    const clone = createDeterministicDraftFixture(validObj);
+    clone.status = "ACTIVE";
+    clone.capabilities[0].status = "ACTIVE";
+    clone.capabilities[0].origin_capsule_id = "CAP-SYN-MINI-GENESIS-20261005-001";
+    clone.capabilities[0].origin_payload_sha256 = "6a3286f77c385ceb52f190bc983ad2bb7b0bcf9e6ec154c16a4e32d3989c679b";
+    clone.capabilities[0].introducing_commit_sha = "b3d47a6f732512a9f5b19668a07bb4d2c662adf3";
+
+    const res = validateCapabilityRegistry(clone, { repoRoot: tempAutoLoadDir, checkCapsuleExistence: false, gitExecutor: mockGitAuto });
+    if (res.valid) {
+      passPositive("Default proof auto-load succeeds from isolated temp fixture with valid mocked Git evidence");
+    } else {
+      throw new Error(`Expected auto-loaded proof to pass, got: ${res.stage}: ${res.error}`);
+    }
+  } catch (err) { failTest("Positive 4: Auto-load proof fixture", err); }
+  finally {
+    fs.rmSync(tempAutoLoadDir, { recursive: true, force: true });
+  }
 
   // Negative test helper
   function assertNegative(code, name, modifier, expectedStage) {
     try {
-      const clone = JSON.parse(JSON.stringify(validObj));
+      const clone = createDeterministicDraftFixture(validObj);
       modifier(clone);
-      const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: false });
+      const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: false, autoLoadDefaultProof: false });
       if (!res.valid && (!expectedStage || res.stage === expectedStage)) {
         passNegative(code, `${name} (rejected with ${res.stage})`);
       } else if (res.valid) {
@@ -655,15 +776,14 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
 
   // NEG-14: Malformed dependency type
   assertNegative("NEG-14", "Malformed dependency type", c => {
-    c.capabilities[0].requires.push({ type: "invalid_type", id: c.capabilities[1].capability_id, min_revision: 1 });
+    c.capabilities[0].requires.push({ type: "invalid_type", id: "gov.capsule.lineage", min_revision: 1 });
   }, "INVALID_DEPENDENCY_TYPE");
 
-  // NEG-15: Missing origin capsule (with check enabled)
+  // NEG-15: Missing origin capsule
   try {
-    const clone = JSON.parse(JSON.stringify(validObj));
-    clone.capabilities[0].origin_capsule_id = "CAP-SYN-MINI-GOV-NONEXISTENT-20261003-999";
-    clone.capabilities[0].origin_payload_sha256 = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-    const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: true });
+    const clone = createDeterministicDraftFixture(validObj);
+    clone.capabilities[0].origin_capsule_id = "CAP-SYN-MINI-NON-EXISTENT-001-20261003-999";
+    const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: true, autoLoadDefaultProof: false });
     if (!res.valid && res.stage === "ORIGIN_CAPSULE_NOT_FOUND") {
       passNegative("NEG-15", "Missing origin capsule rejected (ORIGIN_CAPSULE_NOT_FOUND)");
     } else {
@@ -673,10 +793,10 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
 
   // NEG-16: Incorrect origin payload hash
   try {
-    const clone = JSON.parse(JSON.stringify(validObj));
+    const clone = createDeterministicDraftFixture(validObj);
     clone.capabilities[0].origin_capsule_id = "CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010";
-    clone.capabilities[0].origin_payload_sha256 = "0000000000000000000000000000000000000000000000000000000000000000";
-    const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: true });
+    clone.capabilities[0].origin_payload_sha256 = "f".repeat(64);
+    const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: true, autoLoadDefaultProof: false });
     if (!res.valid && res.stage === "ORIGIN_PAYLOAD_HASH_MISMATCH") {
       passNegative("NEG-16", "Incorrect origin payload hash rejected (ORIGIN_PAYLOAD_HASH_MISMATCH)");
     } else {
@@ -739,15 +859,78 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
 
   // NEG-24: Forged ACTIVE boolean bypass attempt rejected without valid proof object
   try {
-    const clone = JSON.parse(JSON.stringify(validObj));
+    const clone = createDeterministicDraftFixture(validObj);
     clone.status = "ACTIVE";
-    const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: false, allowActiveWithProof: true, activationProofVerified: true });
+    const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: false, autoLoadDefaultProof: false, allowActiveWithProof: true, activationProofVerified: true });
     if (!res.valid && res.stage === "REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED") {
       passNegative("NEG-24", "Forged ACTIVE boolean bypass rejected (REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED)");
     } else {
       failTest("NEG-24: Forged ACTIVE boolean bypass rejected", new Error(`Expected REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED, got ${res.stage}`));
     }
   } catch (err) { failTest("NEG-24: Forged boolean bypass", err); }
+
+  // NEG-25: Auto-loading missing activation proof file when status === "ACTIVE" rejected
+  try {
+    const clone = createDeterministicDraftFixture(validObj);
+    clone.status = "ACTIVE";
+    const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: false, autoLoadDefaultProof: false, activationProof: ".synthesis/activation/nonexistent-proof.json" });
+    if (!res.valid && res.stage === "REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED") {
+      passNegative("NEG-25", "Missing activation proof file rejected (REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED)");
+    } else {
+      failTest("NEG-25: Missing activation proof file", new Error(`Expected REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED, got ${res.stage}`));
+    }
+  } catch (err) { failTest("NEG-25: Missing proof file", err); }
+
+  // NEG-26: Caller booleans alone without valid proof record ignored
+  try {
+    const clone = createDeterministicDraftFixture(validObj);
+    clone.status = "ACTIVE";
+    const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: false, autoLoadDefaultProof: false, isVerified: true, verified: true, bypassProof: true });
+    if (!res.valid && res.stage === "REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED") {
+      passNegative("NEG-26", "Caller booleans alone rejected (REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED)");
+    } else {
+      failTest("NEG-26: Caller booleans alone", new Error(`Expected REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED, got ${res.stage}`));
+    }
+  } catch (err) { failTest("NEG-26: Caller booleans alone", err); }
+
+  // NEG-27: Forged ACTIVE proof cannot pass through production no-explicit-executor path
+  const tempForgedDir = fs.mkdtempSync(path.join(os.tmpdir(), "cap-reg-forged-test-"));
+  try {
+    fs.mkdirSync(path.join(tempForgedDir, ".synthesis", "activation"), { recursive: true });
+    fs.writeFileSync(path.join(tempForgedDir, ".synthesis", "governance.lock.json"), "mock_lock");
+    const lockSha = crypto.createHash("sha256").update("mock_lock").digest("hex");
+
+    const forgedProofObj = {
+      schema_version: "1.0.0",
+      record_kind: "MILESTONE_ACTIVATION_PROOF",
+      milestone_id: "MILESTONE_A",
+      activation_status: "ACTIVE",
+      exact_main_commit_sha: "0".repeat(40),
+      parent_commit_shas: ["1".repeat(40), "2".repeat(40)],
+      merge_tree_sha: "3".repeat(40),
+      governance_lock_sha256: lockSha,
+      ci_workflow_run_id: 111222,
+      verified_at_utc: "2026-10-06T00:00:00.000Z",
+      verified_by: "Forged Verifier"
+    };
+
+    const clone = createDeterministicDraftFixture(validObj);
+    clone.status = "ACTIVE";
+    clone.capabilities[0].status = "ACTIVE";
+    clone.capabilities[0].origin_capsule_id = "CAP-SYN-MINI-GENESIS-20261005-001";
+    clone.capabilities[0].origin_payload_sha256 = "6a3286f77c385ceb52f190bc983ad2bb7b0bcf9e6ec154c16a4e32d3989c679b";
+    clone.capabilities[0].introducing_commit_sha = "b3d47a6f732512a9f5b19668a07bb4d2c662adf3";
+
+    const res = validateCapabilityRegistry(clone, { repoRoot: tempForgedDir, checkCapsuleExistence: false, activationProof: forgedProofObj });
+    if (!res.valid && (res.stage === "REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED" || res.stage === "ACTIVE_EXTERNAL_PROOF_REQUIRED")) {
+      passNegative("NEG-27", "Forged ACTIVE proof rejected by production real Git path (REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED)");
+    } else {
+      failTest("NEG-27: Forged ACTIVE proof rejected by production Git path", new Error(`Expected failure, got: valid=${res.valid}, stage=${res.stage}`));
+    }
+  } catch (err) { failTest("NEG-27: Forged proof production path", err); }
+  finally {
+    fs.rmSync(tempForgedDir, { recursive: true, force: true });
+  }
 
   console.log(`[CAPABILITY-REGISTRY-VALIDATOR] Summary: ${positivePassed} positive passed, ${negativePassed} negative passed, ${failed} failed.`);
   return { positivePassed, negativePassed, failed, ok: failed === 0 };

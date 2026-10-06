@@ -174,6 +174,15 @@ export function evaluateGlobalGovernanceHealth(repoRoot = DEFAULT_REPO_ROOT, opt
   try {
     const capRaw = fs.readFileSync(capRegPath, 'utf8');
     const capObj = parseStrictIJson(capRaw);
+
+    // Root Capability Registry must be ACTIVE; DRAFT/PROPOSED returns BOOTSTRAP_NOT_YET_ACTIVE
+    if (capObj.status !== 'ACTIVE') {
+      return {
+        status: 'BOOTSTRAP_NOT_YET_ACTIVE',
+        message: `Capability registry root status is "${capObj.status}", expected ACTIVE.`
+      };
+    }
+
     const capRes = validateCapabilityRegistry(capObj, {
       repoRoot,
       checkCapsuleExistence: true,
@@ -185,6 +194,34 @@ export function evaluateGlobalGovernanceHealth(repoRoot = DEFAULT_REPO_ROOT, opt
         status: 'BLOCKED_BY_GOVERNANCE_DRIFT',
         error: `CAPABILITY_REGISTRY_DRIFT: [${capRes.stage}] ${capRes.error}`
       };
+    }
+
+    // Require these 5 capabilities = ACTIVE
+    const requiredCapIds = [
+      'gov.capsule.persistence',
+      'gov.capsule.lineage',
+      'gov.capsule.cryptographic_seal',
+      'gov.scope.diff_firewall',
+      'gov.checkpoint.remote_protocol'
+    ];
+
+    const capList = Array.isArray(capObj.capabilities) ? capObj.capabilities : [];
+    const capMap = new Map(capList.map(c => [c.capability_id, c]));
+
+    for (const reqId of requiredCapIds) {
+      const capEntry = capMap.get(reqId);
+      if (!capEntry) {
+        return {
+          status: 'BLOCKED_BY_GOVERNANCE_DRIFT',
+          error: `CAPABILITY_REGISTRY_DRIFT: Required capability "${reqId}" is missing from registry`
+        };
+      }
+      if (capEntry.status !== 'ACTIVE') {
+        return {
+          status: 'BLOCKED_BY_GOVERNANCE_DRIFT',
+          error: `CAPABILITY_REGISTRY_DRIFT: Required capability "${reqId}" status is "${capEntry.status}", expected ACTIVE`
+        };
+      }
     }
   } catch (err) {
     return {
@@ -384,8 +421,152 @@ export function runSelfTest() {
       throw new Error(`Expected FORGED_PROOF_LOCK_SHA_MISMATCH, got: ${JSON.stringify(resForgedLock)}`);
     }
 
-    // Test 10: Complete valid PASS state simulation
+    // Test 10: Capability registry root DRAFT when proof exists returns BOOTSTRAP_NOT_YET_ACTIVE
+    const draftCapRegistry = {
+      schema_version: 'capability-registry.v1',
+      format_version: '1.0.0',
+      record_kind: 'CAPABILITY_REGISTRY',
+      status: 'DRAFT',
+      capabilities: []
+    };
+    fs.writeFileSync(path.join(testRoot, '.synthesis', 'registries', 'capabilities.json'), JSON.stringify(draftCapRegistry));
     fs.writeFileSync(path.join(testRoot, '.synthesis', 'activation', 'milestone-a-activation-proof.json'), JSON.stringify(passProof));
+    const resDraftRoot = evaluateGlobalGovernanceHealth(testRoot, { gitExecutor: mockGitExecutor });
+    if (resDraftRoot.status === 'BOOTSTRAP_NOT_YET_ACTIVE') {
+      negativePassed++;
+    } else {
+      throw new Error(`Expected BOOTSTRAP_NOT_YET_ACTIVE for DRAFT root capability registry, got: ${JSON.stringify(resDraftRoot)}`);
+    }
+
+    // Test 11: Capability registry root ACTIVE but required capability PROPOSED returns BLOCKED_BY_GOVERNANCE_DRIFT
+    const activeCapPartial = {
+      schema_version: 'capability-registry.v1',
+      format_version: '1.0.0',
+      record_kind: 'CAPABILITY_REGISTRY',
+      status: 'ACTIVE',
+      capabilities: [
+        {
+          capability_id: 'gov.capsule.persistence',
+          name: 'Command Capsule Persistence',
+          description: 'Persistence engine for command capsules.',
+          layer: 'Stable Contracts',
+          owner_domain: 'gov.capsule',
+          status: 'PROPOSED',
+          head_revision: 1,
+          legacy_aliases: ['CAPSULE_PERSISTENCE'],
+          governing_contracts: ['command-capsule.v1'],
+          provides: [],
+          requires: [],
+          origin_capsule_id: 'CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010',
+          origin_payload_sha256: '013b25880c15906218b2c8dc326b727e5068a99c7a8db3ca9dd6edfa30b1cd38',
+          introducing_commit_sha: mockCommitSha,
+          superseded_by: null
+        }
+      ]
+    };
+    fs.writeFileSync(path.join(testRoot, '.synthesis', 'registries', 'capabilities.json'), JSON.stringify(activeCapPartial));
+    const resCapProposed = evaluateGlobalGovernanceHealth(testRoot, { gitExecutor: mockGitExecutor });
+    if (resCapProposed.status === 'BLOCKED_BY_GOVERNANCE_DRIFT') {
+      negativePassed++;
+    } else {
+      throw new Error(`Expected BLOCKED_BY_GOVERNANCE_DRIFT for non-ACTIVE required capability, got: ${JSON.stringify(resCapProposed)}`);
+    }
+
+    // Test 12: Complete valid PASS state simulation
+    const fullActiveCap = {
+      schema_version: 'capability-registry.v1',
+      format_version: '1.0.0',
+      record_kind: 'CAPABILITY_REGISTRY',
+      status: 'ACTIVE',
+      capabilities: [
+        {
+          capability_id: 'gov.capsule.persistence',
+          name: 'Command Capsule Persistence',
+          description: 'Persistence engine for command capsules.',
+          layer: 'Stable Contracts',
+          owner_domain: 'gov.capsule',
+          status: 'ACTIVE',
+          head_revision: 1,
+          legacy_aliases: ['CAPSULE_PERSISTENCE'],
+          governing_contracts: ['command-capsule.v1'],
+          provides: [],
+          requires: [],
+          origin_capsule_id: 'CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010',
+          origin_payload_sha256: '013b25880c15906218b2c8dc326b727e5068a99c7a8db3ca9dd6edfa30b1cd38',
+          introducing_commit_sha: mockCommitSha,
+          superseded_by: null
+        },
+        {
+          capability_id: 'gov.capsule.lineage',
+          name: 'Command Capsule Lineage',
+          description: 'Lineage engine for command capsules.',
+          layer: 'Stable Contracts',
+          owner_domain: 'gov.capsule',
+          status: 'ACTIVE',
+          head_revision: 1,
+          legacy_aliases: ['CAPSULE_LINEAGE'],
+          governing_contracts: ['command-capsule.v1'],
+          provides: [],
+          requires: [],
+          origin_capsule_id: 'CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010',
+          origin_payload_sha256: '013b25880c15906218b2c8dc326b727e5068a99c7a8db3ca9dd6edfa30b1cd38',
+          introducing_commit_sha: mockCommitSha,
+          superseded_by: null
+        },
+        {
+          capability_id: 'gov.capsule.cryptographic_seal',
+          name: 'Command Capsule Cryptographic Seal',
+          description: 'Cryptographic seal engine for command capsules.',
+          layer: 'Stable Contracts',
+          owner_domain: 'gov.capsule',
+          status: 'ACTIVE',
+          head_revision: 1,
+          legacy_aliases: ['CRYPTOGRAPHIC_SEAL'],
+          governing_contracts: ['command-capsule.v1'],
+          provides: [],
+          requires: [],
+          origin_capsule_id: 'CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010',
+          origin_payload_sha256: '013b25880c15906218b2c8dc326b727e5068a99c7a8db3ca9dd6edfa30b1cd38',
+          introducing_commit_sha: mockCommitSha,
+          superseded_by: null
+        },
+        {
+          capability_id: 'gov.scope.diff_firewall',
+          name: 'Scope Diff Firewall',
+          description: 'Scope diff firewall.',
+          layer: 'Stable Contracts',
+          owner_domain: 'gov.scope',
+          status: 'ACTIVE',
+          head_revision: 1,
+          legacy_aliases: [],
+          governing_contracts: ['scope-diff-firewall.v1'],
+          provides: [],
+          requires: [],
+          origin_capsule_id: 'CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010',
+          origin_payload_sha256: '013b25880c15906218b2c8dc326b727e5068a99c7a8db3ca9dd6edfa30b1cd38',
+          introducing_commit_sha: mockCommitSha,
+          superseded_by: null
+        },
+        {
+          capability_id: 'gov.checkpoint.remote_protocol',
+          name: 'Remote File Checkpoint Protocol',
+          description: 'Remote checkpoint protocol.',
+          layer: 'Stable Contracts',
+          owner_domain: 'gov.checkpoint',
+          status: 'ACTIVE',
+          head_revision: 1,
+          legacy_aliases: [],
+          governing_contracts: ['remote-checkpoint.v1'],
+          provides: [],
+          requires: [],
+          origin_capsule_id: 'CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010',
+          origin_payload_sha256: '013b25880c15906218b2c8dc326b727e5068a99c7a8db3ca9dd6edfa30b1cd38',
+          introducing_commit_sha: mockCommitSha,
+          superseded_by: null
+        }
+      ]
+    };
+    fs.writeFileSync(path.join(testRoot, '.synthesis', 'registries', 'capabilities.json'), JSON.stringify(fullActiveCap));
     const resPass = evaluateGlobalGovernanceHealth(testRoot, { gitExecutor: mockGitExecutor });
     if (resPass.status === 'PASS') {
       positivePassed++;
