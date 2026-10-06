@@ -486,6 +486,22 @@ export function validateCapabilityRegistryFile(filePath, options = {}) {
 /**
  * Self-test suite for semantic Capability Registry validator.
  */
+/**
+ * Creates an isolated deterministic DRAFT baseline fixture from a source registry
+ * so synthetic non-live self-tests never inherit or depend on live lifecycle state.
+ */
+export function createDeterministicDraftFixture(sourceRegistry) {
+  const clone = JSON.parse(JSON.stringify(sourceRegistry));
+  clone.status = "DRAFT";
+  if (Array.isArray(clone.capabilities)) {
+    for (const cap of clone.capabilities) {
+      cap.status = "PROPOSED";
+      cap.superseded_by = null;
+    }
+  }
+  return clone;
+}
+
 export function runSelfTests(repoRoot = findRepoRoot()) {
   console.log("[CAPABILITY-REGISTRY-VALIDATOR] Running Behavioral Self-Tests...");
   let positivePassed = 0;
@@ -509,6 +525,12 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
   const validRaw = fs.readFileSync(registryPath, "utf-8");
   const validObj = parseStrictIJson(validRaw);
 
+  const deterministicDraft = createDeterministicDraftFixture(validObj);
+  const baseDraftCheck = validateCapabilityRegistry(deterministicDraft, { repoRoot, checkCapsuleExistence: false, autoLoadDefaultProof: false });
+  if (!baseDraftCheck.valid) {
+    throw new Error();
+  }
+
   // POSITIVE 1: Actual live registry file passes dynamically
   try {
     const res = validateCapabilityRegistryFile(registryPath, { repoRoot });
@@ -527,7 +549,7 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
 
   // POSITIVE 2: Multi-node valid acyclic graph (A -> B -> C) passes
   try {
-    const clone = JSON.parse(JSON.stringify(validObj));
+    const clone = createDeterministicDraftFixture(validObj);
     clone.capabilities.push({
       capability_id: "gov.capsule.export",
       name: "Command Capsule Exporter",
@@ -594,7 +616,7 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
     const actualLockSha = crypto.createHash("sha256").update("mock_lock_bytes").digest("hex");
     validProofObj.governance_lock_sha256 = actualLockSha;
 
-    const clone = JSON.parse(JSON.stringify(validObj));
+    const clone = createDeterministicDraftFixture(validObj);
     clone.status = "ACTIVE";
     clone.capabilities[0].status = "ACTIVE";
     clone.capabilities[0].origin_capsule_id = "CAP-SYN-MINI-GENESIS-20261005-001";
@@ -650,7 +672,7 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
       throw new Error(`Unhandled mock git command: ${cmd}`);
     };
 
-    const clone = JSON.parse(JSON.stringify(validObj));
+    const clone = createDeterministicDraftFixture(validObj);
     clone.status = "ACTIVE";
     clone.capabilities[0].status = "ACTIVE";
     clone.capabilities[0].origin_capsule_id = "CAP-SYN-MINI-GENESIS-20261005-001";
@@ -671,7 +693,7 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
   // Negative test helper
   function assertNegative(code, name, modifier, expectedStage) {
     try {
-      const clone = JSON.parse(JSON.stringify(validObj));
+      const clone = createDeterministicDraftFixture(validObj);
       modifier(clone);
       const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: false, autoLoadDefaultProof: false });
       if (!res.valid && (!expectedStage || res.stage === expectedStage)) {
@@ -759,7 +781,7 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
 
   // NEG-15: Missing origin capsule
   try {
-    const clone = JSON.parse(JSON.stringify(validObj));
+    const clone = createDeterministicDraftFixture(validObj);
     clone.capabilities[0].origin_capsule_id = "CAP-SYN-MINI-NON-EXISTENT-001-20261003-999";
     const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: true, autoLoadDefaultProof: false });
     if (!res.valid && res.stage === "ORIGIN_CAPSULE_NOT_FOUND") {
@@ -771,7 +793,7 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
 
   // NEG-16: Incorrect origin payload hash
   try {
-    const clone = JSON.parse(JSON.stringify(validObj));
+    const clone = createDeterministicDraftFixture(validObj);
     clone.capabilities[0].origin_capsule_id = "CAP-SYN-MINI-GOV-CAPSULE-SCHEMA-001-20261002-010";
     clone.capabilities[0].origin_payload_sha256 = "f".repeat(64);
     const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: true, autoLoadDefaultProof: false });
@@ -837,7 +859,7 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
 
   // NEG-24: Forged ACTIVE boolean bypass attempt rejected without valid proof object
   try {
-    const clone = JSON.parse(JSON.stringify(validObj));
+    const clone = createDeterministicDraftFixture(validObj);
     clone.status = "ACTIVE";
     const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: false, autoLoadDefaultProof: false, allowActiveWithProof: true, activationProofVerified: true });
     if (!res.valid && res.stage === "REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED") {
@@ -849,7 +871,7 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
 
   // NEG-25: Auto-loading missing activation proof file when status === "ACTIVE" rejected
   try {
-    const clone = JSON.parse(JSON.stringify(validObj));
+    const clone = createDeterministicDraftFixture(validObj);
     clone.status = "ACTIVE";
     const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: false, autoLoadDefaultProof: false, activationProof: ".synthesis/activation/nonexistent-proof.json" });
     if (!res.valid && res.stage === "REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED") {
@@ -861,7 +883,7 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
 
   // NEG-26: Caller booleans alone without valid proof record ignored
   try {
-    const clone = JSON.parse(JSON.stringify(validObj));
+    const clone = createDeterministicDraftFixture(validObj);
     clone.status = "ACTIVE";
     const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: false, autoLoadDefaultProof: false, isVerified: true, verified: true, bypassProof: true });
     if (!res.valid && res.stage === "REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED") {
@@ -892,7 +914,7 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
       verified_by: "Forged Verifier"
     };
 
-    const clone = JSON.parse(JSON.stringify(validObj));
+    const clone = createDeterministicDraftFixture(validObj);
     clone.status = "ACTIVE";
     clone.capabilities[0].status = "ACTIVE";
     clone.capabilities[0].origin_capsule_id = "CAP-SYN-MINI-GENESIS-20261005-001";

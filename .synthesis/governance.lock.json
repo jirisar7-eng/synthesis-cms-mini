@@ -101,7 +101,7 @@
     {
       "item_type": "VERIFIER_SCRIPT",
       "path": "scripts/governance/validate_capability_registry.mjs",
-      "sha256": "5f08118f90826e94a0572f09b828a90b07c577103289446813c93091bdc04eaf",
+      "sha256": "d9e94c9242299298dc9119cc96e8da30f09631ad1c9af2f67d5c51a68c3fc38d",
       "identifier": "VALIDATE_CAPABILITY_REGISTRY"
     },
     {
