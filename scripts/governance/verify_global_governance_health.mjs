@@ -422,6 +422,14 @@ export function runSelfTest() {
     }
 
     // Test 10: Capability registry root DRAFT when proof exists returns BOOTSTRAP_NOT_YET_ACTIVE
+    const draftCapRegistry = {
+      schema_version: 'capability-registry.v1',
+      format_version: '1.0.0',
+      record_kind: 'CAPABILITY_REGISTRY',
+      status: 'DRAFT',
+      capabilities: []
+    };
+    fs.writeFileSync(path.join(testRoot, '.synthesis', 'registries', 'capabilities.json'), JSON.stringify(draftCapRegistry));
     fs.writeFileSync(path.join(testRoot, '.synthesis', 'activation', 'milestone-a-activation-proof.json'), JSON.stringify(passProof));
     const resDraftRoot = evaluateGlobalGovernanceHealth(testRoot, { gitExecutor: mockGitExecutor });
     if (resDraftRoot.status === 'BOOTSTRAP_NOT_YET_ACTIVE') {

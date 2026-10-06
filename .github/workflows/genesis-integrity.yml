@@ -147,8 +147,8 @@ jobs:
           set -euo pipefail
           output="$(node scripts/governance/validate_capability_registry.mjs --self-test)"
           printf '%s\n' "$output"
-          grep -Fq "Summary: 3 positive passed, 26 negative passed, 0 failed." <<< "$output"
-          echo 'CAPABILITY_REGISTRY_SELFTEST: {"positivePassed":3,"negativePassed":26,"totalTests":29}'
+          grep -Fq "Summary: 4 positive passed, 27 negative passed, 0 failed." <<< "$output"
+          echo 'CAPABILITY_REGISTRY_SELFTEST: {"positivePassed":4,"negativePassed":27,"totalTests":31}'
 
       - name: Verify committed Capability Registry instance
         run: node scripts/governance/validate_capability_registry.mjs --verify-all
