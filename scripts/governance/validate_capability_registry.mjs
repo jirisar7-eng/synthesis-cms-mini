@@ -78,23 +78,36 @@ export function validateCapabilityRegistry(registryObj, options = {}) {
   const repoRoot = options.repoRoot || findRepoRoot();
   const checkCapsuleExistence = options.checkCapsuleExistence !== false;
 
-  // Verify activation proof independently if provided (never allow caller booleans alone!)
+  // Verify activation proof independently if provided or auto-loaded from standard path (never allow caller booleans alone!)
   let verifiedActivationProof = null;
-  if (options.activationProof) {
-    let proofObj = options.activationProof;
+  let proofSource = options.activationProof;
+
+  if (!proofSource) {
+    const defaultProofPath = path.resolve(repoRoot, ".synthesis/activation/milestone-a-activation-proof.json");
+    if (fs.existsSync(defaultProofPath)) {
+      proofSource = defaultProofPath;
+    }
+  }
+
+  if (proofSource) {
+    let proofObj = proofSource;
     if (typeof proofObj === 'string') {
       try {
         const fullProofPath = path.resolve(repoRoot, proofObj);
         if (fs.existsSync(fullProofPath)) {
           proofObj = parseStrictIJson(fs.readFileSync(fullProofPath, 'utf8'));
+        } else {
+          proofObj = null;
         }
       } catch (e) {
         proofObj = null;
       }
     }
-    const proofRes = verifyActivationProofRecord(proofObj, repoRoot, options.gitExecutor || null);
-    if (proofRes && proofRes.valid) {
-      verifiedActivationProof = proofRes.proof;
+    if (proofObj) {
+      const proofRes = verifyActivationProofRecord(proofObj, repoRoot, options.gitExecutor || null);
+      if (proofRes && proofRes.valid) {
+        verifiedActivationProof = proofRes.proof;
+      }
     }
   }
 
@@ -748,6 +761,30 @@ export function runSelfTests(repoRoot = findRepoRoot()) {
       failTest("NEG-24: Forged ACTIVE boolean bypass rejected", new Error(`Expected REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED, got ${res.stage}`));
     }
   } catch (err) { failTest("NEG-24: Forged boolean bypass", err); }
+
+  // NEG-25: Auto-loading missing activation proof file when status === "ACTIVE" rejected
+  try {
+    const clone = JSON.parse(JSON.stringify(validObj));
+    clone.status = "ACTIVE";
+    const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: false, activationProof: ".synthesis/activation/nonexistent-proof.json" });
+    if (!res.valid && res.stage === "REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED") {
+      passNegative("NEG-25", "Missing activation proof file rejected (REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED)");
+    } else {
+      failTest("NEG-25: Missing activation proof file", new Error(`Expected REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED, got ${res.stage}`));
+    }
+  } catch (err) { failTest("NEG-25: Missing proof file", err); }
+
+  // NEG-26: Caller booleans alone without valid proof record ignored
+  try {
+    const clone = JSON.parse(JSON.stringify(validObj));
+    clone.status = "ACTIVE";
+    const res = validateCapabilityRegistry(clone, { repoRoot, checkCapsuleExistence: false, isVerified: true, verified: true, bypassProof: true });
+    if (!res.valid && res.stage === "REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED") {
+      passNegative("NEG-26", "Caller booleans alone rejected (REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED)");
+    } else {
+      failTest("NEG-26: Caller booleans alone", new Error(`Expected REGISTRY_ACTIVE_EXTERNAL_PROOF_REQUIRED, got ${res.stage}`));
+    }
+  } catch (err) { failTest("NEG-26: Caller booleans alone", err); }
 
   console.log(`[CAPABILITY-REGISTRY-VALIDATOR] Summary: ${positivePassed} positive passed, ${negativePassed} negative passed, ${failed} failed.`);
   return { positivePassed, negativePassed, failed, ok: failed === 0 };

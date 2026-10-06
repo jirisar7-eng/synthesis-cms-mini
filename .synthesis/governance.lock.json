@@ -101,7 +101,7 @@
     {
       "item_type": "VERIFIER_SCRIPT",
       "path": "scripts/governance/validate_capability_registry.mjs",
-      "sha256": "2e9562330f3a2c64c5c69992273f88824125ae7c82b54d87c76bcae7202e6b4d",
+      "sha256": "ad31cd6d5c0f0fccebdf687d2dd8a9f2877c50f5e826c806638f2e4fa817ccda",
       "identifier": "VALIDATE_CAPABILITY_REGISTRY"
     },
     {
@@ -143,7 +143,7 @@
     {
       "item_type": "VERIFIER_SCRIPT",
       "path": "scripts/governance/verify_global_governance_health.mjs",
-      "sha256": "6216133abde5377237b97dd8155439c2063ba2be87af5d348bfd77fe18dc9752",
+      "sha256": "4aa7edb2ba2b3f483b374d55ed91546773a1fdb174e9f5eb33be1deec411fd6e",
       "identifier": "VERIFY_GLOBAL_GOVERNANCE_HEALTH"
     },
     {
