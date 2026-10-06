@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "lockfile_kind": "GOVERNANCE_REQUIREMENTS_LOCK",
   "locked_at_utc": "2026-10-05T17:17:28.730Z",
-  "root_governance_health_gate": "BOOTSTRAP_NOT_YET_ACTIVE",
+  "root_governance_health_gate": "PASS",
   "genesis_anchor": {
     "path": ".synthesis/lineage/genesis.json",
     "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
@@ -149,13 +149,13 @@
     {
       "item_type": "REGISTRY",
       "path": ".synthesis/registries/capabilities.json",
-      "sha256": "8888b02bfbea87a37263e3738dd605fe04140c71388b1ab8ab0615209ce300c2",
+      "sha256": "b59fb60266cc508f7b82ebd623299e63f5dabbe5cd25c548300c7d35992849bc",
       "identifier": "CAPABILITIES"
     },
     {
       "item_type": "REGISTRY",
       "path": ".synthesis/registries/contracts.json",
-      "sha256": "929e60c500d79eece1616573c18db8baad63ed7335ce70e5d16f6744a611fa2b",
+      "sha256": "c2627c5be4171d1ee0656c2dd9b596b22c84c1dc34ae9fdf0d22cfeaab9b63cb",
       "identifier": "CONTRACTS"
     }
   ],
@@ -166,7 +166,7 @@
       "snapshot_path": ".synthesis/contracts/CONTRACT-GOV-GENESIS-ANCHOR-001/v1.0.0.json",
       "sha256": "17e359563b1c6ef9e3c0b6e79fda9b168b4653eefc8d459527afb86f9fee3f12",
       "effective_from_sha": "256a1400f03a01b0bd6229b0c68af913b88ddbe3",
-      "status": "STAGED"
+      "status": "ACTIVE"
     },
     {
       "contract_id": "CONTRACT-GOV-COMMAND-CAPSULE-001",
@@ -174,7 +174,7 @@
       "snapshot_path": ".synthesis/contracts/CONTRACT-GOV-COMMAND-CAPSULE-001/v1.0.0.json",
       "sha256": "2bb5e65c8a9f56345b9b1b9d55feb393edf1f225c6181801d11f2639ada5cd23",
       "effective_from_sha": "256a1400f03a01b0bd6229b0c68af913b88ddbe3",
-      "status": "STAGED"
+      "status": "ACTIVE"
     },
     {
       "contract_id": "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
@@ -182,7 +182,7 @@
       "snapshot_path": ".synthesis/contracts/CONTRACT-GOV-CAPABILITY-REGISTRY-001/v1.0.0.json",
       "sha256": "d5d58207e349aea4a7168f05cee03761030d9663f9ec73b0027db07b46d03723",
       "effective_from_sha": "256a1400f03a01b0bd6229b0c68af913b88ddbe3",
-      "status": "STAGED"
+      "status": "ACTIVE"
     },
     {
       "contract_id": "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
@@ -190,7 +190,7 @@
       "snapshot_path": ".synthesis/contracts/CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001/v1.0.0.json",
       "sha256": "d4953aea7871794b91a21795576a466e9a03f016adfb4b18112e8b7332f733af",
       "effective_from_sha": "256a1400f03a01b0bd6229b0c68af913b88ddbe3",
-      "status": "STAGED"
+      "status": "ACTIVE"
     },
     {
       "contract_id": "CONTRACT-GOV-STATELESS-WORKER-001",
@@ -198,7 +198,7 @@
       "snapshot_path": ".synthesis/contracts/CONTRACT-GOV-STATELESS-WORKER-001/v1.0.0.json",
       "sha256": "72b4c66cfa0aa329cd49bbc49847d6bfbb17353ddca0e14e901d159566f9e3a8",
       "effective_from_sha": "256a1400f03a01b0bd6229b0c68af913b88ddbe3",
-      "status": "STAGED"
+      "status": "ACTIVE"
     },
     {
       "contract_id": "CONTRACT-GOV-REMOTE-CHECKPOINT-001",
@@ -206,7 +206,7 @@
       "snapshot_path": ".synthesis/contracts/CONTRACT-GOV-REMOTE-CHECKPOINT-001/v1.0.0.json",
       "sha256": "f73460462e1f03c7369f42537420fd39de16fdad2ea52e6e9beac76e2e759bbd",
       "effective_from_sha": "256a1400f03a01b0bd6229b0c68af913b88ddbe3",
-      "status": "STAGED"
+      "status": "ACTIVE"
     }
   ]
 }

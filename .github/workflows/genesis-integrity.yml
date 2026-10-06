@@ -193,7 +193,7 @@ jobs:
           set -euo pipefail
           output="$(node scripts/governance/verify_activation_proof.mjs --verify)"
           printf '%s\n' "$output"
-          grep -Fxq 'ACTIVATION_PROOF_STATUS: BOOTSTRAP_PENDING_ACTIVATION' <<< "$output"
+          grep -E '^(ACTIVATION_PROOF_STATUS: BOOTSTRAP_PENDING_ACTIVATION|ACTIVATION_PROOF_VERIFIED: Milestone .+ proof valid\.)' <<< "$output"
 
       - name: Check Contract Registry verifier syntax
         run: node --check scripts/governance/verify_contract_registry.mjs
@@ -240,7 +240,7 @@ jobs:
           set -euo pipefail
           output="$(node scripts/governance/verify_global_governance_health.mjs --verify-all)"
           printf '%s\n' "$output"
-          grep -Fq 'GLOBAL_GOVERNANCE_HEALTH: BOOTSTRAP_NOT_YET_ACTIVE' <<< "$output"
+          grep -E '^GLOBAL_GOVERNANCE_HEALTH: (BOOTSTRAP_NOT_YET_ACTIVE|PASS)' <<< "$output"
 
       - name: Check Scope & Diff Firewall validator syntax
         run: node --check scripts/governance/verify_scope_diff_firewall.mjs
