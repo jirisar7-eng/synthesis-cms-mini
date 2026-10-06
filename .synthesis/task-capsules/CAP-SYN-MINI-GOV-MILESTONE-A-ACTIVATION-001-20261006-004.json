@@ -1,0 +1,147 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-004",
+    "task_id": "SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001",
+    "command_id": "CMD-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-004-CHECKPOINT-SELFTEST-HARDENING",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "6/60 — REMOTE FILE CHECKPOINT",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-06T11:40:00.000Z",
+      "development_phase": "GOVERNANCE",
+      "execution_mode": "RESTRICTED_GOVERNANCE_BOOTSTRAP"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "5b74c007b9a3d69896d197037c0d5f9e5902832c",
+      "source_branch": "task/SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-003.json",
+        ".synthesis/checkpoints/CHK-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-001.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-003.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-004.json",
+        ".synthesis/checkpoints/CHK-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-004.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 3,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-003",
+          "command_id": "CMD-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-003R01-REPAIR-SELFTEST-ISOLATION",
+          "payload_sha256": "94492f7025d6e533a182f934c3fa5ba2e40e0fe41bce3d12b2d62aba3f7c2122",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-004.json",
+        ".synthesis/checkpoints/CHK-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-004.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-004.json",
+        ".synthesis/checkpoints/CHK-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261006-004.json"
+      ],
+      "commit_sha": "6791762010d3ddf0ebf02823cdf155f99bf64e6a",
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "OPEN",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "BOOTSTRAP_NOT_YET_ACTIVE",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "ATOMIC_ACTIVE_TRANSITION_RETRY",
+      "stateless_recovery_context": {
+        "verified_task_head": "6791762010d3ddf0ebf02823cdf155f99bf64e6a",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-06T11:40:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_CREATED",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "STAGED",
+        "contract_registry_staged_count": 6,
+        "capability_registry_status": "DRAFT",
+        "proposed_capabilities_count": 5,
+        "active_capabilities_count": 0,
+        "global_governance_health": "BOOTSTRAP_NOT_YET_ACTIVE",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "step7_status": "NOT_STARTED"
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "3c742f6bef8b1c247e0ddd03d6689a4a3165677dc51310463919eba2c1cf0b96",
+    "sealed_at": "2026-10-06T11:40:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}
