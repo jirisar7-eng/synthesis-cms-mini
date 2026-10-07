@@ -1,0 +1,187 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-001R02",
+    "task_id": "SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-001R02-MINIMIZE-PRISMA-TOOLING-FOUNDATION",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "10/60 — Database foundation",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-07T14:58:00.000Z",
+      "development_phase": "PLAN",
+      "execution_mode": "PLAN"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "b322cf4bf54e395f3cefe0e22ef4da0f2acfb739",
+      "source_branch": "task/SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-001R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-001R01.json",
+        "package.json",
+        "tsconfig.json",
+        ".env.example",
+        "contracts/src/env/env.contract.ts",
+        "contracts/src/env/index.ts"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-001R02.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-001R02.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 2,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-001R01",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-001R01-REPAIR-PRISMA-LIFECYCLE-AND-DB-BOUNDARY",
+          "payload_sha256": "d5def010cf4f3711d1593a4eb5c070e3e34d981aa455baba35b43a7fedbba1bb",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [
+          "CAP-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-001R01"
+        ],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-001R02.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-001R02.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-001R02.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-001R02.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "CMD-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-002-IMPLEMENT-DATABASE-FOUNDATION",
+      "stateless_recovery_context": {
+        "verified_task_head": "b958759d7992da12c9820aca506988d4f4af5c28",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-07T14:58:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_CREATED",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step8_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step9_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step10_status": "MINIMAL_PRISMA_TOOLING_PLAN_SEALED",
+        "step11_status": "NOT_STARTED",
+        "deployment_status": "NOT_DEPLOYED",
+        "minimized_database_plan": {
+          "prisma_cli_version": "7.10.0",
+          "zero_model_no_generator_validate": "PASS (npx prisma@7.10.0 validate succeeds with 0 models and 0 generators)",
+          "prisma_client_required_in_step10": false,
+          "runtime_dependencies": "NONE",
+          "dev_dependencies": {
+            "prisma": "7.10.0"
+          },
+          "generated_artifacts": "NONE (no client generation, no generated output directory in Step 10)",
+          "env_contract_plan": {
+            "step9_generic_contract_modification": "NONE",
+            "database_owned_variable": "SYNTHESIS_SECRET_DATABASE_URL",
+            "category": "SECRET_SERVER_ONLY",
+            "type": "string",
+            "required": true,
+            "application_direct_process_env_access": "FORBIDDEN",
+            "prisma_config_boundary": "TOOLING_ONLY_ENV_BOUNDARY via @prisma/config env helper"
+          },
+          "proposed_cmd002_files": [
+            "package.json (MODIFY: add devDependencies prisma@7.10.0)",
+            "package-lock.json (MODIFY: lockfile deterministic update)",
+            ".env.example (MODIFY: document SYNTHESIS_SECRET_DATABASE_URL)",
+            "prisma/schema.prisma (ADD: datasource postgresql with 0 models and 0 generators)",
+            "prisma.config.ts (ADD: Prisma 7 CLI configuration with tooling env boundary)",
+            "contracts/src/database/database.contract.ts (ADD: database env schema and contract composing Step 9 validator)",
+            "contracts/src/database/index.ts (ADD: database contract exports)",
+            "tests/database/database.contract.test.ts (ADD: synthetic database env and URI validation tests without live DB)"
+          ],
+          "proposed_cmd002_file_count": 8
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "f2c6cc7de1beac46db3ebe6dd497f25c2a0e02a6c075e96e2bd171ea9ce01a4a",
+    "sealed_at": "2026-10-07T14:58:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}

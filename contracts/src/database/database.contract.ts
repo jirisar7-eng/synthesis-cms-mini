@@ -1,0 +1,121 @@
+/**
+ * Synthesis CMS mini — Framework-Neutral Database Environment Contract
+ *
+ * Provides database environment schema definition, validation, and secret-safe
+ * connection URI format verification by composing the generic Step 9 Environment Contract.
+ */
+
+import {
+  type EnvironmentSchema,
+  type EnvSource,
+  EnvironmentValidationError,
+  validateEnvironment,
+} from "../env/index.ts";
+
+export const DATABASE_URL_VARIABLE_NAME = "SYNTHESIS_SECRET_DATABASE_URL" as const;
+
+/**
+ * Database environment schema defining server-only secret connection URL.
+ */
+export const databaseEnvironmentSchema: EnvironmentSchema = Object.freeze({
+  [DATABASE_URL_VARIABLE_NAME]: {
+    type: "string",
+    category: "SECRET_SERVER_ONLY",
+    required: true,
+  },
+});
+
+export interface ValidatedDatabaseConfig {
+  readonly SYNTHESIS_SECRET_DATABASE_URL: string;
+}
+
+/**
+ * Specific error codes emitted during database environment validation.
+ */
+export type DatabaseValidationErrorCode = "INVALID_DATABASE_URL_FORMAT";
+
+/**
+ * Error thrown when a database environment variable fails database-specific validation rules.
+ */
+export class DatabaseValidationError extends Error {
+  readonly variableName: typeof DATABASE_URL_VARIABLE_NAME;
+  readonly code: DatabaseValidationErrorCode;
+  readonly reason: string;
+
+  constructor(
+    variableName: typeof DATABASE_URL_VARIABLE_NAME,
+    code: DatabaseValidationErrorCode,
+    reason: string,
+  ) {
+    super(`Database environment validation failed for "${variableName}": ${reason} (${code})`);
+    this.name = "DatabaseValidationError";
+    this.variableName = variableName;
+    this.code = code;
+    this.reason = reason;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+
+  toJSON(): Record<string, unknown> {
+    return {
+      name: this.name,
+      variableName: this.variableName,
+      code: this.code,
+      reason: this.reason,
+      message: this.message,
+    };
+  }
+}
+
+/**
+ * Validates database environment variables from the given environment source.
+ *
+ * Enforces:
+ * 1. Step 9 fail-closed namespace validation and category-prefix matching.
+ * 2. Presence of required server-only secret DATABASE_URL.
+ * 3. Safe URI protocol verification (postgresql: or postgres:).
+ * 4. Presence of valid hostname and database path.
+ * 5. Zero secret credential leakage in error messages or diagnostic reasons.
+ *
+ * Returns a frozen, validated database configuration object.
+ */
+export function validateDatabaseEnvironment(source: EnvSource): ValidatedDatabaseConfig {
+  // 1. Validate through the Step 9 Environment Contract validator
+  const validated = validateEnvironment(databaseEnvironmentSchema, source);
+  const rawUrl = validated[DATABASE_URL_VARIABLE_NAME];
+
+  if (typeof rawUrl !== "string") {
+    throw new EnvironmentValidationError(
+      DATABASE_URL_VARIABLE_NAME,
+      "MISSING_REQUIRED_VARIABLE",
+      "Database URL is required and must be a string",
+    );
+  }
+
+  // 2. Validate URI protocol and syntax safely without leaking credentials
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== "postgresql:" && parsed.protocol !== "postgres:") {
+      throw new Error("Invalid protocol");
+    }
+
+    if (!parsed.hostname || parsed.hostname.trim() === "") {
+      throw new Error("Missing database hostname");
+    }
+
+    if (parsed.pathname === "" || parsed.pathname === "/") {
+      throw new Error("Missing database name");
+    }
+  } catch {
+    throw new DatabaseValidationError(
+      DATABASE_URL_VARIABLE_NAME,
+      "INVALID_DATABASE_URL_FORMAT",
+      "Database URL must be a valid postgresql:// or postgres:// connection URI",
+    );
+  }
+
+  const databaseConfig: ValidatedDatabaseConfig = {
+    SYNTHESIS_SECRET_DATABASE_URL: rawUrl,
+  };
+
+  return Object.freeze(databaseConfig);
+}
