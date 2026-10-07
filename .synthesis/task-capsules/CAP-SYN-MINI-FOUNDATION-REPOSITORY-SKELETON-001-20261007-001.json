@@ -1,0 +1,230 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-001",
+    "task_id": "SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-001-DISCOVER-PLAN-AND-SEAL",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "7/60 — Repository skeleton",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-07T05:40:00.000Z",
+      "development_phase": "PLAN",
+      "execution_mode": "PLAN"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "9fbaaf652b75ae1f5bf4cf03481c860f754e9969",
+      "source_branch": "task/SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261007-014.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261007-014.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-001.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-001.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 2,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-20261007-014",
+          "command_id": "CMD-SYN-MINI-GOV-MILESTONE-A-ACTIVATION-001-013-TWO-PHASE-ACTIVATION-OUTCOME-MERGE",
+          "payload_sha256": "4e97663d34d12e92fb8e9548d683d7dc30f88816bd1044ac40f4f7856e3579b6",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-001.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-001.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-001.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-001.json"
+      ],
+      "commit_sha": "9fbaaf652b75ae1f5bf4cf03481c860f754e9969",
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "CMD-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-002-IMPLEMENT-MINIMAL-SKELETON",
+      "stateless_recovery_context": {
+        "verified_task_head": "9fbaaf652b75ae1f5bf4cf03481c860f754e9969",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-07T05:40:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_CREATED",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "PREFLIGHT_PLANNED",
+        "step8_status": "NOT_STARTED",
+        "deployment_status": "NOT_DEPLOYED",
+        "target_layer_decisions": {
+          "apps": {
+            "decision": "CREATE",
+            "file": "apps/README.md",
+            "purpose": "Client and admin application entry points"
+          },
+          "core": {
+            "decision": "CREATE",
+            "file": "core/README.md",
+            "purpose": "Universal headless CMS domain logic"
+          },
+          "contracts": {
+            "decision": "CREATE",
+            "file": "contracts/README.md",
+            "purpose": "Public and stable extension interfaces"
+          },
+          "sdk": {
+            "decision": "CREATE",
+            "file": "sdk/README.md",
+            "purpose": "Developer SDKs for modules and integrations"
+          },
+          "modules": {
+            "decision": "CREATE",
+            "file": "modules/README.md",
+            "purpose": "First-party and third-party modules"
+          },
+          "project-packs": {
+            "decision": "CREATE",
+            "file": "project-packs/README.md",
+            "purpose": "Pre-assembled configurations and distributions"
+          },
+          "packages": {
+            "decision": "CREATE",
+            "file": "packages/README.md",
+            "purpose": "Internal shared library utilities"
+          },
+          "governance": {
+            "decision": "MAP_TO_EXISTING_AUTHORITY",
+            "target": ".synthesis/ and scripts/governance/",
+            "duplicate_root": "REJECTED"
+          },
+          "scripts": {
+            "decision": "REUSE_EXISTING",
+            "file": "scripts/README.md",
+            "purpose": "Build, maintenance and automation tooling"
+          },
+          "tests": {
+            "decision": "CREATE",
+            "file": "tests/README.md",
+            "purpose": "Shared contract, integration and e2e test suites"
+          },
+          "docs": {
+            "decision": "CREATE",
+            "file": "docs/README.md",
+            "purpose": "Architectural, developer and operational documentation"
+          },
+          "prisma": {
+            "decision": "DEFER",
+            "reason": "Deferred to Step 17 database toolchain decision"
+          }
+        },
+        "proposed_cmd002_files": [
+          "apps/README.md",
+          "core/README.md",
+          "contracts/README.md",
+          "sdk/README.md",
+          "modules/README.md",
+          "project-packs/README.md",
+          "packages/README.md",
+          "scripts/README.md",
+          "tests/README.md",
+          "docs/README.md"
+        ],
+        "step8_exclusions": [
+          "No runtime execution logic",
+          "No package.json or dependencies installation",
+          "No TypeScript / tsconfig.json setup",
+          "No linting / formatting config",
+          "No build system / bundler config",
+          "No database schemas / Prisma initialization",
+          "No API routes or authentication implementation",
+          "No deep domain trees (core/auth, sdk/module-sdk, etc.)"
+        ]
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "6c1c426a7244ef011d2b18cf689f6882247714c5c98a87a6f70a6aba2c68de2e",
+    "sealed_at": "2026-10-07T05:40:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}
