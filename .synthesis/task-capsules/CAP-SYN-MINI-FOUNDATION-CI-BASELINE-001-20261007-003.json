@@ -1,0 +1,168 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-003",
+    "task_id": "SYN-MINI-FOUNDATION-CI-BASELINE-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-CI-BASELINE-001-003-OPEN-REVIEW-PR",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "11/60 — CI baseline",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-07T18:45:00.000Z",
+      "development_phase": "GOVERNANCE",
+      "execution_mode": "GOVERNANCE"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "ca229e5aa8ef979e756001d02be6c291c4002fe0",
+      "source_branch": "task/SYN-MINI-FOUNDATION-CI-BASELINE-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-002R02.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-002R02.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-003.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-003.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 2,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-002R02",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-CI-BASELINE-001-002R02-REPAIR-DATABASE-TEST-LINT-ERROR",
+          "payload_sha256": "3d83a645bc915c0ac7b91f0f8af67b2f5eaea504ef4edd4f889b7aa1cbe1776e",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-003.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-003.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-003.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-003.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "CMD-SYN-MINI-FOUNDATION-CI-BASELINE-001-004-TWO-PHASE-STEP11-MERGE",
+      "stateless_recovery_context": {
+        "verified_task_head": "1853e4865c198e9a5d3d0521312cf24097f92603",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-07T18:45:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_CREATED",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step8_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step9_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step10_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step11_status": "REVIEW_PR_OPENED_AND_VERIFIED",
+        "step12_status": "NOT_STARTED",
+        "deployment_status": "NOT_DEPLOYED",
+        "step11_pr_evidence": {
+          "base_main_sha": "ca229e5aa8ef979e756001d02be6c291c4002fe0",
+          "reviewed_source_head": "1853e4865c198e9a5d3d0521312cf24097f92603",
+          "step11_implementation": "PASS",
+          "step11_repairs": "PASS",
+          "task_ci_run": 37668605612,
+          "task_ci_status": "SUCCESS",
+          "governance_job_status": "SUCCESS",
+          "product_job_status": "SUCCESS",
+          "required_gate_status": "SUCCESS",
+          "global_governance_health": "PASS",
+          "merge_authorization": "NOT_GRANTED",
+          "step12_status": "NOT_STARTED",
+          "deployment_status": "NOT_DEPLOYED",
+          "cumulative_commits_before_cap003": 5,
+          "cumulative_changed_files_before_cap003": 12
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "d3d555f2589056137f6a6ff31948cf70d2010e6b7f783697d375fd48b7c29ba0",
+    "sealed_at": "2026-10-07T18:45:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}
