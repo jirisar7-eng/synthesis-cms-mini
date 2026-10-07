@@ -1,0 +1,229 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-ENV-CONTRACT-001-20261007-001",
+    "task_id": "SYN-MINI-FOUNDATION-ENV-CONTRACT-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-ENV-CONTRACT-001-001-DISCOVER-PLAN-AND-SEAL",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "9/60 — Environment/config contract",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-07T09:42:00.000Z",
+      "development_phase": "PLAN",
+      "execution_mode": "PLAN"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "d6f8410fab526fb709f5fdd9912554fa5fa8ddd2",
+      "source_branch": "task/SYN-MINI-FOUNDATION-ENV-CONTRACT-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".editorconfig",
+        ".gitignore",
+        ".npmrc",
+        "eslint.config.mjs",
+        "package.json",
+        "tsconfig.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-004.json",
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-004.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-ENV-CONTRACT-001-20261007-001.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-ENV-CONTRACT-001-20261007-001.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 2,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-004",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-004-TWO-PHASE-STEP8-MERGE",
+          "payload_sha256": "df8e22beea268818bd75ddf6fd809d0e59e2e0f41667889460ce5ef8dc9d2497",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-ENV-CONTRACT-001-20261007-001.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-ENV-CONTRACT-001-20261007-001.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-ENV-CONTRACT-001-20261007-001.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-ENV-CONTRACT-001-20261007-001.json"
+      ],
+      "commit_sha": "d6f8410fab526fb709f5fdd9912554fa5fa8ddd2",
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "CMD-SYN-MINI-FOUNDATION-ENV-CONTRACT-001-002-IMPLEMENT-ENV-CONTRACT",
+      "stateless_recovery_context": {
+        "verified_task_head": "d6f8410fab526fb709f5fdd9912554fa5fa8ddd2",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-07T09:42:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_CREATED",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "COMPLETE",
+        "step8_status": "COMPLETE",
+        "step9_status": "PREFLIGHT_PLANNED",
+        "step10_status": "NOT_STARTED",
+        "step11_status": "NOT_STARTED",
+        "deployment_status": "NOT_DEPLOYED",
+        "step9_plan_specification": {
+          "discovered_config_state": [
+            ".editorconfig",
+            "eslint.config.mjs",
+            "tsconfig.json"
+          ],
+          "namespace_decision": {
+            "server_config_prefix": "SYNTHESIS_",
+            "public_config_prefix": "SYNTHESIS_PUBLIC_",
+            "reserved_internal_prefixes": [
+              "SYNTHESIS_INTERNAL_",
+              "SYNTHESIS_SECRET_"
+            ],
+            "framework_neutrality": "STRICT (no NEXT_PUBLIC_, VITE_, REACT_APP_ or NestJS coupling)"
+          },
+          "config_categories": {
+            "SERVER_ONLY": "Server runtime configuration, never exposed to client bundles or APIs",
+            "PUBLIC_SAFE": "Client-safe configuration explicitly prefixed with SYNTHESIS_PUBLIC_",
+            "SECRET_SERVER_ONLY": "Sensitive credentials, tokens and keys, redacted in logs and errors, never sent to client",
+            "INTERNAL_RUNTIME": "Internal runtime flags, derived properties, unexported by default",
+            "TEST_ONLY": "Test environment overrides and test runners"
+          },
+          "validation_strategy": {
+            "engine": "Native TypeScript / Node with strict schema validator",
+            "dependency_decision": "ZERO_NEW_DEPENDENCIES (pure TypeScript type-safe validator functions)",
+            "fail_closed": true,
+            "error_behavior": "Throws detailed validation error exposing missing/invalid variable names but strictly redacting secret values"
+          },
+          "runtime_loading_contract": {
+            "authoritative_boundary": "Single entrypoint in contracts/core env module; direct process.env reads outside this boundary are forbidden",
+            "immutability": "Object.freeze applied to parsed configuration object",
+            "loading_mode": "Eager validation at startup"
+          },
+          "local_development_policy": {
+            "template_file": ".env.example",
+            "template_values": "Non-secret dummy placeholders only",
+            "gitignore_additions": [
+              ".env",
+              ".env.local",
+              ".env.*.local",
+              "!/.env.example"
+            ]
+          },
+          "step10_exclusions": "No DATABASE_URL, Prisma, database adapters, or database credentials (owned by Step 10)",
+          "step11_exclusions": "No CI workflow modifications or full CI pipeline expansion (owned by Step 11)",
+          "proposed_cmd002_files": [
+            {
+              "path": ".gitignore",
+              "action": "MODIFY",
+              "purpose": "Add ignore rules for local env files while allowing .env.example"
+            },
+            {
+              "path": ".env.example",
+              "action": "ADD",
+              "purpose": "Committed template with non-secret dummy environment variable examples"
+            },
+            {
+              "path": "contracts/src/env/env.contract.ts",
+              "action": "ADD",
+              "purpose": "Type definitions, schemas, and validation logic for SYNTHESIS_* and SYNTHESIS_PUBLIC_* environment configuration"
+            },
+            {
+              "path": "contracts/src/env/index.ts",
+              "action": "ADD",
+              "purpose": "Authoritative environment contract entrypoint"
+            },
+            {
+              "path": "tests/env/env.contract.test.ts",
+              "action": "ADD",
+              "purpose": "Unit tests for environment validation, type coercion, missing variable checks, and secret redaction"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "15565f3f0254261c4c724cbbc8cf8a3b00e5e3e3ea7d8a4fa4f0e01382017dee",
+    "sealed_at": "2026-10-07T09:42:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}
