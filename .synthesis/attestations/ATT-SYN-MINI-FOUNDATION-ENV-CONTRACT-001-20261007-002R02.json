@@ -1,0 +1,25 @@
+{
+  "format_version": "1.0.0",
+  "record_kind": "LINKED_CAPSULE_FILE_ATTESTATION",
+  "attestation_id": "ATT-SYN-MINI-FOUNDATION-ENV-CONTRACT-001-20261007-002R02",
+  "status": "OBSERVED_UNANCHORED",
+  "observed_at_utc": "2026-10-07T13:34:00.000Z",
+  "source_repository": "jirisar7-eng/synthesis-cms-mini",
+  "genesis_anchor_reference": {
+    "genesis_file": ".synthesis/lineage/genesis.json",
+    "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+  },
+  "parent_attestation": {
+    "attestation_id": "ATT-SYN-MINI-FOUNDATION-ENV-CONTRACT-001-20261007-002R01",
+    "file_path": ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-ENV-CONTRACT-001-20261007-002R01.json",
+    "raw_file_sha256": "06e3ec93aaf603c2845eb73b8582b587a02c071578e6ac9b262f6f1056ea8c80"
+  },
+  "new_capsule": {
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-ENV-CONTRACT-001-20261007-002R02",
+    "file_path": ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-ENV-CONTRACT-001-20261007-002R02.json",
+    "payload_sha256": "20025b8c3d0db5a9a799f982edde6817b04b03e6ef1a28ad50415b9a5cb09fe3",
+    "raw_file_sha256": "a716f0560bb24a4acaf2379a645eb21978e999ac787025f27109a89858a07385",
+    "git_blob_sha": "f7fc9f996d0e01cd646e3418cca12f12648d1ed1",
+    "file_size_bytes": 7126
+  }
+}

@@ -2,17 +2,14 @@
  * Synthesis CMS mini — Framework-Neutral Environment Contract
  *
  * Provides schema definition, strict validation, fail-closed project namespace enforcement,
- * public projection, and secret-safe error diagnostics without external runtime dependencies.
+ * public projection with module-private schema binding, and secret-safe error diagnostics
+ * without external runtime dependencies.
  */
 
 export type EnvSource = Readonly<Record<string, string | undefined>>;
 
 export type ConfigCategory =
-  | "SERVER_ONLY"
-  | "PUBLIC_SAFE"
-  | "SECRET_SERVER_ONLY"
-  | "INTERNAL_RUNTIME"
-  | "TEST_ONLY";
+  "SERVER_ONLY" | "PUBLIC_SAFE" | "SECRET_SERVER_ONLY" | "INTERNAL_RUNTIME" | "TEST_ONLY";
 
 export type ConfigFieldType = "string" | "boolean" | "integer" | "enum";
 
@@ -46,10 +43,7 @@ export interface EnumFieldDescriptor<T extends string = string> extends BaseFiel
 }
 
 export type EnvironmentFieldDescriptor =
-  | StringFieldDescriptor
-  | BooleanFieldDescriptor
-  | IntegerFieldDescriptor
-  | EnumFieldDescriptor;
+  StringFieldDescriptor | BooleanFieldDescriptor | IntegerFieldDescriptor | EnumFieldDescriptor;
 
 export type EnvironmentSchema = Readonly<Record<string, EnvironmentFieldDescriptor>>;
 
@@ -66,7 +60,8 @@ export type ValidationErrorCode =
   | "INVALID_ENUM_VALUE"
   | "UNKNOWN_SYNTHESIS_VARIABLE"
   | "PREFIX_CATEGORY_MISMATCH"
-  | "TEST_ONLY_DISALLOWED_IN_RUNTIME";
+  | "TEST_ONLY_DISALLOWED_IN_RUNTIME"
+  | "INVALID_PUBLIC_PROJECTION_SOURCE";
 
 export class EnvironmentValidationError extends Error {
   public readonly variableName: string;
@@ -81,6 +76,21 @@ export class EnvironmentValidationError extends Error {
     this.reason = reason;
   }
 }
+
+/**
+ * Module-private WeakMap binding validated configuration objects to their authoritative schema
+ * and validation-time captured PUBLIC_SAFE key set.
+ *
+ * This WeakMap is never exported and guarantees that unvalidated, foreign, or mutated objects
+ * cannot be projected.
+ */
+const validatedConfigBindings = new WeakMap<
+  object,
+  {
+    readonly schema: EnvironmentSchema;
+    readonly publicKeys: ReadonlySet<string>;
+  }
+>();
 
 /**
  * Validates that the variable key prefix matches the declared configuration category.
@@ -155,6 +165,7 @@ export function validateCategoryPrefixMatch(key: string, category: ConfigCategor
 
 /**
  * Validates an environment source against an environment schema.
+ * Returns a frozen, authoritative configuration object bound to the provided schema.
  */
 export function validateEnvironment(
   schema: EnvironmentSchema,
@@ -260,26 +271,74 @@ export function validateEnvironment(
     }
   }
 
-  return Object.freeze(result);
+  // 3. Freeze result object
+  const frozenResult = Object.freeze(result);
+
+  // 4. Capture PUBLIC_SAFE keys at validation time
+  const publicKeys = new Set<string>();
+  for (const [key, descriptor] of Object.entries(schema)) {
+    if (
+      descriptor.category === "PUBLIC_SAFE" &&
+      Object.prototype.hasOwnProperty.call(frozenResult, key)
+    ) {
+      publicKeys.add(key);
+    }
+  }
+
+  // 5. Bind the frozen result to the schema and captured PUBLIC_SAFE key set
+  validatedConfigBindings.set(frozenResult, {
+    schema,
+    publicKeys: Object.freeze(publicKeys),
+  });
+
+  // 6. Return the frozen bound result
+  return frozenResult;
 }
 
 /**
- * Projects only PUBLIC_SAFE properties from validated configuration bound to the declared schema.
+ * Projects only PUBLIC_SAFE properties from a validated configuration bound to the declared schema.
+ * Fail-closed if the input is not a validated configuration object or if the schema instance differs.
  */
 export function projectPublicEnvironment(
   schema: EnvironmentSchema,
   validatedConfig: Readonly<Record<string, unknown>>,
 ): Readonly<Record<string, unknown>> {
-  const publicConfig: Record<string, unknown> = {};
+  // 1. Look up validatedConfig in module-private binding
+  const candidate: unknown = validatedConfig;
+  if (!candidate || typeof candidate !== "object" || !validatedConfigBindings.has(candidate)) {
+    throw new EnvironmentValidationError(
+      "",
+      "INVALID_PUBLIC_PROJECTION_SOURCE",
+      "Configuration object is not a validated configuration bound to an environment schema",
+    );
+  }
 
-  for (const [key, descriptor] of Object.entries(schema)) {
-    validateCategoryPrefixMatch(key, descriptor.category);
-    if (descriptor.category === "PUBLIC_SAFE") {
-      if (Object.prototype.hasOwnProperty.call(validatedConfig, key)) {
-        publicConfig[key] = validatedConfig[key];
-      }
+  const binding = validatedConfigBindings.get(candidate);
+  if (!binding) {
+    throw new EnvironmentValidationError(
+      "",
+      "INVALID_PUBLIC_PROJECTION_SOURCE",
+      "Configuration object has no valid schema binding",
+    );
+  }
+
+  // 2. Verify schema instance identity match
+  if (binding.schema !== schema) {
+    throw new EnvironmentValidationError(
+      "",
+      "INVALID_PUBLIC_PROJECTION_SOURCE",
+      "Validated configuration schema instance does not match the provided schema",
+    );
+  }
+
+  // 3. Project ONLY keys snapshotted at validation time in binding.publicKeys
+  const publicConfig: Record<string, unknown> = {};
+  for (const key of binding.publicKeys) {
+    if (Object.prototype.hasOwnProperty.call(validatedConfig, key)) {
+      publicConfig[key] = validatedConfig[key];
     }
   }
 
+  // 4. Return frozen projection
   return Object.freeze(publicConfig);
 }

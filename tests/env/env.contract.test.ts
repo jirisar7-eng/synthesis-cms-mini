@@ -14,6 +14,7 @@
  * - TEST_ONLY mode enforcement (denied in runtime, accepted in test mode)
  * - Error message secret-safety / redaction
  * - Prefix-category consistency validation
+ * - Module-private WeakMap projection binding enforcement (unvalidated rejection, schema instance mismatch rejection, post-validation mutation protection)
  */
 
 import {
@@ -43,10 +44,7 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-function assertThrows(
-  fn: () => void,
-  expectedCode: string,
-): EnvironmentValidationError {
+function assertThrows(fn: () => void, expectedCode: string): EnvironmentValidationError {
   try {
     fn();
   } catch (err) {
@@ -414,33 +412,154 @@ runScenario("22 frozen config and prefix/category mismatch", () => {
   }
 });
 
-// Scenario 23: Projection binding guarantees schema-derived isolation
-runScenario("23 projection binding schema-derived isolation", () => {
+// Scenario 23: Arbitrary/manually-created object rejected by projectPublicEnvironment
+runScenario("23 unvalidated object rejected by projectPublicEnvironment", () => {
   const schema: EnvironmentSchema = {
-    SYNTHESIS_PUBLIC_SITE_URL: { type: "string", category: "PUBLIC_SAFE", default: "https://example.com" },
-    SYNTHESIS_PUBLIC_THEME: { type: "string", category: "PUBLIC_SAFE" },
-    SYNTHESIS_SECRET_KEY: { type: "string", category: "SECRET_SERVER_ONLY" },
+    SYNTHESIS_PUBLIC_APP_NAME: { type: "string", category: "PUBLIC_SAFE" },
+  };
+  // Fake object created directly without validateEnvironment
+  const fakeConfig = { SYNTHESIS_PUBLIC_APP_NAME: "Injected App" };
+  assertThrows(
+    () => projectPublicEnvironment(schema, fakeConfig),
+    "INVALID_PUBLIC_PROJECTION_SOURCE",
+  );
+});
+
+// Scenario 24: Schema instance mismatch rejected by projectPublicEnvironment
+runScenario("24 schema instance mismatch rejected", () => {
+  const schemaA: EnvironmentSchema = {
+    SYNTHESIS_PUBLIC_APP_NAME: { type: "string", category: "PUBLIC_SAFE" },
+  };
+  const schemaB: EnvironmentSchema = {
+    SYNTHESIS_PUBLIC_APP_NAME: { type: "string", category: "PUBLIC_SAFE" },
+  };
+  const configA = validateEnvironment(schemaA, { SYNTHESIS_PUBLIC_APP_NAME: "App A" });
+  assertThrows(
+    () => projectPublicEnvironment(schemaB, configA),
+    "INVALID_PUBLIC_PROJECTION_SOURCE",
+  );
+});
+
+// Scenario 25: Non-object, null, or undefined rejected by projectPublicEnvironment
+runScenario("25 non-object/null inputs rejected by projectPublicEnvironment", () => {
+  const schema: EnvironmentSchema = {
+    SYNTHESIS_PUBLIC_APP_NAME: { type: "string", category: "PUBLIC_SAFE" },
+  };
+  const invalidInputs: unknown[] = [null, undefined, "string", 123, true, [1, 2, 3]];
+  for (const input of invalidInputs) {
+    assertThrows(
+      () => projectPublicEnvironment(schema, input as Readonly<Record<string, unknown>>),
+      "INVALID_PUBLIC_PROJECTION_SOURCE",
+    );
+  }
+});
+
+// Scenario 26: Post-validation schema mutation does NOT expose secret key
+runScenario("26 post-validation schema mutation cannot expose secret keys", () => {
+  // Mutable schema object
+  const mutableSchema: Record<string, { type: "string"; category: ConfigCategory }> = {
+    SYNTHESIS_PUBLIC_TITLE: { type: "string", category: "PUBLIC_SAFE" },
+    SYNTHESIS_SECRET_TOKEN: { type: "string", category: "SECRET_SERVER_ONLY" },
   };
 
-  // Validated config containing public and secret keys plus extra non-schema key
-  const validatedConfig: Record<string, unknown> = {
-    SYNTHESIS_PUBLIC_SITE_URL: "https://example.com",
-    SYNTHESIS_PUBLIC_THEME: "dark",
-    SYNTHESIS_SECRET_KEY: "secret_123",
-    SYNTHESIS_EXTRA_INJECTED: "injected",
-    FOREIGN_VAR: "foreign",
+  const config = validateEnvironment(mutableSchema, {
+    SYNTHESIS_PUBLIC_TITLE: "My Title",
+    SYNTHESIS_SECRET_TOKEN: "secret_12345",
+  });
+
+  // Maliciously attempt to mutate schema category after validation
+  mutableSchema["SYNTHESIS_SECRET_TOKEN"] = { type: "string", category: "PUBLIC_SAFE" };
+
+  const publicConfig = projectPublicEnvironment(mutableSchema, config);
+
+  // Assert secret token is NEVER exposed in publicConfig because publicKeys were snapshotted at validation
+  assert(publicConfig["SYNTHESIS_PUBLIC_TITLE"] === "My Title", "Public title must be present");
+  assert(
+    !("SYNTHESIS_SECRET_TOKEN" in publicConfig),
+    "SECRET_SERVER_ONLY must NEVER leak via schema mutation",
+  );
+  assert(
+    Object.keys(publicConfig).length === 1,
+    "Only validation-time public keys must be present",
+  );
+});
+
+// Scenario 27: Failed validation never creates a usable projection binding
+runScenario("27 failed validation never creates usable binding", () => {
+  const schema: EnvironmentSchema = {
+    SYNTHESIS_PORT: { type: "integer", category: "SERVER_ONLY", required: true },
+    SYNTHESIS_PUBLIC_APP: { type: "string", category: "PUBLIC_SAFE" },
+  };
+  const invalidSource: EnvSource = {
+    SYNTHESIS_PORT: "invalid_not_number",
+    SYNTHESIS_PUBLIC_APP: "App",
   };
 
-  const projected = projectPublicEnvironment(schema, validatedConfig);
+  // Validation fails
+  assertThrows(() => validateEnvironment(schema, invalidSource), "INVALID_INTEGER_VALUE");
 
-  // Assert only declared PUBLIC_SAFE keys present
-  assert(projected["SYNTHESIS_PUBLIC_SITE_URL"] === "https://example.com", "Site URL should be projected");
-  assert(projected["SYNTHESIS_PUBLIC_THEME"] === "dark", "Theme should be projected");
-  assert(!("SYNTHESIS_SECRET_KEY" in projected), "Secret key must not be projected");
-  assert(!("SYNTHESIS_EXTRA_INJECTED" in projected), "Injected variable must not be projected");
-  assert(!("FOREIGN_VAR" in projected), "Foreign variable must not be projected");
-  assert(Object.keys(projected).length === 2, "Only 2 public keys should be present");
-  assert(Object.isFrozen(projected), "Projected object must be frozen");
+  // Attempting to project an unvalidated object with that schema fails closed
+  const fakeConfig = { SYNTHESIS_PUBLIC_APP: "App" };
+  assertThrows(
+    () => projectPublicEnvironment(schema, fakeConfig),
+    "INVALID_PUBLIC_PROJECTION_SOURCE",
+  );
+});
+
+// Scenario 28: Multiple independent validations maintain separate isolated schema bindings
+runScenario("28 multiple independent validations isolated", () => {
+  const schema1: EnvironmentSchema = {
+    SYNTHESIS_PUBLIC_NAME: { type: "string", category: "PUBLIC_SAFE" },
+  };
+  const schema2: EnvironmentSchema = {
+    SYNTHESIS_PUBLIC_NAME: { type: "string", category: "PUBLIC_SAFE" },
+  };
+
+  const config1 = validateEnvironment(schema1, { SYNTHESIS_PUBLIC_NAME: "Instance 1" });
+  const config2 = validateEnvironment(schema2, { SYNTHESIS_PUBLIC_NAME: "Instance 2" });
+
+  const proj1 = projectPublicEnvironment(schema1, config1);
+  const proj2 = projectPublicEnvironment(schema2, config2);
+
+  assert(proj1["SYNTHESIS_PUBLIC_NAME"] === "Instance 1", "Proj 1 should match schema 1 config");
+  assert(proj2["SYNTHESIS_PUBLIC_NAME"] === "Instance 2", "Proj 2 should match schema 2 config");
+
+  // Cross-projection fails closed
+  assertThrows(
+    () => projectPublicEnvironment(schema1, config2),
+    "INVALID_PUBLIC_PROJECTION_SOURCE",
+  );
+  assertThrows(
+    () => projectPublicEnvironment(schema2, config1),
+    "INVALID_PUBLIC_PROJECTION_SOURCE",
+  );
+});
+
+// Scenario 29: Validated configuration with multiple PUBLIC_SAFE keys projects cleanly and is frozen
+runScenario("29 multiple PUBLIC_SAFE keys project cleanly and frozen", () => {
+  const schema: EnvironmentSchema = {
+    SYNTHESIS_PUBLIC_SITE_NAME: { type: "string", category: "PUBLIC_SAFE", default: "Synthesis" },
+    SYNTHESIS_PUBLIC_THEME: {
+      type: "enum",
+      category: "PUBLIC_SAFE",
+      enumValues: ["light", "dark"],
+      default: "light",
+    },
+    SYNTHESIS_PUBLIC_MAX_ITEMS: { type: "integer", category: "PUBLIC_SAFE", default: 20 },
+    SYNTHESIS_SECRET_API_KEY: { type: "string", category: "SECRET_SERVER_ONLY" },
+  };
+  const source: EnvSource = {
+    SYNTHESIS_SECRET_API_KEY: "super_secret",
+  };
+  const config = validateEnvironment(schema, source);
+  const publicConfig = projectPublicEnvironment(schema, config);
+
+  assert(publicConfig["SYNTHESIS_PUBLIC_SITE_NAME"] === "Synthesis", "Site name projected");
+  assert(publicConfig["SYNTHESIS_PUBLIC_THEME"] === "light", "Theme projected");
+  assert(publicConfig["SYNTHESIS_PUBLIC_MAX_ITEMS"] === 20, "Max items projected");
+  assert(!("SYNTHESIS_SECRET_API_KEY" in publicConfig), "API key excluded");
+  assert(Object.keys(publicConfig).length === 3, "Exactly 3 public keys projected");
+  assert(Object.isFrozen(publicConfig), "Projected config is frozen");
 });
 
 console.log(
