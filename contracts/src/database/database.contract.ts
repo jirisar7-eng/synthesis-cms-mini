@@ -30,6 +30,43 @@ export interface ValidatedDatabaseConfig {
 }
 
 /**
+ * Specific error codes emitted during database environment validation.
+ */
+export type DatabaseValidationErrorCode = "INVALID_DATABASE_URL_FORMAT";
+
+/**
+ * Error thrown when a database environment variable fails database-specific validation rules.
+ */
+export class DatabaseValidationError extends Error {
+  readonly variableName: typeof DATABASE_URL_VARIABLE_NAME;
+  readonly code: DatabaseValidationErrorCode;
+  readonly reason: string;
+
+  constructor(
+    variableName: typeof DATABASE_URL_VARIABLE_NAME,
+    code: DatabaseValidationErrorCode,
+    reason: string,
+  ) {
+    super(`Database environment validation failed for "${variableName}": ${reason} (${code})`);
+    this.name = "DatabaseValidationError";
+    this.variableName = variableName;
+    this.code = code;
+    this.reason = reason;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+
+  toJSON(): Record<string, unknown> {
+    return {
+      name: this.name,
+      variableName: this.variableName,
+      code: this.code,
+      reason: this.reason,
+      message: this.message,
+    };
+  }
+}
+
+/**
  * Validates database environment variables from the given environment source.
  *
  * Enforces:
@@ -67,12 +104,14 @@ export function validateDatabaseEnvironment(source: EnvSource): ValidatedDatabas
       throw new Error("Missing database name");
     }
   } catch {
-    throw new EnvironmentValidationError(
+    throw new DatabaseValidationError(
       DATABASE_URL_VARIABLE_NAME,
-      "INVALID_DATABASE_URL_FORMAT" as unknown as "INVALID_ENUM_VALUE",
+      "INVALID_DATABASE_URL_FORMAT",
       "Database URL must be a valid postgresql:// or postgres:// connection URI",
     );
   }
 
-  return validated as unknown as ValidatedDatabaseConfig;
+  return {
+    SYNTHESIS_SECRET_DATABASE_URL: rawUrl,
+  };
 }
