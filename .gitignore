@@ -7,6 +7,11 @@ build/
 coverage/
 *.tsbuildinfo
 
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
 # Logs
 *.log
 npm-debug.log*
@@ -16,7 +21,7 @@ yarn-error.log*
 # OS and Editor artifacts
 .DS_Store
 Thumbs.db
-.vscode/*
+.vscode/
 !.vscode/extensions.json
 !.vscode/settings.json
 .idea/
