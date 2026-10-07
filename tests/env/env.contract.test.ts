@@ -1,43 +1,29 @@
 /**
- * Synthesis CMS mini — Environment Contract Unit Tests
+ * Synthesis CMS mini — Framework-Neutral Environment Contract Test Suite
  *
- * Covers 22+ validation, category, projection, redaction and typing scenarios.
- * Executable directly via `node --test` with zero external dependencies.
+ * Covers:
+ * - Missing required variable detection
+ * - Variable default value application
+ * - Boolean parsing strictness (reject 1/0/yes/no)
+ * - Canonical integer parsing strictness (whitespace rejection, leading zero rejection, safe bounds, -0 rejection)
+ * - Enum validation
+ * - Unknown SYNTHESIS_* prefix fail-closed rejection
+ * - Ignore unrelated environment variables (e.g. PATH, HOME)
+ * - Public projection isolation (PUBLIC_SAFE only)
+ * - Secret and internal exclusion from public projection
+ * - TEST_ONLY mode enforcement (denied in runtime, accepted in test mode)
+ * - Error message secret-safety / redaction
+ * - Prefix-category consistency validation
  */
 
 import {
-  validateEnvironment,
-  projectPublicEnvironment,
-  EnvironmentValidationError,
+  type ConfigCategory,
   type EnvironmentSchema,
   type EnvSource,
-  type ConfigCategory,
+  EnvironmentValidationError,
+  projectPublicEnvironment,
+  validateEnvironment,
 } from "../../contracts/src/env/index.ts";
-
-function assert(condition: boolean, message: string): void {
-  if (!condition) {
-    throw new Error(`Assertion failed: ${message}`);
-  }
-}
-
-function assertThrows(fn: () => void, expectedCode: string): EnvironmentValidationError {
-  try {
-    fn();
-    throw new Error(
-      `Expected function to throw EnvironmentValidationError with code ${expectedCode}, but it did not throw.`,
-    );
-  } catch (err) {
-    if (err instanceof EnvironmentValidationError) {
-      if (err.code !== expectedCode) {
-        throw new Error(
-          `Expected error code "${expectedCode}", but got "${err.code}": ${err.message}`,
-        );
-      }
-      return err;
-    }
-    throw err;
-  }
-}
 
 let passedScenarios = 0;
 
@@ -45,117 +31,189 @@ function runScenario(name: string, fn: () => void): void {
   try {
     fn();
     passedScenarios++;
-  } catch (error) {
-    console.error(`FAILED SCENARIO: ${name}`);
-    throw error;
+  } catch (err) {
+    console.error(`FAILED scenario: ${name}`);
+    throw err;
   }
 }
 
-// Scenario 01: Valid required string
+function assert(condition: boolean, message: string): void {
+  if (!condition) {
+    throw new Error(`Assertion failed: ${message}`);
+  }
+}
+
+function assertThrows(
+  fn: () => void,
+  expectedCode: string,
+): EnvironmentValidationError {
+  try {
+    fn();
+  } catch (err) {
+    if (err instanceof EnvironmentValidationError) {
+      if (err.code !== expectedCode) {
+        throw new Error(
+          `Expected error code "${expectedCode}", but got "${err.code}" (${err.message})`,
+        );
+      }
+      return err;
+    }
+    throw new Error(`Expected EnvironmentValidationError, but got: ${String(err)}`);
+  }
+  throw new Error(`Expected function to throw ${expectedCode}, but it did not throw`);
+}
+
+// Scenario 1: Valid required string
 runScenario("01 valid required string", () => {
   const schema: EnvironmentSchema = {
     SYNTHESIS_HOST: { type: "string", category: "SERVER_ONLY", required: true },
   };
   const source: EnvSource = { SYNTHESIS_HOST: "127.0.0.1" };
   const config = validateEnvironment(schema, source);
-  assert(config["SYNTHESIS_HOST"] === "127.0.0.1", "Host should match submitted string");
+  assert(config["SYNTHESIS_HOST"] === "127.0.0.1", "Host should match input");
 });
 
-// Scenario 02: Missing required variable
+// Scenario 2: Missing required variable
 runScenario("02 missing required variable", () => {
   const schema: EnvironmentSchema = {
-    SYNTHESIS_HOST: { type: "string", category: "SERVER_ONLY", required: true },
+    SYNTHESIS_PORT: { type: "integer", category: "SERVER_ONLY", required: true },
   };
   const source: EnvSource = {};
   const err = assertThrows(() => validateEnvironment(schema, source), "MISSING_REQUIRED_VARIABLE");
-  assert(err.variableName === "SYNTHESIS_HOST", "Error should name missing variable");
+  assert(err.variableName === "SYNTHESIS_PORT", "Error should identify missing variable");
 });
 
-// Scenario 03: Optional absent variable
-runScenario("03 optional absent variable", () => {
-  const schema: EnvironmentSchema = {
-    SYNTHESIS_HOST: { type: "string", category: "SERVER_ONLY", required: false },
-  };
-  const source: EnvSource = {};
-  const config = validateEnvironment(schema, source);
-  assert(config["SYNTHESIS_HOST"] === undefined, "Optional absent variable should be undefined");
-  assert(
-    !("SYNTHESIS_HOST" in config),
-    "Absent variable without default should not be set in result",
-  );
-});
-
-// Scenario 04: Explicit safe default
-runScenario("04 explicit safe default", () => {
+// Scenario 3: Default value applied
+runScenario("03 default value applied", () => {
   const schema: EnvironmentSchema = {
     SYNTHESIS_PORT: { type: "integer", category: "SERVER_ONLY", default: 3000 },
   };
   const source: EnvSource = {};
   const config = validateEnvironment(schema, source);
-  assert(config["SYNTHESIS_PORT"] === 3000, "Default port should be 3000");
+  assert(config["SYNTHESIS_PORT"] === 3000, "Port should default to 3000");
 });
 
-// Scenario 05: Valid boolean 'true'
-runScenario("05 valid boolean true", () => {
+// Scenario 4: Explicit value overrides default
+runScenario("04 explicit value overrides default", () => {
   const schema: EnvironmentSchema = {
-    SYNTHESIS_DEBUG: { type: "boolean", category: "SERVER_ONLY" },
+    SYNTHESIS_PORT: { type: "integer", category: "SERVER_ONLY", default: 3000 },
   };
-  const source: EnvSource = { SYNTHESIS_DEBUG: "true" };
+  const source: EnvSource = { SYNTHESIS_PORT: "8080" };
   const config = validateEnvironment(schema, source);
-  assert(config["SYNTHESIS_DEBUG"] === true, "Boolean should parse to true");
+  assert(config["SYNTHESIS_PORT"] === 8080, "Port should be overridden to 8080");
 });
 
-// Scenario 06: Valid boolean 'false'
-runScenario("06 valid boolean false", () => {
+// Scenario 5: Valid boolean "true" and "false"
+runScenario("05 valid booleans", () => {
   const schema: EnvironmentSchema = {
     SYNTHESIS_DEBUG: { type: "boolean", category: "SERVER_ONLY" },
+    SYNTHESIS_PROFILING: { type: "boolean", category: "SERVER_ONLY" },
   };
-  const source: EnvSource = { SYNTHESIS_DEBUG: "false" };
+  const source: EnvSource = {
+    SYNTHESIS_DEBUG: "true",
+    SYNTHESIS_PROFILING: "false",
+  };
   const config = validateEnvironment(schema, source);
-  assert(config["SYNTHESIS_DEBUG"] === false, "Boolean should parse to false");
+  assert(config["SYNTHESIS_DEBUG"] === true, "Debug should be true");
+  assert(config["SYNTHESIS_PROFILING"] === false, "Profiling should be false");
 });
 
-// Scenario 07: Invalid boolean
-runScenario("07 invalid boolean", () => {
+// Scenario 6: Invalid boolean values rejected
+runScenario("06 invalid booleans rejected", () => {
   const schema: EnvironmentSchema = {
-    SYNTHESIS_DEBUG: { type: "boolean", category: "SERVER_ONLY" },
+    SYNTHESIS_FLAG: { type: "boolean", category: "SERVER_ONLY" },
   };
-  const invalidValues = ["1", "0", "yes", "no", "TRUE", "FALSE", "random"];
-  for (const v of invalidValues) {
-    const source: EnvSource = { SYNTHESIS_DEBUG: v };
+  const invalidBooleans = ["1", "0", "yes", "no", "TRUE", "FALSE", "enabled", "on", " "];
+  for (const v of invalidBooleans) {
+    const source: EnvSource = { SYNTHESIS_FLAG: v };
     assertThrows(() => validateEnvironment(schema, source), "INVALID_BOOLEAN_VALUE");
   }
 });
 
-// Scenario 08: Valid integer
-runScenario("08 valid integer", () => {
+// Scenario 7: Valid canonical integers (positive, zero, negative, min/max safe)
+runScenario("07 valid canonical integers", () => {
   const schema: EnvironmentSchema = {
     SYNTHESIS_PORT: { type: "integer", category: "SERVER_ONLY" },
+    SYNTHESIS_ZERO: { type: "integer", category: "SERVER_ONLY" },
+    SYNTHESIS_NEGATIVE: { type: "integer", category: "SERVER_ONLY" },
+    SYNTHESIS_MAX_SAFE: { type: "integer", category: "SERVER_ONLY" },
+    SYNTHESIS_MIN_SAFE: { type: "integer", category: "SERVER_ONLY" },
   };
-  const source: EnvSource = { SYNTHESIS_PORT: "8080" };
+  const source: EnvSource = {
+    SYNTHESIS_PORT: "3000",
+    SYNTHESIS_ZERO: "0",
+    SYNTHESIS_NEGATIVE: "-42",
+    SYNTHESIS_MAX_SAFE: String(Number.MAX_SAFE_INTEGER),
+    SYNTHESIS_MIN_SAFE: String(Number.MIN_SAFE_INTEGER),
+  };
   const config = validateEnvironment(schema, source);
-  assert(config["SYNTHESIS_PORT"] === 8080, "Integer should parse to 8080");
+  assert(config["SYNTHESIS_PORT"] === 3000, "Port should be 3000");
+  assert(config["SYNTHESIS_ZERO"] === 0, "Zero should be 0");
+  assert(config["SYNTHESIS_NEGATIVE"] === -42, "Negative should be -42");
+  assert(config["SYNTHESIS_MAX_SAFE"] === Number.MAX_SAFE_INTEGER, "Max safe int should match");
+  assert(config["SYNTHESIS_MIN_SAFE"] === Number.MIN_SAFE_INTEGER, "Min safe int should match");
 });
 
-// Scenario 09: Invalid integer syntax
-runScenario("09 invalid integer syntax", () => {
+// Scenario 8: Non-canonical integers rejected (whitespace, leading zeros, + sign, -0)
+runScenario("08 non-canonical integers rejected", () => {
   const schema: EnvironmentSchema = {
     SYNTHESIS_PORT: { type: "integer", category: "SERVER_ONLY" },
   };
-  const invalidSyntaxes = ["8080abc", "3.14", "", "--5", "0x10"];
-  for (const v of invalidSyntaxes) {
+  const nonCanonicalIntegers = [
+    " 3000",
+    "3000 ",
+    " 3000 ",
+    "0123",
+    "00",
+    "-0",
+    "-00",
+    "+3000",
+    "+0",
+    "007",
+  ];
+  for (const v of nonCanonicalIntegers) {
     const source: EnvSource = { SYNTHESIS_PORT: v };
     assertThrows(() => validateEnvironment(schema, source), "INVALID_INTEGER_VALUE");
   }
 });
 
-// Scenario 10: Unsafe/non-valid integer
-runScenario("10 unsafe/non-valid integer", () => {
+// Scenario 9: Non-integer syntax rejected
+runScenario("09 invalid integer syntax rejected", () => {
+  const schema: EnvironmentSchema = {
+    SYNTHESIS_PORT: { type: "integer", category: "SERVER_ONLY" },
+  };
+  const invalidIntegers = [
+    "abc",
+    "3000a",
+    "12.34",
+    "NaN",
+    "Infinity",
+    "-Infinity",
+    "",
+    " ",
+    "1e5",
+    "0x1f",
+  ];
+  for (const v of invalidIntegers) {
+    const source: EnvSource = { SYNTHESIS_PORT: v };
+    assertThrows(() => validateEnvironment(schema, source), "INVALID_INTEGER_VALUE");
+  }
+});
+
+// Scenario 10: Unsafe integer bounds rejected
+runScenario("10 unsafe integer bounds rejected", () => {
   const schema: EnvironmentSchema = {
     SYNTHESIS_BIG_NUM: { type: "integer", category: "SERVER_ONLY" },
   };
-  const source: EnvSource = { SYNTHESIS_BIG_NUM: "90071992547409929999999999" };
-  assertThrows(() => validateEnvironment(schema, source), "INVALID_INTEGER_VALUE");
+  const outOfBounds = [
+    "9007199254740992", // MAX_SAFE_INTEGER + 1
+    "-9007199254740992", // MIN_SAFE_INTEGER - 1
+    "90071992547409929999999999",
+  ];
+  for (const v of outOfBounds) {
+    const source: EnvSource = { SYNTHESIS_BIG_NUM: v };
+    assertThrows(() => validateEnvironment(schema, source), "INVALID_INTEGER_VALUE");
+  }
 });
 
 // Scenario 11: Valid enum
@@ -314,7 +372,6 @@ runScenario("21 error secret redaction", () => {
   };
   const source: EnvSource = { SYNTHESIS_SECRET_PORT: syntheticSecretSentinel };
   const err = assertThrows(() => validateEnvironment(schema, source), "INVALID_INTEGER_VALUE");
-
   assert(err.variableName === "SYNTHESIS_SECRET_PORT", "Error must contain variable name");
   assert(
     !err.message.includes(syntheticSecretSentinel),
@@ -338,7 +395,6 @@ runScenario("22 frozen config and prefix/category mismatch", () => {
   };
   const config = validateEnvironment(schema, {});
   assert(Object.isFrozen(config), "Validated configuration object must be frozen");
-
   const publicConfig = projectPublicEnvironment(schema, config);
   assert(Object.isFrozen(publicConfig), "Public projection configuration object must be frozen");
 
@@ -350,13 +406,41 @@ runScenario("22 frozen config and prefix/category mismatch", () => {
     ["SYNTHESIS_TEST_VAR", "SERVER_ONLY"],
     ["UNPREFIXED_NAME", "SERVER_ONLY"],
   ];
-
   for (const [key, category] of invalidSchemas) {
     const badSchema: EnvironmentSchema = {
       [key]: { type: "string", category },
     };
     assertThrows(() => validateEnvironment(badSchema, {}), "PREFIX_CATEGORY_MISMATCH");
   }
+});
+
+// Scenario 23: Projection binding guarantees schema-derived isolation
+runScenario("23 projection binding schema-derived isolation", () => {
+  const schema: EnvironmentSchema = {
+    SYNTHESIS_PUBLIC_SITE_URL: { type: "string", category: "PUBLIC_SAFE", default: "https://example.com" },
+    SYNTHESIS_PUBLIC_THEME: { type: "string", category: "PUBLIC_SAFE" },
+    SYNTHESIS_SECRET_KEY: { type: "string", category: "SECRET_SERVER_ONLY" },
+  };
+
+  // Validated config containing public and secret keys plus extra non-schema key
+  const validatedConfig: Record<string, unknown> = {
+    SYNTHESIS_PUBLIC_SITE_URL: "https://example.com",
+    SYNTHESIS_PUBLIC_THEME: "dark",
+    SYNTHESIS_SECRET_KEY: "secret_123",
+    SYNTHESIS_EXTRA_INJECTED: "injected",
+    FOREIGN_VAR: "foreign",
+  };
+
+  const projected = projectPublicEnvironment(schema, validatedConfig);
+
+  // Assert only declared PUBLIC_SAFE keys present
+  assert(projected["SYNTHESIS_PUBLIC_SITE_URL"] === "https://example.com", "Site URL should be projected");
+  assert(projected["SYNTHESIS_PUBLIC_THEME"] === "dark", "Theme should be projected");
+  assert(!("SYNTHESIS_SECRET_KEY" in projected), "Secret key must not be projected");
+  assert(!("SYNTHESIS_EXTRA_INJECTED" in projected), "Injected variable must not be projected");
+  assert(!("FOREIGN_VAR" in projected), "Foreign variable must not be projected");
+  assert(Object.keys(projected).length === 2, "Only 2 public keys should be present");
+  assert(Object.isFrozen(projected), "Projected object must be frozen");
 });
 
 console.log(

@@ -1,14 +1,18 @@
 /**
- * Synthesis CMS mini — Framework-Neutral Environment/Config Contract
+ * Synthesis CMS mini — Framework-Neutral Environment Contract
  *
- * Provides schema descriptors, strict validation, fail-closed project namespace enforcement,
+ * Provides schema definition, strict validation, fail-closed project namespace enforcement,
  * public projection, and secret-safe error diagnostics without external runtime dependencies.
  */
 
 export type EnvSource = Readonly<Record<string, string | undefined>>;
 
 export type ConfigCategory =
-  "SERVER_ONLY" | "PUBLIC_SAFE" | "SECRET_SERVER_ONLY" | "INTERNAL_RUNTIME" | "TEST_ONLY";
+  | "SERVER_ONLY"
+  | "PUBLIC_SAFE"
+  | "SECRET_SERVER_ONLY"
+  | "INTERNAL_RUNTIME"
+  | "TEST_ONLY";
 
 export type ConfigFieldType = "string" | "boolean" | "integer" | "enum";
 
@@ -42,7 +46,10 @@ export interface EnumFieldDescriptor<T extends string = string> extends BaseFiel
 }
 
 export type EnvironmentFieldDescriptor =
-  StringFieldDescriptor | BooleanFieldDescriptor | IntegerFieldDescriptor | EnumFieldDescriptor;
+  | StringFieldDescriptor
+  | BooleanFieldDescriptor
+  | IntegerFieldDescriptor
+  | EnumFieldDescriptor;
 
 export type EnvironmentSchema = Readonly<Record<string, EnvironmentFieldDescriptor>>;
 
@@ -205,15 +212,17 @@ export function validateEnvironment(
         break;
       }
       case "integer": {
-        if (!/^-?\d+$/.test(rawValue.trim())) {
+        // Strict canonical decimal integer: "0" or non-zero integer with optional leading minus.
+        // No leading/trailing whitespace, no explicit "+", no leading zeros, no "-0".
+        if (!/^(0|-?[1-9]\d*)$/.test(rawValue)) {
           throw new EnvironmentValidationError(
             key,
             "INVALID_INTEGER_VALUE",
-            "Integer environment variable contains invalid syntax",
+            "Integer environment variable contains invalid syntax or non-canonical representation",
           );
         }
         const parsed = Number(rawValue);
-        if (!Number.isFinite(parsed) || !Number.isSafeInteger(parsed)) {
+        if (!Number.isFinite(parsed) || !Number.isSafeInteger(parsed) || Object.is(parsed, -0)) {
           throw new EnvironmentValidationError(
             key,
             "INVALID_INTEGER_VALUE",
@@ -255,7 +264,7 @@ export function validateEnvironment(
 }
 
 /**
- * Projects only PUBLIC_SAFE properties from validated configuration.
+ * Projects only PUBLIC_SAFE properties from validated configuration bound to the declared schema.
  */
 export function projectPublicEnvironment(
   schema: EnvironmentSchema,
@@ -264,6 +273,7 @@ export function projectPublicEnvironment(
   const publicConfig: Record<string, unknown> = {};
 
   for (const [key, descriptor] of Object.entries(schema)) {
+    validateCategoryPrefixMatch(key, descriptor.category);
     if (descriptor.category === "PUBLIC_SAFE") {
       if (Object.prototype.hasOwnProperty.call(validatedConfig, key)) {
         publicConfig[key] = validatedConfig[key];
