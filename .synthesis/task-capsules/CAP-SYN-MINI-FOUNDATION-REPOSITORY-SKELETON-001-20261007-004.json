@@ -1,0 +1,165 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-004",
+    "task_id": "SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-004-TWO-PHASE-STEP7-MERGE",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "7/60 — Repository skeleton",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-07T06:06:00.000Z",
+      "development_phase": "GOVERNANCE",
+      "execution_mode": "GOVERNANCE"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "9fbaaf652b75ae1f5bf4cf03481c860f754e9969",
+      "source_branch": "task/SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-003.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-003.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-004.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-004.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 2,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-003",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-003-OPEN-REVIEW-PR",
+          "payload_sha256": "1a95f158ffcf1e6259045f1211e2fa699407a9c025beee071612555019c0d19f",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-004.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-004.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-004.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-004.json"
+      ],
+      "commit_sha": "50b63f07472ac44a32efd5fda27cfc589c0ad978",
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "OPEN",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "WAIT_FOR_OWNER_EXPLICIT_APPROVAL",
+      "stateless_recovery_context": {
+        "verified_task_head": "50b63f07472ac44a32efd5fda27cfc589c0ad978",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-07T06:06:00.000Z",
+        "pull_request_number": 14,
+        "pull_request_state": "OPEN",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "REVIEW_PR_OPEN_CI_PASS",
+        "step8_status": "NOT_STARTED",
+        "deployment_status": "NOT_DEPLOYED",
+        "two_phase_merge_intent": {
+          "phase": "PREPARE_ONLY",
+          "pr_number": 14,
+          "pr_state": "OPEN",
+          "pr_merged": false,
+          "pr_base_sha": "9fbaaf652b75ae1f5bf4cf03481c860f754e9969",
+          "starting_head_sha": "50b63f07472ac44a32efd5fda27cfc589c0ad978",
+          "current_verified_push_ci": 37578857806,
+          "current_verified_pr_ci": 37578977495,
+          "required_merge_method": "STANDARD_MERGE_COMMIT",
+          "forbidden_merge_methods": [
+            "SQUASH",
+            "REBASE"
+          ],
+          "owner_exact_final_head_merge_authorization": "PENDING",
+          "merge_result": "PENDING_NOT_MERGED",
+          "semantic_rule": "The CAP004 + ATT004 PREPARE_ONLY commit will advance PR #14. The resulting exact final PR HEAD is unknown at seal time. Merge execution is forbidden until that final HEAD receives fresh push CI and fresh pull_request CI and the owner explicitly authorizes that exact PR/base/head/method."
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "8a4d83837934c640784990181842988aa4aaca35dc3998b3769e6cfaa1be1fa3",
+    "sealed_at": "2026-10-07T06:06:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}
