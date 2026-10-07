@@ -1,0 +1,170 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-004",
+    "task_id": "SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-004-TWO-PHASE-STEP10-MERGE",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "10/60 — Database foundation",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-07T17:24:00.000Z",
+      "development_phase": "GOVERNANCE",
+      "execution_mode": "GOVERNANCE"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "b322cf4bf54e395f3cefe0e22ef4da0f2acfb739",
+      "source_branch": "task/SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-003.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-003.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-004.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-004.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 2,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-003",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-003-OPEN-REVIEW-PR",
+          "payload_sha256": "b525ccecb6c545231b9a0fb2d4c7924573c87d6ecbf84ccb31e193c07812eb58",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-004.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-004.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-004.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-DATABASE-FOUNDATION-001-20261007-004.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "OPEN",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "OWNER_EXACT_HEAD_AUTHORIZATION_REQUIRED",
+      "stateless_recovery_context": {
+        "verified_task_head": "18e2b5035e3038c343caff0c4e9f74cd63ae7c15",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-07T17:24:00.000Z",
+        "pull_request_number": 17,
+        "pull_request_state": "OPEN",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step8_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step9_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step10_status": "PREPARED_FOR_EXACT_HEAD_OWNER_AUTHORIZATION",
+        "step11_status": "NOT_STARTED",
+        "deployment_status": "NOT_DEPLOYED",
+        "two_phase_merge_preparation_evidence": {
+          "pr_number": 17,
+          "prepare_purpose": "PREPARE_STEP10_EXACT_HEAD_FOR_OWNER_AUTHORIZATION",
+          "prepare_base_sha": "b322cf4bf54e395f3cefe0e22ef4da0f2acfb739",
+          "prepare_source_head_sha": "18e2b5035e3038c343caff0c4e9f74cd63ae7c15",
+          "required_merge_method": "STANDARD_MERGE_COMMIT",
+          "squash_allowed": false,
+          "rebase_allowed": false,
+          "force_push_allowed": false,
+          "owner_merge_authorization": "NOT_YET_GRANTED",
+          "step10_implementation": "PASS",
+          "step10_repairs": "PASS",
+          "step10_security_review": "PASS",
+          "step10_tests": "PASS",
+          "prepared_head_sha": "PENDING",
+          "prepared_head_tree_sha": "PENDING",
+          "prepared_push_ci": "PENDING",
+          "prepared_pr_ci": "PENDING",
+          "merge_result": "PENDING"
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "0f4ecc54f1c99c2333454a2bddee77619b9b17d1ad2c27021053433546a42a7e",
+    "sealed_at": "2026-10-07T17:24:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}
