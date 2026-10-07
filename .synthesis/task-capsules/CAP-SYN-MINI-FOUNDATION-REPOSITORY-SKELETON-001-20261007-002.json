@@ -1,0 +1,201 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-002",
+    "task_id": "SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-002-IMPLEMENT-MINIMAL-SKELETON",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "7/60 — Repository skeleton",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-07T05:50:00.000Z",
+      "development_phase": "IMPLEMENT",
+      "execution_mode": "IMPLEMENT"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "9fbaaf652b75ae1f5bf4cf03481c860f754e9969",
+      "source_branch": "task/SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-001.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-001.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-002.json",
+        "apps/README.md",
+        "contracts/README.md",
+        "core/README.md",
+        "docs/README.md",
+        "modules/README.md",
+        "packages/README.md",
+        "project-packs/README.md",
+        "scripts/README.md",
+        "sdk/README.md",
+        "tests/README.md"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 12,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-001",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-001-DISCOVER-PLAN-AND-SEAL",
+          "payload_sha256": "6c1c426a7244ef011d2b18cf689f6882247714c5c98a87a6f70a6aba2c68de2e",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-002.json",
+        "apps/README.md",
+        "contracts/README.md",
+        "core/README.md",
+        "docs/README.md",
+        "modules/README.md",
+        "packages/README.md",
+        "project-packs/README.md",
+        "scripts/README.md",
+        "sdk/README.md",
+        "tests/README.md"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-20261007-002.json",
+        "apps/README.md",
+        "contracts/README.md",
+        "core/README.md",
+        "docs/README.md",
+        "modules/README.md",
+        "packages/README.md",
+        "project-packs/README.md",
+        "scripts/README.md",
+        "sdk/README.md",
+        "tests/README.md"
+      ],
+      "commit_sha": "0fd022c372a7cb53881237d74d984005edceb4a4",
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "CMD-SYN-MINI-FOUNDATION-REPOSITORY-SKELETON-001-003-OPEN-REVIEW-PR",
+      "stateless_recovery_context": {
+        "verified_task_head": "0fd022c372a7cb53881237d74d984005edceb4a4",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-07T05:50:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_CREATED",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "MINIMAL_SKELETON_IMPLEMENTED_ON_TASK_BRANCH",
+        "step8_status": "NOT_STARTED",
+        "deployment_status": "NOT_DEPLOYED",
+        "atomic_group_id": "STEP7-MINIMAL-SKELETON-V1",
+        "planning_correction": {
+          "subject": "prisma",
+          "previous_reference": "STEP_17",
+          "corrected_reference": "STEP_10_DATABASE_FOUNDATION",
+          "decision": "DEFER",
+          "effect_on_cmd002_scope": "NONE",
+          "historical_cap001_rewritten": false
+        },
+        "governance_layer_decision": "MAP_TO_EXISTING_AUTHORITY",
+        "authoritative_state_root": ".synthesis/",
+        "authoritative_tooling_root": "scripts/governance/",
+        "duplicate_governance_root": "REJECTED",
+        "prisma_root": "DEFERRED_TO_STEP_10_DATABASE_FOUNDATION",
+        "step8_exclusions": [
+          "No runtime execution logic",
+          "No package.json or dependencies installation",
+          "No TypeScript / tsconfig.json setup",
+          "No linting / formatting config",
+          "No build system / bundler config",
+          "No database schemas / Prisma initialization",
+          "No API routes or authentication implementation",
+          "No deep domain trees"
+        ]
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "244a904cdd49a4eaad5e507cba0105ef33b02602d37cac1f0979a51e700e04f6",
+    "sealed_at": "2026-10-07T05:50:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}
