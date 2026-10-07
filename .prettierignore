@@ -1,0 +1,20 @@
+node_modules/
+dist/
+coverage/
+.synthesis/
+scripts/governance/
+.github/
+package-lock.json
+tsconfig.json
+
+# Historical Step7 repository skeleton documentation files (immutable boundary)
+apps/README.md
+contracts/README.md
+core/README.md
+docs/README.md
+modules/README.md
+packages/README.md
+project-packs/README.md
+scripts/README.md
+sdk/README.md
+tests/README.md

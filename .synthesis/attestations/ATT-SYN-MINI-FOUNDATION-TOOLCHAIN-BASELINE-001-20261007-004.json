@@ -1,0 +1,25 @@
+{
+  "format_version": "1.0.0",
+  "record_kind": "LINKED_CAPSULE_FILE_ATTESTATION",
+  "attestation_id": "ATT-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-004",
+  "status": "OBSERVED_UNANCHORED",
+  "observed_at_utc": "2026-10-07T08:08:00.000Z",
+  "source_repository": "jirisar7-eng/synthesis-cms-mini",
+  "genesis_anchor_reference": {
+    "genesis_file": ".synthesis/lineage/genesis.json",
+    "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+  },
+  "parent_attestation": {
+    "attestation_id": "ATT-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-003",
+    "file_path": ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-003.json",
+    "raw_file_sha256": "7202a4007394c550f859adb642204d21eec8d7d34b395124bee2e7bbde6a89f7"
+  },
+  "new_capsule": {
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-004",
+    "file_path": ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-004.json",
+    "payload_sha256": "df8e22beea268818bd75ddf6fd809d0e59e2e0f41667889460ce5ef8dc9d2497",
+    "raw_file_sha256": "944509fbc4f0a59c12c30ce944906ec68f345cf1f4a7bcd7cd4ce2a77263a120",
+    "git_blob_sha": "674320d9dabffd49a8bf5b393e44a0362008d366",
+    "file_size_bytes": 6908
+  }
+}
