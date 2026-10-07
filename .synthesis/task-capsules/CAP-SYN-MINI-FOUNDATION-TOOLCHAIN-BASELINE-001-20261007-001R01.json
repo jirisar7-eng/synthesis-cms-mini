@@ -1,0 +1,262 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-001R01",
+    "task_id": "SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-001R01-REPAIR-LOCKED-VERSION-PLAN",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "8/60 \u2014 Toolchain baseline",
+    "actors": {
+      "owner": "Ji\u0159\u00ed \u0160\u00e1r",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-07T07:15:00.000Z",
+      "development_phase": "PLAN",
+      "execution_mode": "PLAN"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "42ba4f958ad54c6f5b2222e75a3a958c368970e2",
+      "source_branch": "task/SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-001.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-001.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-001R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-001R01.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 2,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-001",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-001-DISCOVER-PLAN-AND-SEAL",
+          "payload_sha256": "6922d14726d0b0181b3e228a1d056d9885f49de78ebbd6dd9b390478a61a8288",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [
+          "CAP-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-001"
+        ],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-001R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-001R01.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-001R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-001R01.json"
+      ],
+      "commit_sha": "23559b7fac8cddb6eceb75ad4368cd0f268a5601",
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "CMD-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-002-IMPLEMENT-BASELINE-CONFIGS",
+      "stateless_recovery_context": {
+        "verified_task_head": "23559b7fac8cddb6eceb75ad4368cd0f268a5601",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-07T07:15:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_CREATED",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step8_status": "PREFLIGHT_REPAIRED_AND_LOCKED",
+        "step9_status": "NOT_STARTED",
+        "step10_status": "NOT_STARTED",
+        "deployment_status": "NOT_DEPLOYED",
+        "plan_repair_audit": {
+          "plan_repair_reason": "VERSION_LOCKING_REQUIRED",
+          "historical_cap001_rewritten": false,
+          "corrections": {
+            "node_version_old": ">=22.0.0",
+            "node_version_repaired_exact": "22.23.3",
+            "npm_version_old": ">=10.0.0",
+            "npm_version_repaired_exact": "10.9.9",
+            "typescript_version_old": "^5.6.0",
+            "typescript_version_repaired_exact": "6.0.3",
+            "eslint_version_repaired_exact": "10.10.0",
+            "eslint_js_version_repaired_exact": "10.0.1",
+            "typescript_eslint_version_repaired_exact": "8.71.0",
+            "prettier_version_repaired_exact": "3.9.9",
+            "prisma_previous_reference": "STEP_17",
+            "prisma_corrected_reference": "STEP_10_DATABASE_FOUNDATION",
+            "effect_on_step8_scope": "NONE"
+          },
+          "verified_upstream_metadata": {
+            "node_runtime_baseline": "22.23.3 (22.x LTS)",
+            "npm_package_manager": "10.9.9 (engines: ^18.17.0 || >=20.5.0, integrity: sha512-1g+6jLQvaIuB4zwvHL7yrXuXcWZwDsCtBX8bbWDqbvJSSr9nPiDDWTHNgwXR27iIcTTW7v3A57hDW9RYv2W4Yg==)",
+            "typescript_package": "6.0.3 (engines: >=14.17, integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==)",
+            "eslint_package": "10.10.0 (engines: ^20.19.0 || ^22.13.0 || >=24, peerDependencies: jiti: *, integrity: sha512-NPXn6r5zl4uET1DAVPaOwzX3rut4c0wcmw3dWJAfOsTM5+TogXo0DDjz8pwm/hL8cyVNpHqeK4JpN0NjnyFFNw==)",
+            "eslint_js_package": "10.0.1 (engines: ^20.19.0 || ^22.13.0 || >=24, peerDependencies: eslint: ^10.0.0, integrity: sha512-zeR9k5pd4gxjZ0abRoIaxdc7I3nDktoXZk2qOv9gCNWx3mVwEn32VRhyLaRsDiJjTs0xq/T8mfPtyuXu7GWBcA==)",
+            "typescript_eslint_package": "8.71.0 (engines: ^18.18.0 || ^20.9.0 || >=21.1.0, peerDependencies: eslint: ^8.57.0 || ^9.0.0 || ^10.0.0, typescript: >=4.8.4 <6.1.0, integrity: sha512-fBdHYiqQ14RW6mOMXD14Svn82ZsCYAoQSzGRzyEjR59S5A2Krh/l7fGTOQ7iCr8gGy/mHVXtEF7s5fgjEdV0Pw==)",
+            "prettier_package": "3.9.9 (engines: >=14, integrity: sha512-Z/CJHIkdujO/OtN7nXUii0Rf3VT5SRuhjBA82Xvu2XhBUgX3nhP67T0LHceBdQLex7OOFGTox+Q5Yg8Jk2Qivg==)"
+          },
+          "runtime_and_security_policies": {
+            "node_version_file": ".node-version (exact: 22.23.3)",
+            "package_json_engines": "engines.node = \">=22.13.0 <23\" (runtime guard)",
+            "package_json_package_manager": "packageManager = \"npm@10.9.9\" (exact pin)",
+            "npmrc_policy": [
+              "save-exact=true",
+              "package-lock=true",
+              "ignore-scripts=true",
+              "audit=true",
+              "fund=false",
+              "engine-strict=true"
+            ],
+            "dependency_version_policy": {
+              "direct_dependencies": "EXACT_VERSION_ONLY",
+              "dev_dependencies": "EXACT_VERSION_ONLY",
+              "lockfile": "MANDATORY",
+              "floating_versions": "FORBIDDEN",
+              "wildcard_versions": "FORBIDDEN",
+              "clean_install_command": "npm ci --ignore-scripts",
+              "lockfile_generation_command": "npx --yes npm@10.9.9 install --package-lock-only --ignore-scripts"
+            },
+            "workspace_decision": "Single private root package; optional workspace globs declared for future monorepo without child packages",
+            "typescript_compiler_baseline": {
+              "target": "ES2022",
+              "module": "NodeNext",
+              "moduleResolution": "NodeNext",
+              "strict": true,
+              "noUncheckedIndexedAccess": true,
+              "exactOptionalPropertyTypes": true,
+              "isolatedModules": true,
+              "verbatimModuleSyntax": true,
+              "forceConsistentCasingInFileNames": true,
+              "skipLibCheck": true,
+              "noEmit": true,
+              "strategy": "Strict compiler configuration validly supporting zero current TS files without placeholders"
+            },
+            "eslint_baseline": {
+              "config_file": "eslint.config.mjs (flat config)",
+              "parser": "typescript-eslint",
+              "rules": "Strict type-checked; historical governance files (.synthesis/**, scripts/governance/**) excluded"
+            },
+            "prettier_baseline": {
+              "config_files": [
+                ".prettierrc",
+                ".prettierignore",
+                ".editorconfig"
+              ],
+              "style": "semi=true, singleQuote=false, tabWidth=2, printWidth=100"
+            },
+            "scripts_runner_baseline": [
+              "build",
+              "typecheck",
+              "lint",
+              "lint:fix",
+              "format:check",
+              "format",
+              "test",
+              "verify"
+            ]
+          },
+          "repaired_proposed_cmd002_files": [
+            "package.json",
+            "package-lock.json",
+            ".node-version",
+            ".npmrc",
+            "tsconfig.json",
+            "eslint.config.mjs",
+            ".prettierrc",
+            ".prettierignore",
+            ".editorconfig",
+            ".gitignore"
+          ],
+          "proposed_cmd002_file_count": 10,
+          "expected_cmd002_total_scope": 12,
+          "step_exclusions": [
+            "STEP9_NOT_STARTED: No env/config contract",
+            "STEP10_NOT_STARTED: No Prisma or database foundation",
+            "STEP11_NOT_STARTED: No full CI baseline",
+            "No application runtime logic",
+            "No framework installation (Next.js, Vite, React, Express)",
+            "No API routes or authentication implementation",
+            "No deployment changes"
+          ]
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "7cb3e41bd5c2ea5bc47747420cf53da3f8fcac1c22e8cd3f308c25c472791861",
+    "sealed_at": "2026-10-07T07:15:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}
