@@ -1,0 +1,213 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-002",
+    "task_id": "SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-002-IMPLEMENT-BASELINE-CONFIGS",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "8/60 \u2014 Toolchain baseline",
+    "actors": {
+      "owner": "Ji\u0159\u00ed \u0160\u00e1r",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-07T07:35:00.000Z",
+      "development_phase": "IMPLEMENT",
+      "execution_mode": "IMPLEMENT"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "42ba4f958ad54c6f5b2222e75a3a958c368970e2",
+      "source_branch": "task/SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-001R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-001R01.json"
+      ],
+      "permitted_write_paths": [
+        ".editorconfig",
+        ".gitignore",
+        ".node-version",
+        ".npmrc",
+        ".prettierignore",
+        ".prettierrc",
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-002.json",
+        "eslint.config.mjs",
+        "package-lock.json",
+        "package.json",
+        "tsconfig.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 12,
+      "max_read_files_limit": 15
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-001R01",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-001R01-REPAIR-LOCKED-VERSION-PLAN",
+          "payload_sha256": "7cb3e41bd5c2ea5bc47747420cf53da3f8fcac1c22e8cd3f308c25c472791861",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".editorconfig",
+        ".gitignore",
+        ".node-version",
+        ".npmrc",
+        ".prettierignore",
+        ".prettierrc",
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-002.json",
+        "eslint.config.mjs",
+        "package-lock.json",
+        "package.json",
+        "tsconfig.json"
+      ],
+      "actual_changed_files": [
+        ".editorconfig",
+        ".gitignore",
+        ".node-version",
+        ".npmrc",
+        ".prettierignore",
+        ".prettierrc",
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-002.json",
+        "eslint.config.mjs",
+        "package-lock.json",
+        "package.json",
+        "tsconfig.json"
+      ],
+      "commit_sha": "ee9046b7ce1b436cb3fe33a6c51196cd00f19817",
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "CMD-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-003-OPEN-REVIEW-PR",
+      "stateless_recovery_context": {
+        "verified_task_head": "ee9046b7ce1b436cb3fe33a6c51196cd00f19817",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-07T07:35:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_CREATED",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step8_status": "BASELINE_CONFIGS_IMPLEMENTED_ON_TASK_BRANCH",
+        "step9_status": "NOT_STARTED",
+        "step10_status": "NOT_STARTED",
+        "deployment_status": "NOT_DEPLOYED",
+        "toolchain_baseline_implementation": {
+          "atomic_group_id": "STEP8-ATOMIC-TOOLCHAIN-BASELINE-V1",
+          "files_created": [
+            ".editorconfig",
+            ".gitignore",
+            ".node-version",
+            ".npmrc",
+            ".prettierignore",
+            ".prettierrc",
+            ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-002.json",
+            ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-TOOLCHAIN-BASELINE-001-20261007-002.json",
+            "eslint.config.mjs",
+            "package-lock.json",
+            "package.json",
+            "tsconfig.json"
+          ],
+          "total_file_count": 12,
+          "locked_versions": {
+            "node": "22.23.3",
+            "npm": "10.9.9",
+            "typescript": "6.0.3",
+            "eslint": "10.10.0",
+            "eslint_js": "10.0.1",
+            "typescript_eslint": "8.71.0",
+            "prettier": "3.9.9"
+          },
+          "policies_enforced": {
+            "engines_strict": true,
+            "save_exact": true,
+            "ignore_scripts": true,
+            "audit": true,
+            "package_lock": true
+          }
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "06d2cfe09ed4b7aedf056eff128cf90da8d5b6ff7911a026368b7e885e3f6476",
+    "sealed_at": "2026-10-07T07:35:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}
