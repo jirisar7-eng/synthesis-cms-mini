@@ -1,11 +1,11 @@
 /**
- * Synthesis CMS mini — Database Contract Test Suite
+ * Synthesis CMS mini — Database Environment Contract Tests
  *
- * Covers:
- * - Valid postgresql:// connection URL parsing
- * - Valid postgres:// connection URL parsing
- * - Missing required database URL detection (EnvironmentValidationError)
- * - Malformed database URL rejection (DatabaseValidationError)
+ * Scenarios:
+ * - Valid postgresql connection URL acceptance
+ * - Valid postgres connection URL acceptance
+ * - Missing required database URL (EnvironmentValidationError)
+ * - Malformed database URL format rejection (DatabaseValidationError)
  * - Insecure / foreign protocol rejection (DatabaseValidationError)
  * - Secret credential redaction in errors (passwords never leak in error messages/reasons/serialization)
  * - Unrelated host environment variables ignored
@@ -25,6 +25,7 @@ import {
 import {
   type EnvSource,
   EnvironmentValidationError,
+  type ValidationErrorCode,
   projectPublicEnvironment,
   validateEnvironment,
 } from "../../contracts/src/env/index.ts";
@@ -47,12 +48,15 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-function assertThrowsEnv(fn: () => void, expectedCode?: string): EnvironmentValidationError {
+function assertThrowsEnv(
+  fn: () => void,
+  expectedCode?: ValidationErrorCode,
+): EnvironmentValidationError {
   try {
     fn();
   } catch (err) {
     if (err instanceof EnvironmentValidationError) {
-      if (expectedCode !== undefined && (err.code as string) !== expectedCode) {
+      if (expectedCode !== undefined && err.code !== expectedCode) {
         throw new Error(
           `Expected EnvironmentValidationError code "${expectedCode}", but got "${err.code}" (${err.message})`,
         );
@@ -74,7 +78,7 @@ function assertThrowsDb(
     fn();
   } catch (err) {
     if (err instanceof DatabaseValidationError) {
-      if (expectedCode !== undefined && (err.code as string) !== (expectedCode as string)) {
+      if (expectedCode !== undefined && !Object.is(err.code, expectedCode)) {
         throw new Error(
           `Expected DatabaseValidationError code "${expectedCode}", but got "${err.code}" (${err.message})`,
         );
@@ -171,7 +175,6 @@ runScenario("06 secret credentials redaction in errors", () => {
   const sensitiveSentinel = "SUPER_SECRET_COMPLEX_PASSWORD_9988776655";
   const invalidUrlWithSecret = `http://user:${sensitiveSentinel}@localhost:5432/db`;
   const source: EnvSource = { [DATABASE_URL_VARIABLE_NAME]: invalidUrlWithSecret };
-
   const err = assertThrowsDb(
     () => validateDatabaseEnvironment(source),
     "INVALID_DATABASE_URL_FORMAT",
@@ -227,9 +230,11 @@ runScenario("09 returned database configuration is frozen", () => {
   };
   const config = validateDatabaseEnvironment(source);
   assert(
-    typeof config[DATABASE_URL_VARIABLE_NAME] === "string",
-    "Validated database config must have database URL",
+    typeof config[DATABASE_URL_VARIABLE_NAME] === "string" &&
+      config[DATABASE_URL_VARIABLE_NAME] === "postgresql://u:p@localhost:5432/db",
+    "Validated database config must contain valid database URL",
   );
+  assert(Object.isFrozen(config) === true, "Returned database configuration must be frozen");
 });
 
 // Scenario 10: Database secret is never projectable to public environment

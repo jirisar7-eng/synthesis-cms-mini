@@ -97,9 +97,11 @@ export function validateDatabaseEnvironment(source: EnvSource): ValidatedDatabas
     if (parsed.protocol !== "postgresql:" && parsed.protocol !== "postgres:") {
       throw new Error("Invalid protocol");
     }
+
     if (!parsed.hostname || parsed.hostname.trim() === "") {
       throw new Error("Missing database hostname");
     }
+
     if (parsed.pathname === "" || parsed.pathname === "/") {
       throw new Error("Missing database name");
     }
@@ -111,7 +113,9 @@ export function validateDatabaseEnvironment(source: EnvSource): ValidatedDatabas
     );
   }
 
-  return {
+  const databaseConfig: ValidatedDatabaseConfig = {
     SYNTHESIS_SECRET_DATABASE_URL: rawUrl,
   };
+
+  return Object.freeze(databaseConfig);
 }
