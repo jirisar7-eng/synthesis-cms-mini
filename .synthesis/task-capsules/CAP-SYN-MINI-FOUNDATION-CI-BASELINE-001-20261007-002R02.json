@@ -1,0 +1,173 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-002R02",
+    "task_id": "SYN-MINI-FOUNDATION-CI-BASELINE-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-CI-BASELINE-001-002R02-REPAIR-DATABASE-TEST-LINT-ERROR",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "11/60 — CI baseline",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-07T18:39:00.000Z",
+      "development_phase": "IMPLEMENT",
+      "execution_mode": "GOVERNANCE"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "ca229e5aa8ef979e756001d02be6c291c4002fe0",
+      "source_branch": "task/SYN-MINI-FOUNDATION-CI-BASELINE-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-002R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-002R01.json"
+      ],
+      "permitted_write_paths": [
+        "tests/database/database.contract.test.ts",
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-002R02.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-002R02.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 3,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-002R01",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-CI-BASELINE-001-002R01-REPAIR-DUPLICATE-WORKFLOW-JOBS",
+          "payload_sha256": "5778ce246591a65d2e6a559664f0d3ba695010a04c18da6090714b58f25b97b7",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [
+          "CAP-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-002R01"
+        ],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        "tests/database/database.contract.test.ts",
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-002R02.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-002R02.json"
+      ],
+      "actual_changed_files": [
+        "tests/database/database.contract.test.ts",
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-002R02.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-002R02.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "CMD-SYN-MINI-FOUNDATION-CI-BASELINE-001-003-OPEN-REVIEW-PR",
+      "stateless_recovery_context": {
+        "verified_task_head": "77ba249ef87b5896236d045e5751ef86f2394c77",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-07T18:39:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_CREATED",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step8_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step9_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step10_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step11_status": "PRODUCT_LINT_REPAIRED_ON_TASK_BRANCH",
+        "step12_status": "NOT_STARTED",
+        "deployment_status": "NOT_DEPLOYED",
+        "step11_repair_evidence": {
+          "failed_head_sha": "77ba249ef87b5896236d045e5751ef86f2394c77",
+          "failed_ci_run": 37667341878,
+          "governance_job_previous_status": "SUCCESS",
+          "product_job_previous_status": "FAILURE",
+          "product_failure_step": "LINT",
+          "root_cause": "PRE_EXISTING_UNNECESSARY_BOOLEAN_LITERAL_COMPARISON",
+          "root_cause_file": "tests/database/database.contract.test.ts",
+          "root_cause_line_at_failed_head": 237,
+          "lint_rule_suppression_used": false,
+          "workflow_changed": false,
+          "eslint_config_changed": false,
+          "database_config_freeze_assertion_preserved": true,
+          "env_test_scenarios": 29,
+          "database_test_scenarios": 10,
+          "total_test_scenarios": 39
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "3d83a645bc915c0ac7b91f0f8af67b2f5eaea504ef4edd4f889b7aa1cbe1776e",
+    "sealed_at": "2026-10-07T18:39:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}

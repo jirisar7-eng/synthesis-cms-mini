@@ -234,7 +234,7 @@ runScenario("09 returned database configuration is frozen", () => {
       config[DATABASE_URL_VARIABLE_NAME] === "postgresql://u:p@localhost:5432/db",
     "Validated database config must contain valid database URL",
   );
-  assert(Object.isFrozen(config) === true, "Returned database configuration must be frozen");
+  assert(Object.isFrozen(config), "Returned database configuration must be frozen");
 });
 
 // Scenario 10: Database secret is never projectable to public environment
