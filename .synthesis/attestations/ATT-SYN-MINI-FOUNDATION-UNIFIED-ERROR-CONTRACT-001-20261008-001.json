@@ -1,0 +1,25 @@
+{
+  "format_version": "1.0.0",
+  "record_kind": "LINKED_CAPSULE_FILE_ATTESTATION",
+  "attestation_id": "ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261008-001",
+  "status": "OBSERVED_UNANCHORED",
+  "observed_at_utc": "2026-10-08T20:00:00.000Z",
+  "source_repository": "jirisar7-eng/synthesis-cms-mini",
+  "genesis_anchor_reference": {
+    "genesis_file": ".synthesis/lineage/genesis.json",
+    "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+  },
+  "parent_attestation": {
+    "attestation_id": "ATT-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-006R01",
+    "file_path": ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-006R01.json",
+    "raw_file_sha256": "be60e19b39bab0f6333ac7cff36385afbb83edff27a10dea39282caa8da5aa89"
+  },
+  "new_capsule": {
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261008-001",
+    "file_path": ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261008-001.json",
+    "payload_sha256": "f20ebf39800cdde1a43522b38dd2563c2d9f14c2f84fa2239e8cc46c2856efe8",
+    "raw_file_sha256": "a24ffb903a124dd537ea052c8b409858490c25aeb94e39ad27b4c92c15bb0b2f",
+    "git_blob_sha": "9f9341f4f4d400c8bc1c267d4c472cb69588e333",
+    "file_size_bytes": 9059
+  }
+}
