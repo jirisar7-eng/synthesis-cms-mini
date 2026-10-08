@@ -1,0 +1,196 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-001",
+    "task_id": "SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-001-DISCOVER-DEPENDENCY-REPAIR-AND-SEAL",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "12/60 — Clean-install/bootstrap",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-08T12:24:00.000Z",
+      "development_phase": "PLAN",
+      "execution_mode": "GOVERNANCE"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "80c162bca3410351ba8be376f4aaeee301cc926e",
+      "source_branch": "task/SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-004.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-004.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-001.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-001.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 2,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-CI-BASELINE-001-20261007-004",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-CI-BASELINE-001-004-TWO-PHASE-STEP11-MERGE",
+          "payload_sha256": "b7a8c70439f8abef333e83d8aa87a6a552c6f8c860f3cc499a97f87d210b9678",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-001.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-001.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-001.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-001.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "STEP12_ROADMAP_DEPENDENCY_REPAIR",
+      "stateless_recovery_context": {
+        "verified_task_head": "80c162bca3410351ba8be376f4aaeee301cc926e",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-08T12:24:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_CREATED",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step8_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step9_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step10_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step11_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step12_status": "DISCOVERY_AND_DEPENDENCY_DECISION_RECORDED",
+        "step13_status": "NOT_STARTED",
+        "deployment_status": "NOT_DEPLOYED",
+        "implementation_gate": "HOLD",
+        "step12_discovery_record": {
+          "canonical_step12_acceptance": "Verify installation from an empty environment including DB migration, bootstrap owner account, health check (Milestone B).",
+          "current_prisma_state": "Prisma CLI 7.10.0, PostgreSQL datasource, 0 models, 0 generators, 0 migrations, no @prisma/client dependency",
+          "current_migration_state": "Zero migrations (prisma/migrations does not exist)",
+          "current_runtime_state": "No CMS application server or runtime implemented (only README placeholders in apps/ and core/)",
+          "current_identity_state": "No Users foundation (canonical Users foundation is Step 25, Password + Login is Step 26)",
+          "current_health_state": "No HTTP health/readiness endpoint implemented",
+          "db_migration_implementable_now": false,
+          "owner_bootstrap_implementable_now": false,
+          "application_health_implementable_now": false,
+          "step12_roadmap_conflicts": [
+            "DB migration content requires domain models (Users, Settings, Content) not yet defined in schema",
+            "Owner account persistence requires Users foundation (Step 25) and Password/Auth semantics (Step 26)",
+            "Application health check requires an application runtime/server not yet created"
+          ],
+          "step12_dependency_decision": "STEP12_DEPENDENCY_REPAIR_REQUIRED",
+          "proposed_step12_ownership": "Deterministic clean-install orchestration, clean-environment preflight, exact toolchain verification, config/secrets validation, database readiness, audited forward migration execution mechanism, bootstrap participant mechanism, install state/result, installer self-check, clean-environment CI harness",
+          "proposed_migration_ownership": "Step 12 owns migration execution mechanism; domain migration content is owned by modules/features introducing domain models",
+          "proposed_owner_bootstrap_ownership": "Step 12 owns bootstrap participant hook/orchestration; Step 25/26 owns persisted Owner/User model and credential/auth semantics",
+          "proposed_health_ownership": "Step 12 owns installer self-check and DB readiness; Application runtime owner owns real HTTP readiness/health",
+          "security_invariants": [
+            "fail closed",
+            "no default/shared credentials",
+            "secrets never logged",
+            "bootstrap must eventually be one-time/replay-resistant",
+            "no destructive retry",
+            "no prisma db push",
+            "no prisma migrate reset",
+            "no database drop",
+            "no --accept-data-loss",
+            "migration failure stops install"
+          ],
+          "portability_invariants": [
+            "no hard-coded VPS/IP/domain/path/DB/bucket/secrets",
+            "required CI must not depend on live VPS",
+            "no DEV3/PROD3/CMS_DEV runtime/DB/storage reuse",
+            "no deployment"
+          ],
+          "future_safe_test": {
+            "can_step25_add_owner_without_rewriting_installer": true,
+            "can_future_modules_add_migrations_without_rewriting_installer": true
+          }
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "37a8dd86cc619d941d55c249db3edafe328f1475fa9af22b99c736be56dd3d7e",
+    "sealed_at": "2026-10-08T12:24:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}

@@ -1,0 +1,236 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-003R02",
+    "task_id": "SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-003R02-REPAIR-IMPLEMENTATION-PLAN-SCOPE-AND-CI",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "12/60 — Clean-install/bootstrap framework",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-08T14:55:00.000Z",
+      "development_phase": "PLAN",
+      "execution_mode": "GOVERNANCE"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "80c162bca3410351ba8be376f4aaeee301cc926e",
+      "source_branch": "task/SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-003R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-003R01.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-003R02.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-003R02.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 2,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-003R01",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-003R01-RECOVER-PLAN-CAPSULE-VALIDATION",
+          "payload_sha256": "49bcfbd5c97440881d6db416ff222f07551914c078b1d8a69f23a4f7325e21c3",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-003R02.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-003R02.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-003R02.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-003R02.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "CMD-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-004-IMPLEMENT-FRAMEWORK",
+      "stateless_recovery_context": {
+        "verified_task_head": "bd75f13fd81854d348cef446676a2389967113a8",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-08T14:55:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_CREATED",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step8_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step9_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step10_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step11_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step12_status": "FINAL_IMPLEMENTATION_PLAN_SEALED",
+        "step13_status": "NOT_STARTED",
+        "deployment_status": "NOT_DEPLOYED",
+        "implementation_gate": "OPEN",
+        "plan_repairs_resolved": {
+          "plan_defect_01": "RESOLVED: .github/workflows/genesis-integrity.yml added to CMD004 file scope",
+          "plan_defect_02": "RESOLVED: PostgreSQL integration test isolated in tests/install/clean-install.integration.ts, excluded from npm test",
+          "plan_defect_03": "RESOLVED: core/src/install/prisma-cli.ts added as internal adapter for SELECT 1; probe and forward migrations without runtime drivers",
+          "plan_defect_04": "RESOLVED: Synthetic CI PostgreSQL credentials classified explicitly as EPHEMERAL_TEST_FIXTURES"
+        },
+        "final_framework_implementation_plan": {
+          "canonical_marker": "STEP12_CANONICAL_REPAIR_20261008",
+          "cmd004_product_ci_files": [
+            "core/src/install/installer.ts",
+            "core/src/install/prisma-cli.ts",
+            "tests/install/installer.test.ts",
+            "tests/install/clean-install.integration.ts",
+            ".github/workflows/genesis-integrity.yml"
+          ],
+          "cmd004_product_ci_file_count": 5,
+          "cmd004_evidence_files": [
+            ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-004.json",
+            ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-004.json"
+          ],
+          "cmd004_total_file_count": 7,
+          "expected_cmd004_diff": "6 ADD, 1 MODIFY, 0 DELETE",
+          "db_readiness_command": "echo 'SELECT 1;' | npx --no-install prisma db execute --stdin",
+          "db_readiness_verification": "VERIFIED: Supported by Prisma CLI 7.10.0 using prisma.config.ts and SYNTHESIS_SECRET_DATABASE_URL",
+          "zero_migration_behavior": {
+            "detection": "Inspect prisma/migrations directory existence and migration subdirectories",
+            "current_state_result": "NO_MIGRATIONS_TO_APPLY",
+            "migration_count": 0,
+            "prohibited_commands": [
+              "prisma db push",
+              "prisma migrate reset",
+              "destructive DB drop",
+              "--accept-data-loss"
+            ]
+          },
+          "migration_command": "npx --no-install prisma migrate deploy (executed only when migration_count > 0)",
+          "postgres_ci_image": "postgres:17@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3",
+          "postgres_image_verification": "VERIFIED: Immutable digest queried from official Docker Hub registry API",
+          "ci_fixture_credential_classification": "EPHEMERAL_TEST_FIXTURES",
+          "test_separation": {
+            "unit_contract_test": "tests/install/installer.test.ts (pure unit test with injected fakes, auto-discovered by npm test, zero PostgreSQL dependency)",
+            "integration_test": "tests/install/clean-install.integration.ts (real PostgreSQL integration smoke, explicitly invoked only by Clean Install Bootstrap CI job via node --test)"
+          },
+          "ci_architecture": {
+            "job_name": "clean-install-bootstrap",
+            "display_name": "Clean Install Bootstrap",
+            "runs_on": "ubuntu-24.04",
+            "node_version": "22.23.3",
+            "npm_version": "10.9.9",
+            "install_command": "npm ci --ignore-scripts",
+            "test_command": "node --test tests/install/clean-install.integration.ts",
+            "service_container": {
+              "image": "postgres:17@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3",
+              "env": {
+                "POSTGRES_USER": "synthesis_ci_user",
+                "POSTGRES_PASSWORD": "synthesis_ci_fixture_password",
+                "POSTGRES_DB": "synthesis_ci_db"
+              },
+              "ports": [
+                "5432:5432"
+              ],
+              "options": "--health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5"
+            },
+            "aggregator_gate": {
+              "display_name": "Verify Genesis Integrity",
+              "needs": [
+                "governance-integrity",
+                "product-security-smoke",
+                "clean-install-bootstrap"
+              ],
+              "rule": "FAILS unless all three jobs are exactly success"
+            }
+          },
+          "security_invariants": [
+            "fail closed on any error",
+            "secrets never logged or leaked in error diagnostics",
+            "no default or hardcoded credentials",
+            "deterministic state machine",
+            "no destructive retries or resets",
+            "no live VPS required",
+            "no deployment"
+          ]
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "78538d7f74ff33546d85db2ea3b377ed2db80068c38a1c865ceb62291557462b",
+    "sealed_at": "2026-10-08T14:55:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}

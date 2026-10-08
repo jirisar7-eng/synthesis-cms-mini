@@ -1,0 +1,195 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-006",
+    "task_id": "SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-006-PREPARE-EXACT-HEAD-STEP12-MERGE",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "12/60 — Clean-install/bootstrap framework",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-08T17:25:00.000Z",
+      "development_phase": "GOVERNANCE",
+      "execution_mode": "GOVERNANCE"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "80c162bca3410351ba8be376f4aaeee301cc926e",
+      "source_branch": "task/SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-005.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-005.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-006.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-006.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 2,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-005",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-005-OPEN-REVIEW-PR",
+          "payload_sha256": "637723caba85c6af2a8c2a5bcc2747749187f7d72afeec4de60a9fba24fd0e7d",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-006.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-006.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-006.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-006.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "OPEN",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "OWNER_EXACT_HEAD_AUTHORIZATION_REQUIRED",
+      "stateless_recovery_context": {
+        "verified_task_head": "2b5072ea0e3702ead123c82da1d6be7975d36e36",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-08T17:25:00.000Z",
+        "pull_request_number": 19,
+        "pull_request_state": "OPEN",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step8_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step9_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step10_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step11_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step12_status": "PREPARED_FOR_EXACT_HEAD_OWNER_AUTHORIZATION",
+        "step13_status": "NOT_STARTED",
+        "deployment_status": "NOT_DEPLOYED",
+        "step12_prepare_record": {
+          "pr_number": 19,
+          "prepare_base_sha": "80c162bca3410351ba8be376f4aaeee301cc926e",
+          "prepare_source_head_sha": "2b5072ea0e3702ead123c82da1d6be7975d36e36",
+          "prepare_source_tree_sha": "7b0b457516d01dc4555026a408756821ed0c54bb",
+          "required_merge_method": "STANDARD_MERGE_COMMIT",
+          "squash_allowed": false,
+          "rebase_allowed": false,
+          "force_push_allowed": false,
+          "owner_merge_authorization": "NOT_YET_GRANTED",
+          "step12_implementation": "PASS",
+          "step12_repairs": "PASS",
+          "finding_1_resolved": "PASS",
+          "finding_2_resolved": "PASS",
+          "push_ci_run": 37812951821,
+          "pr_ci_run": 37813241442,
+          "ci_architecture": "PARALLEL_FAIL_CLOSED",
+          "governance_job": "Governance Integrity",
+          "product_job": "Product Security Smoke",
+          "clean_install_job": "Clean Install Bootstrap",
+          "required_gate": "Verify Genesis Integrity",
+          "global_governance_health": "PASS",
+          "step13_status": "NOT_STARTED",
+          "deployment_status": "NOT_DEPLOYED"
+        },
+        "two_phase_merge_intent": {
+          "phase": "PREPARE_ONLY",
+          "pr_number": 19,
+          "pr_state": "OPEN",
+          "pr_merged": false,
+          "pr_base_sha": "80c162bca3410351ba8be376f4aaeee301cc926e",
+          "starting_head_sha": "2b5072ea0e3702ead123c82da1d6be7975d36e36",
+          "current_verified_push_ci": 37812951821,
+          "current_verified_pr_ci": 37813241442,
+          "required_merge_method": "STANDARD_MERGE_COMMIT",
+          "forbidden_merge_methods": [
+            "SQUASH",
+            "REBASE"
+          ],
+          "owner_exact_final_head_merge_authorization": "PENDING",
+          "merge_result": "PENDING_NOT_MERGED",
+          "semantic_rule": "The CAP006 + ATT006 PREPARE_ONLY commit will advance PR #19. The resulting exact final PR HEAD is unknown at seal time. Merge execution is forbidden until that final HEAD receives fresh push CI and fresh pull_request CI and the owner explicitly authorizes that exact PR/base/head/method."
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "26f18397e3152d4f8a3ad84ec97587475b48ac395b4cafc65da3ab9207f57294",
+    "sealed_at": "2026-10-08T17:25:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}
