@@ -1,0 +1,231 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-002",
+    "task_id": "SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-002-ROADMAP-DEPENDENCY-REPAIR",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "12/60 — Clean-install/bootstrap",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-08T13:05:00.000Z",
+      "development_phase": "GOVERNANCE",
+      "execution_mode": "GOVERNANCE"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "80c162bca3410351ba8be376f4aaeee301cc926e",
+      "source_branch": "task/SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-001.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-001.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-002.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 2,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-001",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-001-DISCOVER-DEPENDENCY-REPAIR-AND-SEAL",
+          "payload_sha256": "37a8dd86cc619d941d55c249db3edafe328f1475fa9af22b99c736be56dd3d7e",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-002.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-002.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "EXTERNAL_CANONICAL_ROADMAP_WRITEBACK_AND_VERIFY",
+      "stateless_recovery_context": {
+        "verified_task_head": "df9c68a61852ce64a6889f5a8fd9aa31053bbd58",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-08T13:05:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_CREATED",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step8_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step9_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step10_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step11_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step12_status": "ROADMAP_DEPENDENCY_REPAIR_SEALED",
+        "step13_status": "NOT_STARTED",
+        "deployment_status": "NOT_DEPLOYED",
+        "roadmap_repair_record": {
+          "roadmap_repair_status": "SEALED_PENDING_EXTERNAL_CANONICAL_WRITEBACK",
+          "step12_canonical_name": "Clean-install/bootstrap framework",
+          "step12_implementation_gate": "HOLD_UNTIL_CANONICAL_WRITEBACK_VERIFIED",
+          "milestone_b_status": "FOUNDATION_DEFINITION_REPAIRED_NOT_IMPLEMENTED",
+          "step12_ownership": [
+            "deterministic clean-environment installation orchestration",
+            "exact toolchain preflight",
+            "config/secrets validation",
+            "clean DB/readiness checks",
+            "execution of the CURRENT audited forward-migration set",
+            "bootstrap-participant orchestration",
+            "install state/result contract",
+            "installer self-check",
+            "clean-environment CI harness"
+          ],
+          "step12_non_ownership": [
+            "domain DB models",
+            "domain migration content",
+            "persisted User/Owner model",
+            "password/login/session semantics",
+            "permissions",
+            "application HTTP runtime",
+            "fake application health"
+          ],
+          "migration_ownership": {
+            "execution_ownership": "Step12 owns how audited forward migrations are executed.",
+            "content_ownership": "The capability introducing a domain model owns its migration content.",
+            "current_state_truth": "Current repository contains zero models and zero migrations; accepted truthfully with zero fake migrations.",
+            "extensibility_invariant": "Future migration artifacts enter the same stable Step12 execution mechanism without rewriting installer orchestration.",
+            "forbidden_operations": [
+              "prisma db push",
+              "prisma migrate reset",
+              "destructive DB reset/drop",
+              "--accept-data-loss"
+            ]
+          },
+          "owner_bootstrap_ownership": {
+            "orchestration_ownership": "Step12 owns only the stable bootstrap-participant mechanism.",
+            "domain_ownership_step25": "Step25 Users foundation owns persisted User/Owner domain model, lifecycle semantics, and real owner persistence participant.",
+            "auth_ownership_step26": "Step26 Password + Login owns password/credential semantics and login/auth initialization.",
+            "schema_restriction": "Step12 MUST NOT create speculative User/Admin schema."
+          },
+          "health_ownership": {
+            "step12_health_scope": [
+              "installer self-check",
+              "configuration readiness",
+              "database reachability/readiness",
+              "install stage/result health"
+            ],
+            "runtime_health_ownership": "Real application HTTP health/readiness belongs to the capability owning runtime (Step54 Diagnostics + Backup/Recovery foundation).",
+            "full_reverification_milestone": "Step60 must reverify full integrated runtime health."
+          },
+          "milestone_b_foundation_definition": "Deterministic clean-install/bootstrap FRAMEWORK is implemented and reproducibly verified against all capabilities that exist at Step12. It proves clean checkout/toolchain reproducibility, configuration/secrets preflight, database readiness, current audited migration-set execution, bootstrap participant lifecycle, installer self-check, and clean-environment CI.",
+          "deferred_integration_gates": {
+            "step25": "register real persisted owner/user bootstrap participant",
+            "step26": "complete credential/login initialization for owner access",
+            "step54": "provide real application health/readiness diagnostics",
+            "step60": "MANDATORY full integrated clean-install acceptance (fresh clone -> exact toolchain -> config/secrets -> clean DB -> all audited migrations -> real owner bootstrap -> application start -> real health/readiness -> admin/login smoke -> remaining release smoke)"
+          },
+          "future_safety_gates": {
+            "can_step25_add_owner_without_rewriting_step12": true,
+            "can_step26_add_auth_without_rewriting_step12": true,
+            "can_future_migrations_run_without_rewriting_step12": true,
+            "can_step54_add_health_without_rewriting_step12": true
+          },
+          "security_and_portability_invariants": {
+            "fail_closed": true,
+            "no_default_shared_credentials": true,
+            "secrets_never_logged": true,
+            "bootstrap_replay_resistant": true,
+            "migration_failure_stops_install": true,
+            "no_destructive_retry": true,
+            "no_live_vps_ci_dependency": true,
+            "no_hardcoded_vps_ip_domain_path_db_bucket_secrets": true,
+            "no_dev3_prod3_cms_dev_reuse": true,
+            "no_deployment": true
+          }
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "9ca74ae33c3de15b8c7a0aaa3dd1cf00871c9c92af922fdbe14fd7c9eef06d7d",
+    "sealed_at": "2026-10-08T13:05:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}
