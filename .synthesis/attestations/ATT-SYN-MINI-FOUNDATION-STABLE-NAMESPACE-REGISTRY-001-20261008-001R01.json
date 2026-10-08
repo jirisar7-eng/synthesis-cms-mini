@@ -1,0 +1,25 @@
+{
+  "format_version": "1.0.0",
+  "record_kind": "LINKED_CAPSULE_FILE_ATTESTATION",
+  "attestation_id": "ATT-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-001R01",
+  "status": "OBSERVED_UNANCHORED",
+  "observed_at_utc": "2026-10-08T18:15:00.000Z",
+  "source_repository": "jirisar7-eng/synthesis-cms-mini",
+  "genesis_anchor_reference": {
+    "genesis_file": ".synthesis/lineage/genesis.json",
+    "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+  },
+  "parent_attestation": {
+    "attestation_id": "ATT-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-001",
+    "file_path": ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-001.json",
+    "raw_file_sha256": "05a8b4b470efef895b93529012aefdd14940c19ba86c76ea9f604bd853641ac6"
+  },
+  "new_capsule": {
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-001R01",
+    "file_path": ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-001R01.json",
+    "payload_sha256": "7c3676ee0b335a940098d54c9fc4ded72b122899de5acb7583c4a2f36f1dae26",
+    "raw_file_sha256": "e3ae1e9b03ba8c3d86c52852646594692e44e7126a828daa0658af5a7c9cf738",
+    "git_blob_sha": "6b766c0088e81d2c2ec3f64f4599120a547f51a3",
+    "file_size_bytes": 17623
+  }
+}

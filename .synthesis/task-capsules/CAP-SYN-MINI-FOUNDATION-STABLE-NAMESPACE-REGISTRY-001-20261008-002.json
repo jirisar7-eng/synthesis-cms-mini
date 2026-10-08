@@ -1,0 +1,218 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-002",
+    "task_id": "SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-002-INDEPENDENT-REPAIRED-PLAN-REVIEW",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "13/60 — Stable namespace registry",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-08T18:25:00.000Z",
+      "development_phase": "GOVERNANCE",
+      "execution_mode": "GOVERNANCE"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "bb711288e3ab61ac2c12830eee5f64cf1dae8043",
+      "source_branch": "task/SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-001R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-001R01.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-002.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 2,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-001R01",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-001R01-REPAIR-NAMESPACE-GRAMMAR-AND-OWNERSHIP-PLAN",
+          "payload_sha256": "7c3676ee0b335a940098d54c9fc4ded72b122899de5acb7583c4a2f36f1dae26",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-002.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-002.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "WAIT_FOR_OWNER_APPROVAL_OF_REPAIRED_STEP13_PLAN",
+      "stateless_recovery_context": {
+        "verified_task_head": "79e1403af57499283fb9d741ff8b15806a940dc7",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-08T18:25:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_OPEN",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step8_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step9_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step10_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step11_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step12_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step13_status": "PLAN_REPAIRED_AND_INDEPENDENTLY_REVIEWED_APPROVED_FOR_OWNER",
+        "step14_status": "NOT_STARTED",
+        "deployment_status": "NOT_DEPLOYED",
+        "independent_adversarial_review_evaluation": {
+          "review_verdict": "APPROVED_FOR_OWNER_REVIEW",
+          "criteria_evaluations": [
+            {
+              "point": 1,
+              "title": "Integration root vs kind homonym resolution",
+              "evaluation": "RESOLVED. The apparent contradiction between integration being an entity kind and also a root ownership segment is resolved by enforcing strict category orthogonality. Root ownership segments govern prefix authority: [core, gov, sys, pack, ext]. All first-party integrations are strictly namespaced under core.integration.* (root=core), and third-party integrations reside under ext.<publisher>.<module>.* (root=ext). The kind integration remains purely an entity discriminator tuple {kind: \"integration\", id: ...}. This guarantees no entity kind serves as an ambiguous root segment.",
+              "status": "PASS"
+            },
+            {
+              "point": 2,
+              "title": "Module ownership/prefix exact-matching rule",
+              "evaluation": "RESOLVED. Defined deterministic rule: identifier.startsWith(module_id + \".\"). For any module with identifier M (e.g. core.installer), all capabilities, permissions, events, and settings registered by M must begin with M. (e.g. core.installer.completed, core.installer.run). The prior divergent example core.install.completed was inconsistent; all events owned by module core.installer must be core.installer.completed.",
+              "status": "PASS"
+            },
+            {
+              "point": 3,
+              "title": "Root-specific arity enforcement",
+              "evaluation": "RESOLVED. While global lexical grammar allows 2–6 segments, root-specific arity rules are enforced by semantic validation: pack requires >= 3 segments (pack.<pack_id>.<subpath>; pack.foo -> REJECT, pack.foo.bar -> ACCEPT); ext requires >= 3 segments (ext.<publisher_id>.<module_id>.*; ext.acme -> REJECT, ext.acme.blog -> ACCEPT); core.integration requires >= 4 segments (core.integration.<category>.<provider>; core.integration.stripe -> REJECT, core.integration.payment.stripe -> ACCEPT). All tested test vectors conform.",
+              "status": "PASS"
+            },
+            {
+              "point": 4,
+              "title": "Identical textual IDs cross-kind policy",
+              "evaluation": "RESOLVED. Primary key in registry data model is the composite tuple (kind, id). While different kinds could theoretically hold the same textual id, identical textual IDs across different kinds are strongly discouraged by convention and disambiguated strictly by kind discriminator. Invariant INV-NAMESPACE-SEPARATION guarantees permissions and entitlements never cross-inherit.",
+              "status": "PASS"
+            },
+            {
+              "point": 5,
+              "title": "Lifecycle states and immutability",
+              "evaluation": "RESOLVED. Lifecycle strictly follows ACTIVE -> DEPRECATED -> RETIRED. Retired IDs are retained permanently in registry tombstones; reuse of retired IDs is rejected fail-closed. Renaming requires registering a new ID and declaring formal supersession of the predecessor.",
+              "status": "PASS"
+            },
+            {
+              "point": 6,
+              "title": "Permission exact-match, fail-closed, and authorization independence",
+              "evaluation": "RESOLVED. Permissions require exact character string matches (no wildcard prefix inheritance). Missing permissions evaluate fail-closed to DENY. Permissions are strictly separated from licensing entitlements. Namespace ownership grants naming authority only; it never conveys runtime authorization or bypasses server-side checks.",
+              "status": "PASS"
+            },
+            {
+              "point": 7,
+              "title": "Preservation of gov.* capabilities and CONTRACT-GOV-* isolation",
+              "evaluation": "RESOLVED. All 5 active governance capabilities (gov.capsule.persistence, gov.capsule.lineage, gov.capsule.cryptographic_seal, gov.scope.diff_firewall, gov.checkpoint.remote_protocol) conform to the canonical grammar (root=gov, 3 segments, lowercase/underscore). CONTRACT-GOV-* contract IDs belong to the governance contract layer and remain strictly distinct from runtime dot-separated namespaces.",
+              "status": "PASS"
+            },
+            {
+              "point": 8,
+              "title": "Third-party isolation under ext.<publisher>.<module>.*",
+              "evaluation": "RESOLVED. Verified that third-party extensions cannot declare identifiers in core.*, gov.*, sys.*, or pack.*. Root segment validator rejects any external attempt to escape the ext.<publisher_id>.<module_id>.* boundary.",
+              "status": "PASS"
+            },
+            {
+              "point": 9,
+              "title": "Test suite matrix coverage",
+              "evaluation": "RESOLVED. Plan specifies comprehensive positive and negative test cases covering: lexical grammar, lowercase enforcement, hyphen rejection, Unicode/space rejection, root validation, arity constraints, namespace escape prevention, lifecycle transitions, and cross-kind isolation.",
+              "status": "PASS"
+            },
+            {
+              "point": 10,
+              "title": "Step 13 scope boundary preservation",
+              "evaluation": "RESOLVED. Step 13 scope is strictly confined to: canonical grammar specification, root ownership taxonomy, 7-kind taxonomy, stable contract definition (CONTRACT-CORE-STABLE-NAMESPACE-001), validator algorithm, and test suite. Strictly excludes Step 14+ Error Contract, Permission Engine, Event Bus, Module Loader, licensing runtime, database schema changes, and API/UI.",
+              "status": "PASS"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "897bfb649191d9ddca27a73004142cb3ebf5c7899717d5ea12a2b277ca806bc4",
+    "sealed_at": "2026-10-08T18:25:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}

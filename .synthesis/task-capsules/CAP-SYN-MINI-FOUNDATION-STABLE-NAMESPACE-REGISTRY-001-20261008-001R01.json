@@ -1,0 +1,316 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-001R01",
+    "task_id": "SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-001R01-REPAIR-NAMESPACE-GRAMMAR-AND-OWNERSHIP-PLAN",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "13/60 — Stable namespace registry",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-08T18:15:00.000Z",
+      "development_phase": "PLAN",
+      "execution_mode": "PLAN"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "bb711288e3ab61ac2c12830eee5f64cf1dae8043",
+      "source_branch": "task/SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-001.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-001.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-001R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-001R01.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 2,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-001",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-001-DISCOVER-PLAN",
+          "payload_sha256": "56afadea0da8956075006bc1d3c528cac86432c6b560d8abda958306922db425",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [
+          "CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-001"
+        ],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-001R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-001R01.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-001R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-001R01.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "STEP13_INDEPENDENT_PLAN_REVIEW",
+      "stateless_recovery_context": {
+        "verified_task_head": "489e7b519aa57932034d55ff4cba8f6a11b8c840",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-08T18:15:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_OPEN",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step8_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step9_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step10_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step11_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step12_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step13_status": "PLAN_REPAIRED_AWAITING_IMPLEMENTATION_REVIEW",
+        "step14_status": "NOT_STARTED",
+        "deployment_status": "NOT_DEPLOYED",
+        "step13_repaired_plan": {
+          "repair_findings_summary": {
+            "finding_13_001_grammar": {
+              "status": "RESOLVED",
+              "resolution": "Eliminated contradictory regex patterns. Enforced unified canonical lexical grammar across all 7 kinds. Disallowed hyphens to prevent CLI/casing ambiguity and align with active Capability Registry. Defined deterministic 8-step validator execution order."
+            },
+            "finding_13_002_ownership": {
+              "status": "RESOLVED",
+              "resolution": "Separated entity kinds from root ownership namespaces. Established closed root taxonomy [core, gov, sys, pack, ext, integration]. Enforced third-party isolation strictly under ext.* (no unreserved root squatting). Eliminated invalid synthesis.* reference in favor of core.*. Enforced module scope boundary invariant."
+            },
+            "finding_13_003_safety_and_kinds": {
+              "status": "RESOLVED",
+              "resolution": "Standardized canonical kind name settings (plural, matching roadmap). Defined explicit disambiguation via kind discriminator tuple {kind, id}. Defined strict immutability and 3-stage lifecycle [ACTIVE, DEPRECATED, RETIRED]. Clarified Step 13 scope boundaries and non-conflict with existing governance Capability Registry."
+            }
+          },
+          "canonical_lexical_grammar": {
+            "canonical_format": "lowercase ASCII dot-separated alphanumeric/underscore tokens",
+            "single_unified_regex": "^[a-z0-9_]+(\\.[a-z0-9_]+)+$",
+            "segment_regex": "^[a-z0-9_]{1,48}$",
+            "segment_count_min": 2,
+            "segment_count_max": 6,
+            "total_length_min": 3,
+            "total_length_max": 128,
+            "segment_length_max": 48,
+            "allowed_characters": "a-z, 0-9, _, .",
+            "hyphens_forbidden": true,
+            "consecutive_dots_forbidden": true,
+            "leading_trailing_dots_forbidden": true,
+            "empty_segments_forbidden": true,
+            "whitespace_forbidden": true,
+            "casing_enforcement": "strict lowercase ASCII; reject fail-closed on uppercase (no silent normalization)",
+            "validator_execution_order": [
+              "1. PRIMITIVE_CHECK: verify input is non-null string",
+              "2. CHARACTER_SET_SCREENING: verify all characters match [a-z0-9_.] (fail on uppercase, hyphens, spaces, symbols)",
+              "3. TOTAL_LENGTH_CHECK: verify 3 <= length <= 128",
+              "4. STRUCTURAL_DOT_CHECK: verify string does not start with ., end with ., or contain ..",
+              "5. SEGMENT_EXTRACTION: split string by . delimiter into segments array",
+              "6. SEGMENT_COUNT_CHECK: verify 2 <= segments.length <= 6",
+              "7. SEGMENT_LENGTH_CHECK: verify each segment has 1 <= segment.length <= 48",
+              "8. SEGMENT_LEXICAL_CHECK: verify each segment matches ^[a-z0-9_]+$"
+            ],
+            "kind_uniformity": "Lexical grammar is identical for all 7 kinds. Semantic rules (such as root ownership) are evaluated at the semantic validation layer."
+          },
+          "namespace_ownership_model": {
+            "root_segment_taxonomy": {
+              "core": "core.* — Core framework, first-party foundation subsystems, installer, official first-party modules (min 2 segments, e.g. core.database.postgresql, core.installer)",
+              "gov": "gov.* — Formal governance framework, contracts, capsules, seals, attestations (min 2 segments, e.g. gov.capsule.persistence)",
+              "sys": "sys.* — Host runtime, OS abstraction, kernel process runtime internals (min 2 segments, e.g. sys.process.signal)",
+              "pack": "pack.* — Project Packs (min 3 segments, e.g. pack.starter.setup)",
+              "ext": "ext.* — Third-party modules and external vendor extensions (min 3 segments, e.g. ext.acme.blog.post.created; all third-party code strictly isolated under ext.*)",
+              "integration": "integration.* — First-party integration adapters and external provider connectors (min 2 segments, e.g. integration.storage.s3, integration.payment.stripe)"
+            },
+            "forbidden_root_operations": [
+              "NO_UNRESERVED_ROOT: No entity may register a root segment outside [core, gov, sys, pack, ext, integration]",
+              "NO_VENDOR_ROOT_SQUATTING: Third parties cannot claim top-level namespace roots; must be under ext.<publisher_id>.<module_id>.*",
+              "NO_SYNTHESIS_ROOT: Legacy synthesis.* namespace forbidden in mini; all first-party code belongs to core.*",
+              "NO_KIND_AS_ROOT: Entity kinds (permission, event, etc.) cannot be used as root ownership segments"
+            ],
+            "module_scope_boundary_invariant": "Every module has a canonical module identifier of kind module (e.g. ext.acme.blog). All capabilities, permissions, events, and settings registered by that module MUST be prefixed by the module identifier (ext.acme.blog.*). Modules cannot declare identifiers outside their assigned namespace."
+          },
+          "canonical_seven_kinds_taxonomy": {
+            "capability": {
+              "kind_name": "capability",
+              "description": "Features or interfaces provided or required by Core or Modules",
+              "min_segments": 2,
+              "example": "core.database.postgresql, ext.acme.blog.rendering"
+            },
+            "permission": {
+              "kind_name": "permission",
+              "description": "Authorization tokens for server-side RBAC and access control gates",
+              "min_segments": 2,
+              "example": "core.content.publish, ext.acme.blog.post.delete"
+            },
+            "event": {
+              "kind_name": "event",
+              "description": "Domain and lifecycle event topics dispatched across event bus",
+              "min_segments": 2,
+              "example": "core.install.completed, ext.acme.blog.post.created"
+            },
+            "settings": {
+              "kind_name": "settings",
+              "description": "Configuration keys for Core, Modules, and Themes (canonical plural: settings)",
+              "min_segments": 2,
+              "example": "core.site.title, ext.acme.blog.items_per_page"
+            },
+            "module": {
+              "kind_name": "module",
+              "description": "Packaging identifiers for first-party and third-party modules",
+              "min_segments": 2,
+              "example": "core.installer, ext.acme.blog"
+            },
+            "entitlement": {
+              "kind_name": "entitlement",
+              "description": "Commercial licensing and feature gate tokens (strictly isolated from permissions)",
+              "min_segments": 2,
+              "example": "core.multi_tenant, ext.acme.pro_analytics"
+            },
+            "integration": {
+              "kind_name": "integration",
+              "description": "External provider and adapter connection identifiers",
+              "min_segments": 2,
+              "example": "integration.storage.s3, integration.payment.stripe"
+            }
+          },
+          "registry_safety_invariants": [
+            "INV-NAMESPACE-UNIQUE: No duplicate identifier allowed within any given kind registry domain.",
+            "INV-NAMESPACE-DISAMBIGUATION: Identifiers are strictly evaluated as a tuple {kind, id}. An event cannot be evaluated as a permission.",
+            "INV-NAMESPACE-OWNERSHIP: Third-party entities cannot declare identifiers in reserved core.*, gov.*, sys.* namespaces. Must reside in ext.<publisher_id>.<module_id>.*.",
+            "INV-NAMESPACE-IMMUTABLE: Published stable identifiers are permanently immutable; cannot be renamed, repurposed, or deleted without formal contract supersession.",
+            "INV-NAMESPACE-LIFECYCLE: Identifiers follow state machine ACTIVE -> DEPRECATED -> RETIRED. Deprecated identifiers remain functional but trigger warnings; retired identifiers reject usage and prevent name reuse.",
+            "INV-NAMESPACE-FAIL-CLOSED: Unknown, unregistered, or syntactically invalid identifiers evaluate to REJECT/DENY by default.",
+            "INV-NAMESPACE-NO-WILDCARD-INHERITANCE: Authorization permissions do not grant wildcard sub-permissions by prefix matching; exact matching required.",
+            "INV-NAMESPACE-SEPARATION: Permissions (access control) and Entitlements (licensing) are strictly separated types with no cross-inheritance."
+          ],
+          "step13_scope_boundaries": {
+            "owned_by_step13": [
+              "Specification and contract of canonical identifier lexical grammar and validator algorithm",
+              "Root ownership taxonomy and prefix enforcement rules [core, gov, sys, pack, ext, integration]",
+              "Specification of the 7 identifier kinds (capability, permission, event, settings, module, entitlement, integration)",
+              "Contract definition CONTRACT-CORE-STABLE-NAMESPACE-001 in contracts layer",
+              "Comprehensive positive and negative test suite for lexical and semantic namespace validation"
+            ],
+            "forbidden_in_step13": [
+              "Step14 Unified Error Contract implementation",
+              "Step15 Actor and Provenance Context implementation",
+              "Step16 full Registry Framework runtime implementation",
+              "Step17 Provider Contracts implementation",
+              "Permission Engine RBAC evaluation engine",
+              "Module Runtime loader or package installer",
+              "Event Dispatcher event bus runtime",
+              "Entitlement licensing enforcement runtime",
+              "Database schema migrations or Prisma model alterations",
+              "HTTP endpoints or UI components"
+            ]
+          },
+          "test_plan": {
+            "positive_cases": [
+              "Valid 2-segment, 3-segment, 4-segment, 5-segment, 6-segment identifiers for all 7 kinds",
+              "Valid core.* and gov.* identifiers under reserved roots",
+              "Valid ext.<publisher>.<module>.* third-party identifiers",
+              "Valid pack.* project pack identifiers",
+              "Valid integration.* connector identifiers",
+              "Identifiers containing underscores within segments (e.g. core.multi_tenant)"
+            ],
+            "negative_cases": [
+              "Empty string, null, non-string primitives",
+              "Uppercase ASCII characters (reject fail-closed, no auto-lowercase)",
+              "Hyphens within segments (reject fail-closed)",
+              "Leading dots, trailing dots, consecutive dots (..)",
+              "Single segment identifiers (< 2 segments)",
+              "Identifiers exceeding 6 segments (> 6 segments)",
+              "Total length < 3 characters",
+              "Total length > 128 characters",
+              "Segment length > 48 characters",
+              "Invalid root namespace not in [core, gov, sys, pack, ext, integration]",
+              "Third party attempting to declare root namespace outside ext.*",
+              "Module attempting to declare identifier outside its module prefix",
+              "Forbidden characters: spaces, @, $, !, /, %, unicode/homoglyphs"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "7c3676ee0b335a940098d54c9fc4ded72b122899de5acb7583c4a2f36f1dae26",
+    "sealed_at": "2026-10-08T18:15:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}
