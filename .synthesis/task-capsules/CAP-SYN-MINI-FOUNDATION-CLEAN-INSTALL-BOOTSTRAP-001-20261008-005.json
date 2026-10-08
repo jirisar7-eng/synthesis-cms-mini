@@ -1,0 +1,172 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-005",
+    "task_id": "SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-005-OPEN-REVIEW-PR",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "12/60 — Clean-install/bootstrap framework",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-08T17:00:00.000Z",
+      "development_phase": "GOVERNANCE",
+      "execution_mode": "GOVERNANCE"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "80c162bca3410351ba8be376f4aaeee301cc926e",
+      "source_branch": "task/SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-004R02.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-004R02.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-005.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-005.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 2,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-004R02",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-004R02-REPAIR-INACCESSIBLE-MIGRATIONS-AND-ENCODED-SECRETS",
+          "payload_sha256": "84775f0f427add509e6af52c01708ee8dd0ddbbce4c6c5149e667c929578fff4",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-005.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-005.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-005.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-005.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "CMD-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-006-PREPARE-STEP12-MERGE",
+      "stateless_recovery_context": {
+        "verified_task_head": "d595cdf5ad0321974dc6b463094b4ac9454ceaa0",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-08T17:00:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_CREATED",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step8_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step9_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step10_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step11_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step12_status": "REVIEW_PR_OPENED_AND_VERIFIED",
+        "step13_status": "NOT_STARTED",
+        "deployment_status": "NOT_DEPLOYED",
+        "step12_pr_evidence": {
+          "base_main_sha": "80c162bca3410351ba8be376f4aaeee301cc926e",
+          "reviewed_source_head": "d595cdf5ad0321974dc6b463094b4ac9454ceaa0",
+          "step12_implementation": "PASS",
+          "step12_repairs": "PASS",
+          "finding_1_resolved": "PASS",
+          "finding_2_resolved": "PASS",
+          "task_ci_run": 37810759049,
+          "task_ci_status": "SUCCESS",
+          "governance_job_status": "SUCCESS",
+          "product_job_status": "SUCCESS",
+          "clean_install_job_status": "SUCCESS",
+          "required_gate_status": "SUCCESS",
+          "global_governance_health": "PASS",
+          "merge_authorization": "NOT_GRANTED",
+          "step13_status": "NOT_STARTED",
+          "deployment_status": "NOT_DEPLOYED",
+          "cumulative_commits_before_cap005": 7,
+          "cumulative_changed_files_before_cap005": 19
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "637723caba85c6af2a8c2a5bcc2747749187f7d72afeec4de60a9fba24fd0e7d",
+    "sealed_at": "2026-10-08T17:00:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}
