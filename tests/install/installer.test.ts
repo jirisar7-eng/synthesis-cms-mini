@@ -373,4 +373,113 @@ void describe("Clean-Install / Bootstrap Framework Unit Tests", () => {
     assert.equal(applyErr.includes("super_secret_pw"), false);
     assert.match(applyErr, /\[REDACTED\]/);
   });
+  void it("17. Fails closed when migration count is invalid (negative, fractional, NaN, Infinity)", async () => {
+    const invalidCounts = [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY];
+
+    for (const count of invalidCounts) {
+      let applyCalled = false;
+      const deps = createValidDependencies({
+        getMigrationCount: () => count,
+        applyMigrations: () => {
+          applyCalled = true;
+          return Promise.resolve({ applied: true });
+        },
+      });
+      const env = { SYNTHESIS_SECRET_DATABASE_URL: validMockDbUrl };
+
+      const result = await runCleanInstall(env, deps);
+
+      assert.equal(result.status, "FAILED");
+      assert.equal(result.stage, "MIGRATIONS_APPLIED");
+      assert.equal(
+        applyCalled,
+        false,
+        `applyMigrations must not be called for invalid count: ${String(count)}`,
+      );
+      assert.match(
+        result.error ?? "",
+        /INVALID_MIGRATION_COUNT: Migration count must be a non-negative finite integer/,
+      );
+    }
+  });
+
+  void it("18. Fails closed during filesystem migration discovery when existing path is unreadable/not a directory", () => {
+    // Pass an existing file path (e.g. package.json) where readdirSync fails with ENOTDIR
+    const regularFilePath = new URL("../../package.json", import.meta.url).pathname;
+
+    assert.throws(
+      () => getFilesystemMigrationCount(regularFilePath),
+      /MIGRATION_DISCOVERY_FAILED: Unable to read existing migrations directory/,
+    );
+  });
+
+  void it("19. Redacts isolated password sentinel from probe and apply error messages even if full URL is absent", async () => {
+    const secretPassword = "isolated_secret_pw_987";
+    const sensitiveDbUrl = `postgresql://synthesis_user:${secretPassword}@127.0.0.1:5432/db`;
+
+    // 19a. Probe database with isolated password
+    const probeFailRunner = () =>
+      Promise.resolve({
+        exitCode: 1,
+        stdout: "",
+        stderr: `FATAL: password authentication failed for user: ${secretPassword}`,
+      });
+    const probeRes = await probeDatabaseWithPrisma(sensitiveDbUrl, probeFailRunner);
+    assert.equal(probeRes.ready, false);
+    const probeErr = probeRes.error ?? "";
+    assert.equal(probeErr.includes(secretPassword), false);
+    assert.match(probeErr, /\[REDACTED\]/);
+
+    // 19b. Apply migrations with isolated password
+    const applyFailRunner = () =>
+      Promise.resolve({
+        exitCode: 1,
+        stdout: "",
+        stderr: `P1000: Authentication failed against database with credentials: ${secretPassword}`,
+      });
+    const applyRes = await applyMigrationsWithPrisma(sensitiveDbUrl, applyFailRunner);
+    assert.equal(applyRes.applied, false);
+    const applyErr = applyRes.error ?? "";
+    assert.equal(applyErr.includes(secretPassword), false);
+    assert.match(applyErr, /\[REDACTED\]/);
+  });
+
+  void it("20. Ensures bootstrap participant and selfCheck InstallContext does NOT expose raw databaseUrl", async () => {
+    let capturedContext: Record<string, unknown> | null = null;
+    let capturedSelfCheckContext: Record<string, unknown> | null = null;
+
+    const participants: BootstrapParticipant[] = [
+      {
+        id: "privacy-audit-participant",
+        name: "Privacy Auditor",
+        order: 1,
+        execute: (context) => {
+          capturedContext = context as unknown as Record<string, unknown>;
+          return Promise.resolve({ ok: true });
+        },
+      },
+    ];
+
+    const deps = createValidDependencies({
+      bootstrapParticipants: participants,
+      selfCheck: (context) => {
+        capturedSelfCheckContext = context as unknown as Record<string, unknown>;
+        return { ok: true };
+      },
+    });
+    const env = { SYNTHESIS_SECRET_DATABASE_URL: validMockDbUrl };
+
+    const result = await runCleanInstall(env, deps);
+
+    assert.equal(result.status, "SUCCESS");
+    assert.equal(result.stage, "COMPLETE");
+
+    assert.ok(capturedContext);
+    assert.equal("databaseUrl" in capturedContext, false);
+    assert.equal(Reflect.get(capturedContext, "databaseUrl"), undefined);
+
+    assert.ok(capturedSelfCheckContext);
+    assert.equal("databaseUrl" in capturedSelfCheckContext, false);
+    assert.equal(Reflect.get(capturedSelfCheckContext, "databaseUrl"), undefined);
+  });
 });

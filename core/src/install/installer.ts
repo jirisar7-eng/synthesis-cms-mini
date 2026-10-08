@@ -29,7 +29,6 @@ export interface BootstrapParticipantResult {
 
 export interface InstallContext {
   readonly stage: InstallStage;
-  readonly databaseUrl: string;
   readonly migrationResult: MigrationExecutionResult;
   readonly participantResults: ReadonlyArray<Readonly<{ id: string; name: string; ok: boolean }>>;
 }
@@ -133,6 +132,21 @@ export async function runCleanInstall(
     // 4. MIGRATIONS_APPLIED
     currentStage = "MIGRATIONS_APPLIED";
     const migrationCount = await deps.getMigrationCount();
+
+    if (
+      typeof migrationCount !== "number" ||
+      !Number.isFinite(migrationCount) ||
+      !Number.isInteger(migrationCount) ||
+      migrationCount < 0
+    ) {
+      return {
+        status: "FAILED",
+        stage: currentStage,
+        participantsExecuted: 0,
+        error: `INVALID_MIGRATION_COUNT: Migration count must be a non-negative finite integer, got ${String(migrationCount)}`,
+      };
+    }
+
     let migrationResult: MigrationExecutionResult;
 
     if (migrationCount === 0) {
@@ -209,7 +223,6 @@ export async function runCleanInstall(
     for (const participant of sortedParticipants) {
       const context: InstallContext = {
         stage: currentStage,
-        databaseUrl,
         migrationResult,
         participantResults: [...participantResults],
       };
@@ -247,7 +260,6 @@ export async function runCleanInstall(
     currentStage = "SELF_CHECK_PASS";
     const finalContext: InstallContext = {
       stage: currentStage,
-      databaseUrl,
       migrationResult,
       participantResults: [...participantResults],
     };

@@ -89,7 +89,10 @@ void describe("Clean-Install / Bootstrap Real PostgreSQL Integration Test", () =
       },
     };
 
-    const result = await runCleanInstall(process.env, deps);
+    const minimalEnv = {
+      SYNTHESIS_SECRET_DATABASE_URL: databaseUrl,
+    };
+    const result = await runCleanInstall(minimalEnv, deps);
 
     assert.equal(result.status, "SUCCESS");
     assert.equal(result.stage, "COMPLETE");

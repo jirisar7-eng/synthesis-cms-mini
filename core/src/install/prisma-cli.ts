@@ -57,10 +57,24 @@ export function validateDatabaseConfig(env: Readonly<Record<string, string | und
   }
 }
 
+function extractSecrets(databaseUrl: string): string[] {
+  const secrets = [databaseUrl];
+  try {
+    const parsedUri = new URL(databaseUrl);
+    if (parsedUri.password) {
+      secrets.push(parsedUri.password);
+    }
+  } catch {
+    // Non-URL format or unparseable; databaseUrl is already in secrets
+  }
+  return secrets;
+}
+
 export async function probeDatabaseWithPrisma(
   databaseUrl: string,
   runner: CommandRunner,
 ): Promise<{ ready: boolean; error?: string }> {
+  const secrets = extractSecrets(databaseUrl);
   try {
     const res = await runner("npx", ["--no-install", "prisma", "db", "execute", "--stdin"], {
       stdin: "SELECT 1;\n",
@@ -75,14 +89,14 @@ export async function probeDatabaseWithPrisma(
 
     const rawError =
       res.stderr.trim() || res.stdout.trim() || `Command exited with code ${String(res.exitCode)}`;
-    const safeError = redactSensitiveText(rawError, [databaseUrl]);
+    const safeError = redactSensitiveText(rawError, secrets);
     return {
       ready: false,
       error: `DATABASE_PROBE_FAILED (exit code ${String(res.exitCode)}): ${safeError}`,
     };
   } catch (err) {
     const rawError = err instanceof Error ? err.message : String(err);
-    const safeError = redactSensitiveText(rawError, [databaseUrl]);
+    const safeError = redactSensitiveText(rawError, secrets);
     return {
       ready: false,
       error: `DATABASE_PROBE_EXECUTION_ERROR: ${safeError}`,
@@ -104,8 +118,11 @@ export function getFilesystemMigrationCount(migrationsDir?: string): number {
       (entry) => entry.isDirectory() && !entry.name.startsWith("."),
     );
     return migrationDirs.length;
-  } catch {
-    return 0;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `MIGRATION_DISCOVERY_FAILED: Unable to read existing migrations directory at "${targetDir}": ${message}`,
+    );
   }
 }
 
@@ -113,6 +130,7 @@ export async function applyMigrationsWithPrisma(
   databaseUrl: string,
   runner: CommandRunner,
 ): Promise<{ applied: boolean; error?: string }> {
+  const secrets = extractSecrets(databaseUrl);
   try {
     const res = await runner("npx", ["--no-install", "prisma", "migrate", "deploy"], {
       env: {
@@ -126,14 +144,14 @@ export async function applyMigrationsWithPrisma(
 
     const rawError =
       res.stderr.trim() || res.stdout.trim() || `Command exited with code ${String(res.exitCode)}`;
-    const safeError = redactSensitiveText(rawError, [databaseUrl]);
+    const safeError = redactSensitiveText(rawError, secrets);
     return {
       applied: false,
       error: `MIGRATE_DEPLOY_FAILED (exit code ${String(res.exitCode)}): ${safeError}`,
     };
   } catch (err) {
     const rawError = err instanceof Error ? err.message : String(err);
-    const safeError = redactSensitiveText(rawError, [databaseUrl]);
+    const safeError = redactSensitiveText(rawError, secrets);
     return {
       applied: false,
       error: `MIGRATE_DEPLOY_EXECUTION_ERROR: ${safeError}`,
