@@ -37,7 +37,9 @@ export type NamespaceKind = (typeof NAMESPACE_KINDS)[number];
 
 /**
  * Namespace lifecycle states.
- * Once RETIRED, an identifier is permanently tombstoned and cannot be reused.
+ * Lifecycle transitions strictly follow: ACTIVE -> DEPRECATED -> RETIRED.
+ * Reverse transitions are forbidden.
+ * Once RETIRED, an identifier is permanently tombstoned and cannot be reused under any status.
  */
 export const NAMESPACE_STATUSES = Object.freeze(["ACTIVE", "DEPRECATED", "RETIRED"] as const);
 
@@ -82,9 +84,11 @@ export type NamespaceValidationErrorCode =
   | "INVALID_KIND"
   | "INVALID_STATUS"
   | "MODULE_PREFIX_MISMATCH"
+  | "MODULE_OWNERSHIP_REQUIRED"
   | "THIRD_PARTY_ESCAPE"
   | "TOMBSTONE_REUSE"
   | "INVALID_SUPERSEDED_BY"
+  | "INVALID_LIFECYCLE_TRANSITION"
   | "DUPLICATE_IDENTIFIER";
 
 export class NamespaceValidationError extends Error {
@@ -130,11 +134,13 @@ export interface ValidatedNamespaceEntry {
 }
 
 /**
- * Step 1–8: Validates raw string identifier against canonical lexical grammar.
+ * Validates raw string identifier against canonical lexical grammar in exact approved order:
+ * primitive -> character screening -> total length -> dot structure -> segment extraction -> segment count -> segment length -> segment lexical validation.
+ *
  * Throws NamespaceValidationError on any violation.
  */
 export function validateNamespaceIdentifier(id: unknown): string {
-  // 1. Primitive type check
+  // 1. Primitive check
   if (typeof id !== "string") {
     throw new NamespaceValidationError(
       String(id),
@@ -143,16 +149,7 @@ export function validateNamespaceIdentifier(id: unknown): string {
     );
   }
 
-  // 2. Total length check
-  if (id.length < GRAMMAR_LIMITS.TOTAL_LENGTH_MIN || id.length > GRAMMAR_LIMITS.TOTAL_LENGTH_MAX) {
-    throw new NamespaceValidationError(
-      id,
-      "INVALID_LENGTH",
-      `Identifier length ${String(id.length)} out of bounds [${String(GRAMMAR_LIMITS.TOTAL_LENGTH_MIN)}, ${String(GRAMMAR_LIMITS.TOTAL_LENGTH_MAX)}]`,
-    );
-  }
-
-  // 3. Character set screening (rejects uppercase, hyphens, whitespace, symbols, Unicode)
+  // 2. Character screening (rejects uppercase, hyphens, whitespace, symbols, Unicode)
   for (let i = 0; i < id.length; i++) {
     const ch = id.charCodeAt(i);
     const isLower = ch >= 97 && ch <= 122; // a-z
@@ -183,7 +180,16 @@ export function validateNamespaceIdentifier(id: unknown): string {
     }
   }
 
-  // 4. Structural dot check
+  // 3. Total length check
+  if (id.length < GRAMMAR_LIMITS.TOTAL_LENGTH_MIN || id.length > GRAMMAR_LIMITS.TOTAL_LENGTH_MAX) {
+    throw new NamespaceValidationError(
+      id,
+      "INVALID_LENGTH",
+      `Identifier length ${String(id.length)} out of bounds [${String(GRAMMAR_LIMITS.TOTAL_LENGTH_MIN)}, ${String(GRAMMAR_LIMITS.TOTAL_LENGTH_MAX)}]`,
+    );
+  }
+
+  // 4. Dot structure check
   if (id.startsWith(".")) {
     throw new NamespaceValidationError(id, "MALFORMED_STRUCTURE", "Leading dot is forbidden");
   }
@@ -209,26 +215,31 @@ export function validateNamespaceIdentifier(id: unknown): string {
     );
   }
 
-  // 7. Individual segment constraints
+  // 7. Segment length check
   for (let idx = 0; idx < segments.length; idx++) {
     const seg = segments[idx];
+    const segLen = seg === undefined ? 0 : seg.length;
     if (
       seg === undefined ||
-      seg.length < GRAMMAR_LIMITS.SEGMENT_LENGTH_MIN ||
-      seg.length > GRAMMAR_LIMITS.SEGMENT_LENGTH_MAX
+      segLen < GRAMMAR_LIMITS.SEGMENT_LENGTH_MIN ||
+      segLen > GRAMMAR_LIMITS.SEGMENT_LENGTH_MAX
     ) {
-      const segLen = seg === undefined ? 0 : seg.length;
       throw new NamespaceValidationError(
         id,
         "INVALID_SEGMENT_LENGTH",
         `Segment ${String(idx + 1)} ("${seg ?? ""}") length ${String(segLen)} out of bounds [${String(GRAMMAR_LIMITS.SEGMENT_LENGTH_MIN)}, ${String(GRAMMAR_LIMITS.SEGMENT_LENGTH_MAX)}]`,
       );
     }
-    if (!GRAMMAR_LIMITS.SEGMENT_REGEX.test(seg)) {
+  }
+
+  // 8. Segment lexical validation
+  for (let idx = 0; idx < segments.length; idx++) {
+    const seg = segments[idx];
+    if (seg === undefined || !GRAMMAR_LIMITS.SEGMENT_REGEX.test(seg)) {
       throw new NamespaceValidationError(
         id,
         "INVALID_CHARACTERS",
-        `Segment ${String(idx + 1)} ("${seg}") does not match segment regex`,
+        `Segment ${String(idx + 1)} ("${seg ?? ""}") does not match segment regex`,
       );
     }
   }
@@ -257,6 +268,7 @@ export function validateNamespaceRoot(id: string): {
   readonly segments: readonly string[];
 } {
   validateNamespaceIdentifier(id);
+
   const segments = Object.freeze(id.split("."));
   const rawRoot = segments[0];
 
@@ -306,6 +318,16 @@ export function validateModuleOwnership(
   validateNamespaceIdentifier(ownerModuleId);
   validateNamespaceIdentifier(identifier);
 
+  const { root: ownerRoot, segments: ownerSegments } = validateNamespaceRoot(ownerModuleId);
+
+  if (ownerRoot === "ext" && ownerSegments.length !== 3) {
+    throw new NamespaceValidationError(
+      ownerModuleId,
+      "INVALID_ARITY",
+      `Third-party owner module ID "${ownerModuleId}" must have exactly 3 segments: ext.<publisher>.<module>`,
+    );
+  }
+
   if (kind === "module") {
     if (identifier !== ownerModuleId) {
       throw new NamespaceValidationError(
@@ -339,12 +361,52 @@ export function validateModuleOwnership(
 }
 
 /**
+ * Validates lifecycle transition rules.
+ * Allowed transitions: ACTIVE -> DEPRECATED -> RETIRED.
+ * Reverse transitions are forbidden.
+ * RETIRED is a permanent terminal state and cannot transition.
+ */
+export function validateLifecycleTransition(
+  currentStatus: NamespaceStatus,
+  targetStatus: NamespaceStatus,
+): void {
+  if (!NAMESPACE_STATUSES.includes(currentStatus)) {
+    throw new NamespaceValidationError(
+      "lifecycle",
+      "INVALID_STATUS",
+      `Invalid current status: "${currentStatus}"`,
+    );
+  }
+  if (!NAMESPACE_STATUSES.includes(targetStatus)) {
+    throw new NamespaceValidationError(
+      "lifecycle",
+      "INVALID_STATUS",
+      `Invalid target status: "${targetStatus}"`,
+    );
+  }
+  if (currentStatus === targetStatus) {
+    return;
+  }
+  if (currentStatus === "ACTIVE" && (targetStatus === "DEPRECATED" || targetStatus === "RETIRED")) {
+    return;
+  }
+  if (currentStatus === "DEPRECATED" && targetStatus === "RETIRED") {
+    return;
+  }
+  throw new NamespaceValidationError(
+    "lifecycle",
+    "INVALID_LIFECYCLE_TRANSITION",
+    `Invalid lifecycle transition from ${currentStatus} to ${targetStatus}; allowed transitions are ACTIVE -> DEPRECATED -> RETIRED`,
+  );
+}
+
+/**
  * Validates a single namespace entry against grammar, root taxonomy,
  * kind taxonomy, status, module prefix binding, and supersession integrity.
+ * Fails closed on malformed runtime objects without leaking raw TypeErrors.
  */
-export function validateNamespaceEntry(entry: NamespaceEntryInput): ValidatedNamespaceEntry {
-  const rawEntry: unknown = entry;
-  if (typeof rawEntry !== "object" || rawEntry === null) {
+export function validateNamespaceEntry(entry: unknown): ValidatedNamespaceEntry {
+  if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
     throw new NamespaceValidationError(
       "entry",
       "INVALID_PRIMITIVE",
@@ -352,79 +414,190 @@ export function validateNamespaceEntry(entry: NamespaceEntryInput): ValidatedNam
     );
   }
 
-  const kindStr = entry.kind as string;
+  const raw = entry as Record<string, unknown>;
+
+  if (typeof raw.id !== "string") {
+    throw new NamespaceValidationError(
+      "entry.id",
+      "INVALID_PRIMITIVE",
+      "Entry id must be a string primitive",
+    );
+  }
+  const id = raw.id;
+
+  if (typeof raw.kind !== "string") {
+    throw new NamespaceValidationError(
+      id,
+      "INVALID_PRIMITIVE",
+      "Entry kind must be a string primitive",
+    );
+  }
+  const kindStr = raw.kind;
   if (!NAMESPACE_KINDS.includes(kindStr as NamespaceKind)) {
     throw new NamespaceValidationError(
-      entry.id,
+      id,
       "INVALID_KIND",
       `Kind "${kindStr}" is not an authorized namespace kind [${NAMESPACE_KINDS.join(", ")}]`,
     );
   }
+  const kind = kindStr as NamespaceKind;
 
-  const statusStr = entry.status as string;
+  if (typeof raw.status !== "string") {
+    throw new NamespaceValidationError(
+      id,
+      "INVALID_PRIMITIVE",
+      "Entry status must be a string primitive",
+    );
+  }
+  const statusStr = raw.status;
   if (!NAMESPACE_STATUSES.includes(statusStr as NamespaceStatus)) {
     throw new NamespaceValidationError(
-      entry.id,
+      id,
       "INVALID_STATUS",
       `Status "${statusStr}" is not an authorized lifecycle status [${NAMESPACE_STATUSES.join(", ")}]`,
     );
   }
+  const status = statusStr as NamespaceStatus;
 
-  if (entry.description.trim().length === 0) {
+  if (typeof raw.description !== "string" || raw.description.trim().length === 0) {
     throw new NamespaceValidationError(
-      entry.id,
+      id,
       "INVALID_PRIMITIVE",
-      "Description must be a non-empty string",
+      "Description must be a non-empty string primitive",
     );
   }
+  const description = raw.description;
 
-  const { root, segments } = validateNamespaceRoot(entry.id);
+  if (raw.ownerModuleId !== undefined && typeof raw.ownerModuleId !== "string") {
+    throw new NamespaceValidationError(
+      id,
+      "INVALID_PRIMITIVE",
+      "ownerModuleId must be a string primitive if defined",
+    );
+  }
+  const ownerModuleId = raw.ownerModuleId;
 
-  if (entry.ownerModuleId !== undefined) {
-    validateModuleOwnership(entry.id, entry.kind, entry.ownerModuleId);
+  if (raw.version !== undefined && typeof raw.version !== "string") {
+    throw new NamespaceValidationError(
+      id,
+      "INVALID_PRIMITIVE",
+      "version must be a string primitive if defined",
+    );
+  }
+  const version = raw.version;
+
+  if (raw.superseded_by !== undefined && typeof raw.superseded_by !== "string") {
+    throw new NamespaceValidationError(
+      id,
+      "INVALID_PRIMITIVE",
+      "superseded_by must be a string primitive if defined",
+    );
+  }
+  const superseded_by = raw.superseded_by;
+
+  const { root, segments } = validateNamespaceRoot(id);
+
+  // Third-party ext.* ownership enforcement
+  if (root === "ext") {
+    if (kind === "module") {
+      if (segments.length !== 3) {
+        throw new NamespaceValidationError(
+          id,
+          "INVALID_ARITY",
+          `Third-party module identifier "${id}" must have exactly 3 segments: ext.<publisher>.<module>`,
+        );
+      }
+      if (ownerModuleId !== undefined && ownerModuleId !== id) {
+        throw new NamespaceValidationError(
+          id,
+          "MODULE_PREFIX_MISMATCH",
+          `Third-party module ownerModuleId "${ownerModuleId}" must match module ID "${id}"`,
+        );
+      }
+    } else {
+      if (segments.length < 4) {
+        throw new NamespaceValidationError(
+          id,
+          "INVALID_ARITY",
+          `Non-module ext identifier "${id}" must belong to exact "ext.<publisher>.<module>.*" (at least 4 segments)`,
+        );
+      }
+      if (ownerModuleId === undefined) {
+        throw new NamespaceValidationError(
+          id,
+          "MODULE_OWNERSHIP_REQUIRED",
+          `Third-party extension identifier "${id}" requires explicit ownerModuleId`,
+        );
+      }
+      validateModuleOwnership(id, kind, ownerModuleId);
+    }
+  } else {
+    // Non-ext roots: if ownerModuleId is provided, validate prefix binding
+    if (ownerModuleId !== undefined) {
+      validateModuleOwnership(id, kind, ownerModuleId);
+    }
   }
 
-  if (entry.superseded_by !== undefined) {
-    validateNamespaceIdentifier(entry.superseded_by);
-    if (entry.status === "ACTIVE") {
+  // Superseded_by semantic validation
+  if (superseded_by !== undefined) {
+    validateNamespaceRoot(superseded_by);
+    if (superseded_by === id) {
       throw new NamespaceValidationError(
-        entry.id,
+        id,
         "INVALID_SUPERSEDED_BY",
-        "ACTIVE identifier cannot have a superseded_by reference",
+        `Identifier "${id}" cannot supersede itself`,
+      );
+    }
+    if (status === "ACTIVE") {
+      throw new NamespaceValidationError(
+        id,
+        "INVALID_SUPERSEDED_BY",
+        `ACTIVE identifier "${id}" cannot have a superseded_by reference; superseded_by is only permitted on DEPRECATED or RETIRED entries`,
       );
     }
   }
 
   return Object.freeze({
-    kind: entry.kind,
-    id: entry.id,
+    kind,
+    id,
     root,
     segments,
-    status: entry.status,
-    description: entry.description,
-    ownerModuleId: entry.ownerModuleId,
-    version: entry.version,
-    superseded_by: entry.superseded_by,
+    status,
+    description,
+    ownerModuleId,
+    version,
+    superseded_by,
   });
 }
 
 /**
  * Validates a complete registry of entries.
  * Enforces uniqueness of composite identity (kind, id) and
- * prevents re-registration of tombstoned RETIRED identifiers.
+ * prevents re-registration of tombstoned RETIRED identifiers under any status.
  */
 export function validateNamespaceRegistry(
   entries: readonly NamespaceEntryInput[],
   existingTombstones?: ReadonlySet<string>,
 ): readonly ValidatedNamespaceEntry[] {
+  if (!Array.isArray(entries)) {
+    throw new NamespaceValidationError(
+      "registry",
+      "INVALID_PRIMITIVE",
+      "Registry entries must be an array",
+    );
+  }
+  if (existingTombstones !== undefined && !(existingTombstones instanceof Set)) {
+    throw new NamespaceValidationError(
+      "registry",
+      "INVALID_PRIMITIVE",
+      "existingTombstones must be a Set instance if defined",
+    );
+  }
+
   const seenCompositeKeys = new Set<string>();
   const validatedEntries: ValidatedNamespaceEntry[] = [];
 
-  for (let i = 0; i < entries.length; i++) {
-    const entry = entries[i];
-    if (entry === undefined) {
-      continue;
-    }
+  for (const entry of entries) {
     const validated = validateNamespaceEntry(entry);
     const compositeKey = `${validated.kind}::${validated.id}`;
 
@@ -437,16 +610,12 @@ export function validateNamespaceRegistry(
     }
     seenCompositeKeys.add(compositeKey);
 
-    // If an external tombstone set is provided, verify active entries don't reuse retired IDs
-    if (
-      existingTombstones &&
-      existingTombstones.has(compositeKey) &&
-      validated.status === "ACTIVE"
-    ) {
+    // If an external tombstone set is provided, verify no tombstone reuse under ANY status
+    if (existingTombstones && existingTombstones.has(compositeKey)) {
       throw new NamespaceValidationError(
         validated.id,
         "TOMBSTONE_REUSE",
-        `Cannot re-activate permanently retired tombstone "${validated.id}" for kind "${validated.kind}"`,
+        `Cannot re-register permanently retired tombstone "${validated.id}" for kind "${validated.kind}" under any status (attempted: ${validated.status})`,
       );
     }
 
@@ -454,28 +623,4 @@ export function validateNamespaceRegistry(
   }
 
   return Object.freeze(validatedEntries);
-}
-
-/**
- * Exact-match permission evaluation.
- * Invariant: No wildcards (*), no prefix matching, fail-closed deny on missing match.
- * Invariant: Namespace ownership never conveys runtime authorization.
- */
-export function checkPermission(
-  requestedPermission: string,
-  grantedPermissions: readonly string[],
-): boolean {
-  if (!isCanonicalNamespaceIdentifier(requestedPermission)) {
-    return false;
-  }
-  const rawGranted: unknown = grantedPermissions;
-  if (!Array.isArray(rawGranted)) {
-    return false;
-  }
-  for (const granted of grantedPermissions) {
-    if (granted === requestedPermission) {
-      return true;
-    }
-  }
-  return false;
 }

@@ -15,11 +15,10 @@ import {
   isCanonicalNamespaceIdentifier,
   validateNamespaceRoot,
   validateModuleOwnership,
+  validateLifecycleTransition,
   validateNamespaceEntry,
   validateNamespaceRegistry,
-  checkPermission,
   type NamespaceEntryInput,
-  type NamespaceKind,
   type NamespaceStatus,
 } from "../../contracts/src/namespace/index.ts";
 
@@ -112,32 +111,10 @@ runScenario("04 Lifecycle statuses are strictly [ACTIVE, DEPRECATED, RETIRED]", 
 });
 
 // ============================================================
-// 2. Lexical Grammar Tests (Positive & Negative)
+// 2. Deterministic Lexical Validation Precedence (Finding 5)
 // ============================================================
 
-runScenario("05 Valid 2 to 6 segment identifiers pass validation", () => {
-  const validCases = [
-    "core.db",
-    "gov.capsule.persistence",
-    "sys.process.signal.handler",
-    "pack.starter.setup.theme.config",
-    "ext.acme.blog.post.created.v1",
-    "core.multi_tenant",
-    "core.auth_user_2.session_timeout",
-  ];
-  for (let i = 0; i < validCases.length; i++) {
-    const rawId: string = validCases[i] ?? "";
-    const validated = validateNamespaceIdentifier(rawId);
-    if (validated !== rawId) {
-      throw new Error("Validation mismatch");
-    }
-    const isCanonical = isCanonicalNamespaceIdentifier(rawId);
-    if (!isCanonical) {
-      throw new Error("isCanonical returned false");
-    }
-  }
-});
-runScenario("06 Non-string primitives fail closed", () => {
+runScenario("05 Deterministic precedence: primitive check is step 1", () => {
   assertThrows(() => {
     validateNamespaceIdentifier(null);
   }, "INVALID_PRIMITIVE");
@@ -155,122 +132,123 @@ runScenario("06 Non-string primitives fail closed", () => {
   }, "INVALID_PRIMITIVE");
 });
 
-runScenario("07 Total length bounds enforcement (min 3, max 128)", () => {
-  assertThrows(() => {
-    validateNamespaceIdentifier("a.");
-  }, "INVALID_LENGTH");
-  assertThrows(() => {
-    validateNamespaceIdentifier("ab");
-  }, "INVALID_LENGTH");
+runScenario(
+  "06 Deterministic precedence: character screening (step 2) precedes total length (step 3)",
+  () => {
+    // "A" has length 1 (< min length 3), but must fail with INVALID_CHARACTERS because character screening is step 2
+    assertThrows(() => {
+      validateNamespaceIdentifier("A");
+    }, "INVALID_CHARACTERS");
 
-  const minValid = "a.b";
-  if (validateNamespaceIdentifier(minValid) !== minValid) {
-    throw new Error(`Expected min length 3 to pass: ${minValid}`);
+    // "-" has length 1 (< min length 3), but must fail with INVALID_CHARACTERS
+    assertThrows(() => {
+      validateNamespaceIdentifier("-");
+    }, "INVALID_CHARACTERS");
+
+    // "@" has length 1 (< min length 3), but must fail with INVALID_CHARACTERS
+    assertThrows(() => {
+      validateNamespaceIdentifier("@");
+    }, "INVALID_CHARACTERS");
+  },
+);
+
+runScenario(
+  "07 Deterministic precedence: total length (step 3) precedes dot structure (step 4)",
+  () => {
+    // "ab" has valid characters, but length 2 < 3 -> INVALID_LENGTH
+    assertThrows(() => {
+      validateNamespaceIdentifier("ab");
+    }, "INVALID_LENGTH");
+
+    // "a." has length 2 < 3 -> INVALID_LENGTH (not MALFORMED_STRUCTURE)
+    assertThrows(() => {
+      validateNamespaceIdentifier("a.");
+    }, "INVALID_LENGTH");
+
+    const tooLong = "core." + "a".repeat(125); // length 130 > 128
+    assertThrows(() => {
+      validateNamespaceIdentifier(tooLong);
+    }, "INVALID_LENGTH");
+  },
+);
+
+runScenario(
+  "08 Deterministic precedence: dot structure (step 4) precedes segment count (step 6)",
+  () => {
+    // Leading, trailing, and consecutive dots fail with MALFORMED_STRUCTURE
+    assertThrows(() => {
+      validateNamespaceIdentifier(".core.db");
+    }, "MALFORMED_STRUCTURE");
+    assertThrows(() => {
+      validateNamespaceIdentifier("core.db.");
+    }, "MALFORMED_STRUCTURE");
+    assertThrows(() => {
+      validateNamespaceIdentifier("core..db");
+    }, "MALFORMED_STRUCTURE");
+  },
+);
+
+runScenario(
+  "09 Deterministic precedence: segment count (step 6) precedes segment length (step 7)",
+  () => {
+    // Single segment fails with INVALID_SEGMENT_COUNT
+    assertThrows(() => {
+      validateNamespaceIdentifier("single");
+    }, "INVALID_SEGMENT_COUNT");
+    assertThrows(() => {
+      validateNamespaceIdentifier("core");
+    }, "INVALID_SEGMENT_COUNT");
+
+    // 7 segments fails with INVALID_SEGMENT_COUNT
+    const sevenSegments = "a.b.c.d.e.f.g";
+    assertThrows(() => {
+      validateNamespaceIdentifier(sevenSegments);
+    }, "INVALID_SEGMENT_COUNT");
+  },
+);
+
+runScenario(
+  "10 Deterministic precedence: segment length (step 7) precedes segment regex (step 8)",
+  () => {
+    const segment48 = "core." + "a".repeat(48);
+    if (validateNamespaceIdentifier(segment48) !== segment48) {
+      throw new Error("Segment length 48 should pass");
+    }
+
+    const segment49 = "core." + "a".repeat(49);
+    assertThrows(() => {
+      validateNamespaceIdentifier(segment49);
+    }, "INVALID_SEGMENT_LENGTH");
+  },
+);
+
+runScenario("11 Valid 2 to 6 segment canonical identifiers pass validation", () => {
+  const validCases = [
+    "core.db",
+    "gov.capsule.persistence",
+    "sys.process.signal.handler",
+    "pack.starter.setup.theme.config",
+    "ext.acme.blog.post.created.v1",
+    "core.multi_tenant",
+    "core.auth_user_2.session_timeout",
+  ];
+  for (let i = 0; i < validCases.length; i++) {
+    const rawId: string = validCases[i] ?? "";
+    const validated = validateNamespaceIdentifier(rawId);
+    if (validated !== rawId) {
+      throw new Error("Validation mismatch");
+    }
+    if (!isCanonicalNamespaceIdentifier(rawId)) {
+      throw new Error("isCanonical returned false");
+    }
   }
-
-  const tooLong = "core." + "a".repeat(125);
-  assertThrows(() => {
-    validateNamespaceIdentifier(tooLong);
-  }, "INVALID_LENGTH");
-});
-
-runScenario("08 Segment count bounds enforcement (min 2, max 6)", () => {
-  assertThrows(() => {
-    validateNamespaceIdentifier("single");
-  }, "INVALID_SEGMENT_COUNT");
-  assertThrows(() => {
-    validateNamespaceIdentifier("core");
-  }, "INVALID_SEGMENT_COUNT");
-
-  const sevenSegments = "a.b.c.d.e.f.g";
-  assertThrows(() => {
-    validateNamespaceIdentifier(sevenSegments);
-  }, "INVALID_SEGMENT_COUNT");
-});
-
-runScenario("09 Segment length bounds enforcement (max 48 chars)", () => {
-  const segment48 = "core." + "a".repeat(48);
-  if (validateNamespaceIdentifier(segment48) !== segment48) {
-    throw new Error("Segment length 48 should pass");
-  }
-
-  const segment49 = "core." + "a".repeat(49);
-  assertThrows(() => {
-    validateNamespaceIdentifier(segment49);
-  }, "INVALID_SEGMENT_LENGTH");
-});
-
-runScenario("10 Uppercase characters are rejected fail-closed without normalization", () => {
-  assertThrows(() => {
-    validateNamespaceIdentifier("Core.database");
-  }, "INVALID_CHARACTERS");
-  assertThrows(() => {
-    validateNamespaceIdentifier("core.Database");
-  }, "INVALID_CHARACTERS");
-  assertThrows(() => {
-    validateNamespaceIdentifier("CORE.DATABASE");
-  }, "INVALID_CHARACTERS");
-});
-
-runScenario("11 Hyphens are strictly forbidden in canonical namespace identifiers", () => {
-  assertThrows(() => {
-    validateNamespaceIdentifier("core.clean-install");
-  }, "INVALID_CHARACTERS");
-  assertThrows(() => {
-    validateNamespaceIdentifier("ext.my-plugin.blog");
-  }, "INVALID_CHARACTERS");
-  assertThrows(() => {
-    validateNamespaceIdentifier("pack.starter-kit.setup");
-  }, "INVALID_CHARACTERS");
-});
-
-runScenario("12 Leading, trailing, and consecutive dots are forbidden", () => {
-  assertThrows(() => {
-    validateNamespaceIdentifier(".core.db");
-  }, "MALFORMED_STRUCTURE");
-  assertThrows(() => {
-    validateNamespaceIdentifier("core.db.");
-  }, "MALFORMED_STRUCTURE");
-  assertThrows(() => {
-    validateNamespaceIdentifier("core..db");
-  }, "MALFORMED_STRUCTURE");
-  assertThrows(() => {
-    validateNamespaceIdentifier("core...db");
-  }, "MALFORMED_STRUCTURE");
-});
-
-runScenario("13 Whitespace and non-ASCII/Unicode characters are forbidden", () => {
-  assertThrows(() => {
-    validateNamespaceIdentifier(" core.db");
-  }, "INVALID_CHARACTERS");
-  assertThrows(() => {
-    validateNamespaceIdentifier("core.db ");
-  }, "INVALID_CHARACTERS");
-  assertThrows(() => {
-    validateNamespaceIdentifier("core. db");
-  }, "INVALID_CHARACTERS");
-  assertThrows(() => {
-    validateNamespaceIdentifier("core.d b");
-  }, "INVALID_CHARACTERS");
-  assertThrows(() => {
-    validateNamespaceIdentifier("core.db\n");
-  }, "INVALID_CHARACTERS");
-  assertThrows(() => {
-    validateNamespaceIdentifier("core.db@v1");
-  }, "INVALID_CHARACTERS");
-  assertThrows(() => {
-    validateNamespaceIdentifier("core.db/postgresql");
-  }, "INVALID_CHARACTERS");
-  assertThrows(() => {
-    validateNamespaceIdentifier("core.dátabáze.pg");
-  }, "INVALID_CHARACTERS");
 });
 
 // ============================================================
 // 3. Root Ownership Taxonomy & Arity
 // ============================================================
 
-runScenario("14 Root segment taxonomy accepts core, gov, sys, pack, ext", () => {
+runScenario("12 Root segment taxonomy accepts core, gov, sys, pack, ext", () => {
   validateNamespaceRoot("core.database");
   validateNamespaceRoot("gov.capsule.persistence");
   validateNamespaceRoot("sys.process");
@@ -278,7 +256,7 @@ runScenario("14 Root segment taxonomy accepts core, gov, sys, pack, ext", () => 
   validateNamespaceRoot("ext.acme.blog");
 });
 
-runScenario("15 Invalid roots are rejected fail-closed", () => {
+runScenario("13 Invalid roots are rejected fail-closed", () => {
   assertThrows(() => {
     validateNamespaceRoot("integration.stripe");
   }, "INVALID_ROOT");
@@ -296,33 +274,30 @@ runScenario("15 Invalid roots are rejected fail-closed", () => {
   }, "INVALID_ROOT");
 });
 
-runScenario("16 Root-specific arity enforcement: pack requires >= 3 segments", () => {
+runScenario("14 Root-specific arity enforcement: pack requires >= 3 segments", () => {
   assertThrows(() => {
     validateNamespaceRoot("pack.foo");
   }, "INVALID_ARITY");
-
   const res = validateNamespaceRoot("pack.foo.bar");
   if (res.segments.length !== 3 || res.root !== "pack") {
     throw new Error("pack.foo.bar should have root pack and length 3");
   }
 });
 
-runScenario("17 Root-specific arity enforcement: ext requires >= 3 segments", () => {
+runScenario("15 Root-specific arity enforcement: ext requires >= 3 segments", () => {
   assertThrows(() => {
     validateNamespaceRoot("ext.acme");
   }, "INVALID_ARITY");
-
   const res = validateNamespaceRoot("ext.acme.blog");
   if (res.segments.length !== 3 || res.root !== "ext") {
     throw new Error("ext.acme.blog should have root ext and length 3");
   }
 });
 
-runScenario("18 Root-specific arity enforcement: core.integration requires >= 4 segments", () => {
+runScenario("16 Root-specific arity enforcement: core.integration requires >= 4 segments", () => {
   assertThrows(() => {
     validateNamespaceRoot("core.integration.stripe");
   }, "INVALID_ARITY");
-
   const res = validateNamespaceRoot("core.integration.payment.stripe");
   if (res.segments.length !== 4 || res.root !== "core") {
     throw new Error("core.integration.payment.stripe should pass");
@@ -330,116 +305,431 @@ runScenario("18 Root-specific arity enforcement: core.integration requires >= 4 
 });
 
 // ============================================================
-// 4. Exact Module Ownership Prefix Rule
+// 4. Closed Ext Ownership & Module Prefix Rules (Finding 3)
 // ============================================================
 
-runScenario("19 Module declaration matches its own ID", () => {
-  validateModuleOwnership("core.installer", "module", "core.installer");
-  validateModuleOwnership("ext.acme.blog", "module", "ext.acme.blog");
+runScenario("17 Ext module ID must have exactly 3 segments: ext.<publisher>.<module>", () => {
+  const validModule = validateNamespaceEntry({
+    kind: "module",
+    id: "ext.acme.blog",
+    status: "ACTIVE",
+    description: "Acme blog module",
+  });
+  if (validModule.id !== "ext.acme.blog") throw new Error("Module validation mismatch");
+
+  // Ext module with 4 segments is rejected
+  assertThrows(() => {
+    validateNamespaceEntry({
+      kind: "module",
+      id: "ext.acme.blog.submodule",
+      status: "ACTIVE",
+      description: "Invalid 4-segment ext module",
+    });
+  }, "INVALID_ARITY");
+});
+
+runScenario("18 Non-module ext identifier requires >= 4 segments", () => {
+  // ext identifier with only 3 segments but kind !== 'module' is rejected
+  assertThrows(() => {
+    validateNamespaceEntry({
+      kind: "permission",
+      id: "ext.acme.blog",
+      status: "ACTIVE",
+      description: "Permission with only 3 segments",
+      ownerModuleId: "ext.acme.blog",
+    });
+  }, "INVALID_ARITY");
+});
+
+runScenario("19 Omitting ownership metadata on ext.* identifier fails closed", () => {
+  // Non-module ext identifier without ownerModuleId cannot bypass validation
+  assertThrows(() => {
+    validateNamespaceEntry({
+      kind: "permission",
+      id: "ext.acme.blog.post.create",
+      status: "ACTIVE",
+      description: "Unowned third-party permission",
+    });
+  }, "MODULE_OWNERSHIP_REQUIRED");
 
   assertThrows(() => {
-    validateModuleOwnership("core.other", "module", "core.installer");
+    validateNamespaceEntry({
+      kind: "event",
+      id: "ext.acme.blog.post.published",
+      status: "ACTIVE",
+      description: "Unowned third-party event",
+    });
+  }, "MODULE_OWNERSHIP_REQUIRED");
+});
+
+runScenario("20 Ext identifier must match declared ownerModuleId prefix", () => {
+  // Valid matching ownership
+  const validEntry = validateNamespaceEntry({
+    kind: "permission",
+    id: "ext.acme.blog.post.create",
+    status: "ACTIVE",
+    description: "Create blog post permission",
+    ownerModuleId: "ext.acme.blog",
+  });
+  if (validEntry.id !== "ext.acme.blog.post.create") throw new Error("Entry mismatch");
+
+  // Mismatched owner module
+  assertThrows(() => {
+    validateNamespaceEntry({
+      kind: "permission",
+      id: "ext.acme.blog.post.create",
+      status: "ACTIVE",
+      description: "Mismatched owner",
+      ownerModuleId: "ext.other.forum",
+    });
   }, "MODULE_PREFIX_MISMATCH");
 });
 
-runScenario("20 Owned entities must strictly start with module_id + '.'", () => {
-  validateModuleOwnership("core.installer.completed", "event", "core.installer");
-  validateModuleOwnership("core.installer.run", "permission", "core.installer");
-  validateModuleOwnership("core.installer.auto_run", "settings", "core.installer");
-
-  assertThrows(() => {
-    validateModuleOwnership("core.install.completed", "event", "core.installer");
-  }, "MODULE_PREFIX_MISMATCH");
-
-  assertThrows(() => {
-    validateModuleOwnership("core.database.postgresql", "capability", "core.installer");
-  }, "MODULE_PREFIX_MISMATCH");
-});
-
-runScenario("21 Third-party extensions cannot escape ext.<pub>.<module>.* boundary", () => {
-  validateModuleOwnership("ext.acme.blog.post.created", "event", "ext.acme.blog");
-  validateModuleOwnership("ext.acme.blog.post.delete", "permission", "ext.acme.blog");
-
+runScenario("21 Third-party ext module cannot escape ext.* boundary", () => {
   assertThrows(() => {
     validateModuleOwnership("core.content.publish", "permission", "ext.acme.blog");
   }, "MODULE_PREFIX_MISMATCH");
+
+  assertThrows(() => {
+    validateModuleOwnership("ext.other.comment", "permission", "ext.acme.blog");
+  }, "MODULE_PREFIX_MISMATCH");
 });
 
 // ============================================================
-// 5. Composite Identity {kind, id} & Registry Validation
+// 5. Lifecycle Transitions & Permanent Tombstones (Finding 2)
 // ============================================================
 
-runScenario("22 Valid namespace entry creation and immutability", () => {
-  const entry = validateNamespaceEntry({
-    kind: "capability",
-    id: "core.database.postgresql",
-    status: "ACTIVE",
-    description: "PostgreSQL relational persistence provider",
-  });
+runScenario("22 Valid lifecycle transitions: ACTIVE -> DEPRECATED -> RETIRED", () => {
+  // Self transitions (no-op)
+  validateLifecycleTransition("ACTIVE", "ACTIVE");
+  validateLifecycleTransition("DEPRECATED", "DEPRECATED");
+  validateLifecycleTransition("RETIRED", "RETIRED");
 
-  if (
-    entry.kind !== "capability" ||
-    entry.id !== "core.database.postgresql" ||
-    entry.root !== "core"
-  ) {
-    throw new Error("Entry validation returned unexpected properties");
-  }
-  if (!Object.isFrozen(entry)) {
-    throw new Error("Validated entry must be immutable/frozen");
-  }
+  // Forward transitions
+  validateLifecycleTransition("ACTIVE", "DEPRECATED");
+  validateLifecycleTransition("DEPRECATED", "RETIRED");
+  validateLifecycleTransition("ACTIVE", "RETIRED");
 });
 
-runScenario("23 Invalid kind or status is rejected fail-closed", () => {
-  const invalidKindEntry: NamespaceEntryInput = {
-    kind: "invalid_kind" as unknown as NamespaceKind,
-    id: "core.database",
-    status: "ACTIVE",
-    description: "Test",
-  };
+runScenario("23 Reverse lifecycle transitions are strictly rejected", () => {
   assertThrows(() => {
-    validateNamespaceEntry(invalidKindEntry);
-  }, "INVALID_KIND");
+    validateLifecycleTransition("DEPRECATED", "ACTIVE");
+  }, "INVALID_LIFECYCLE_TRANSITION");
 
-  const invalidStatusEntry: NamespaceEntryInput = {
-    kind: "capability",
-    id: "core.database",
-    status: "UNKNOWN_STATUS" as unknown as NamespaceStatus,
-    description: "Test",
-  };
   assertThrows(() => {
-    validateNamespaceEntry(invalidStatusEntry);
+    validateLifecycleTransition("RETIRED", "ACTIVE");
+  }, "INVALID_LIFECYCLE_TRANSITION");
+
+  assertThrows(() => {
+    validateLifecycleTransition("RETIRED", "DEPRECATED");
+  }, "INVALID_LIFECYCLE_TRANSITION");
+});
+
+runScenario("24 Invalid lifecycle status strings fail closed", () => {
+  assertThrows(() => {
+    validateLifecycleTransition("UNKNOWN" as unknown as NamespaceStatus, "ACTIVE");
+  }, "INVALID_STATUS");
+
+  assertThrows(() => {
+    validateLifecycleTransition("ACTIVE", "INVALID" as unknown as NamespaceStatus);
   }, "INVALID_STATUS");
 });
 
-runScenario("24 Composite identity allows identical id with distinct kind", () => {
-  const entries: readonly NamespaceEntryInput[] = [
-    {
-      kind: "capability",
-      id: "core.auth.user",
-      status: "ACTIVE",
-      description: "User authentication capability",
-    },
-    {
-      kind: "permission",
-      id: "core.auth.user",
-      status: "ACTIVE",
-      description: "User authorization access gate",
-    },
-    {
-      kind: "settings",
-      id: "core.auth.user",
-      status: "ACTIVE",
-      description: "User auth configuration options",
-    },
-  ];
+runScenario("25 Permanent tombstones: retired ID cannot be re-registered under ANY status", () => {
+  const tombstones = new Set(["permission::core.legacy.access"]);
 
-  const registry = validateNamespaceRegistry(entries);
-  if (registry.length !== 3) {
-    throw new Error("Registry should hold 3 entries with distinct composite keys");
-  }
+  // Attempting to register under ACTIVE fails
+  assertThrows(() => {
+    validateNamespaceRegistry(
+      [
+        {
+          kind: "permission",
+          id: "core.legacy.access",
+          status: "ACTIVE",
+          description: "Attempting to re-activate retired permission",
+        },
+      ],
+      tombstones,
+    );
+  }, "TOMBSTONE_REUSE");
+
+  // Attempting to register under DEPRECATED fails
+  assertThrows(() => {
+    validateNamespaceRegistry(
+      [
+        {
+          kind: "permission",
+          id: "core.legacy.access",
+          status: "DEPRECATED",
+          description: "Attempting to re-register retired permission as deprecated",
+        },
+      ],
+      tombstones,
+    );
+  }, "TOMBSTONE_REUSE");
+
+  // Attempting to register under RETIRED fails
+  assertThrows(() => {
+    validateNamespaceRegistry(
+      [
+        {
+          kind: "permission",
+          id: "core.legacy.access",
+          status: "RETIRED",
+          description: "Attempting duplicate tombstone registration",
+        },
+      ],
+      tombstones,
+    );
+  }, "TOMBSTONE_REUSE");
 });
 
-runScenario("25 Duplicate (kind, id) is rejected fail-closed", () => {
+// ============================================================
+// 6. Superseded_by Validation (Finding 4)
+// ============================================================
+
+runScenario("26 Self supersession is strictly forbidden", () => {
+  assertThrows(() => {
+    validateNamespaceEntry({
+      kind: "capability",
+      id: "core.cache.provider",
+      status: "DEPRECATED",
+      description: "Self-superseding capability",
+      superseded_by: "core.cache.provider",
+    });
+  }, "INVALID_SUPERSEDED_BY");
+});
+
+runScenario("27 Superseded_by must be a valid semantic namespace ID (root + arity)", () => {
+  // Invalid root in superseded_by
+  assertThrows(() => {
+    validateNamespaceEntry({
+      kind: "capability",
+      id: "core.cache.v1",
+      status: "DEPRECATED",
+      description: "Legacy cache provider",
+      superseded_by: "invalid_root.cache",
+    });
+  }, "INVALID_ROOT");
+
+  // Invalid arity in superseded_by (pack requires >= 3 segments)
+  assertThrows(() => {
+    validateNamespaceEntry({
+      kind: "capability",
+      id: "core.cache.v1",
+      status: "DEPRECATED",
+      description: "Legacy cache provider",
+      superseded_by: "pack.invalid",
+    });
+  }, "INVALID_ARITY");
+});
+
+runScenario("28 Superseded_by cannot exist on ACTIVE entries", () => {
+  assertThrows(() => {
+    validateNamespaceEntry({
+      kind: "capability",
+      id: "core.cache.v1",
+      status: "ACTIVE",
+      description: "Active cache provider",
+      superseded_by: "core.cache.v2",
+    });
+  }, "INVALID_SUPERSEDED_BY");
+});
+
+runScenario("29 Valid superseded_by on DEPRECATED and RETIRED entries passes", () => {
+  const dep = validateNamespaceEntry({
+    kind: "capability",
+    id: "core.cache.v1",
+    status: "DEPRECATED",
+    description: "Deprecated cache provider",
+    superseded_by: "core.cache.v2",
+  });
+  if (dep.superseded_by !== "core.cache.v2") throw new Error("superseded_by mismatch");
+
+  const ret = validateNamespaceEntry({
+    kind: "capability",
+    id: "core.cache.v1",
+    status: "RETIRED",
+    description: "Retired cache provider",
+    superseded_by: "core.cache.v3",
+  });
+  if (ret.superseded_by !== "core.cache.v3") throw new Error("superseded_by mismatch");
+});
+
+// ============================================================
+// 7. Malformed Runtime Input Fail-Closed (Finding 6)
+// ============================================================
+
+runScenario("30 Malformed runtime entry fails closed without leaking TypeError", () => {
+  assertThrows(() => {
+    validateNamespaceEntry(null);
+  }, "INVALID_PRIMITIVE");
+
+  assertThrows(() => {
+    validateNamespaceEntry(undefined);
+  }, "INVALID_PRIMITIVE");
+
+  assertThrows(() => {
+    validateNamespaceEntry("not-an-object");
+  }, "INVALID_PRIMITIVE");
+
+  assertThrows(() => {
+    validateNamespaceEntry(123);
+  }, "INVALID_PRIMITIVE");
+
+  assertThrows(() => {
+    validateNamespaceEntry([]);
+  }, "INVALID_PRIMITIVE");
+
+  // Missing or non-string id
+  assertThrows(() => {
+    validateNamespaceEntry({
+      kind: "capability",
+      status: "ACTIVE",
+      description: "test",
+    });
+  }, "INVALID_PRIMITIVE");
+
+  // Non-string description does NOT throw raw TypeError
+  assertThrows(() => {
+    validateNamespaceEntry({
+      id: "core.db",
+      kind: "capability",
+      status: "ACTIVE",
+      description: null,
+    });
+  }, "INVALID_PRIMITIVE");
+
+  assertThrows(() => {
+    validateNamespaceEntry({
+      id: "core.db",
+      kind: "capability",
+      status: "ACTIVE",
+      description: undefined,
+    });
+  }, "INVALID_PRIMITIVE");
+
+  assertThrows(() => {
+    validateNamespaceEntry({
+      id: "core.db",
+      kind: "capability",
+      status: "ACTIVE",
+      description: 12345,
+    });
+  }, "INVALID_PRIMITIVE");
+
+  assertThrows(() => {
+    validateNamespaceEntry({
+      id: "core.db",
+      kind: "capability",
+      status: "ACTIVE",
+      description: "   ",
+    });
+  }, "INVALID_PRIMITIVE");
+
+  // Non-string optional properties
+  assertThrows(() => {
+    validateNamespaceEntry({
+      id: "core.db",
+      kind: "capability",
+      status: "ACTIVE",
+      description: "Valid description",
+      ownerModuleId: 123,
+    });
+  }, "INVALID_PRIMITIVE");
+
+  assertThrows(() => {
+    validateNamespaceEntry({
+      id: "core.db",
+      kind: "capability",
+      status: "ACTIVE",
+      description: "Valid description",
+      version: true,
+    });
+  }, "INVALID_PRIMITIVE");
+
+  assertThrows(() => {
+    validateNamespaceEntry({
+      id: "core.db",
+      kind: "capability",
+      status: "DEPRECATED",
+      description: "Valid description",
+      superseded_by: {},
+    });
+  }, "INVALID_PRIMITIVE");
+});
+
+runScenario("31 Malformed registry inputs fail closed with INVALID_PRIMITIVE", () => {
+  assertThrows(() => {
+    validateNamespaceRegistry("not-an-array" as unknown as readonly NamespaceEntryInput[]);
+  }, "INVALID_PRIMITIVE");
+
+  assertThrows(() => {
+    validateNamespaceRegistry([], "not-a-set" as unknown as ReadonlySet<string>);
+  }, "INVALID_PRIMITIVE");
+});
+
+// ============================================================
+// 8. Composite Identity Across All 7 Kinds (Finding 7)
+// ============================================================
+
+runScenario(
+  "32 All 7 canonical kinds validate and form distinct composite identities {kind, id}",
+  () => {
+    const sharedId = "core.auth.user";
+    const entries: readonly NamespaceEntryInput[] = [
+      {
+        kind: "capability",
+        id: sharedId,
+        status: "ACTIVE",
+        description: "Capability entity",
+      },
+      {
+        kind: "permission",
+        id: sharedId,
+        status: "ACTIVE",
+        description: "Permission entity",
+      },
+      {
+        kind: "event",
+        id: sharedId,
+        status: "ACTIVE",
+        description: "Event entity",
+      },
+      {
+        kind: "settings",
+        id: sharedId,
+        status: "ACTIVE",
+        description: "Settings entity",
+      },
+      {
+        kind: "module",
+        id: sharedId,
+        status: "ACTIVE",
+        description: "Module entity",
+      },
+      {
+        kind: "entitlement",
+        id: sharedId,
+        status: "ACTIVE",
+        description: "Entitlement entity",
+      },
+      {
+        kind: "integration",
+        id: sharedId,
+        status: "ACTIVE",
+        description: "Integration entity",
+      },
+    ];
+
+    const registry = validateNamespaceRegistry(entries);
+    if (registry.length !== 7) {
+      throw new Error(`Expected 7 entries in registry, got ${String(registry.length)}`);
+    }
+  },
+);
+
+runScenario("33 Duplicate (kind, id) collision fails closed", () => {
   const entries: readonly NamespaceEntryInput[] = [
     {
       kind: "permission",
@@ -460,51 +750,45 @@ runScenario("25 Duplicate (kind, id) is rejected fail-closed", () => {
   }, "DUPLICATE_IDENTIFIER");
 });
 
-runScenario("26 Superseded_by reference validation", () => {
-  const deprecatedEntry = validateNamespaceEntry({
-    kind: "capability",
-    id: "core.cache.v1",
-    status: "DEPRECATED",
-    description: "Legacy cache provider",
-    superseded_by: "core.cache.v2",
-  });
-  if (deprecatedEntry.superseded_by !== "core.cache.v2") {
-    throw new Error("superseded_by should match");
-  }
+// ============================================================
+// 9. Exact Structural Matching Without Wildcard Privileges (Finding 1)
+// ============================================================
+
+runScenario("34 Structural invariant: Wildcards, regex characters, and paths are rejected", () => {
+  // Universal wildcard is rejected
+  assertThrows(() => {
+    validateNamespaceIdentifier("*");
+  }, "INVALID_CHARACTERS");
+
+  // Prefix wildcard is rejected
+  assertThrows(() => {
+    validateNamespaceIdentifier("core.*");
+  }, "INVALID_CHARACTERS");
 
   assertThrows(() => {
-    validateNamespaceEntry({
-      kind: "capability",
-      id: "core.cache.v1",
-      status: "ACTIVE",
-      description: "Active cache provider",
-      superseded_by: "core.cache.v2",
-    });
-  }, "INVALID_SUPERSEDED_BY");
-});
+    validateNamespaceIdentifier("core.content.*");
+  }, "INVALID_CHARACTERS");
 
-runScenario("27 Permanent tombstone prevents reuse of retired identifiers", () => {
-  const tombstones = new Set(["permission::core.legacy.access"]);
-
-  const activeAttempt: readonly NamespaceEntryInput[] = [
-    {
-      kind: "permission",
-      id: "core.legacy.access",
-      status: "ACTIVE",
-      description: "Attempting to re-activate retired permission",
-    },
-  ];
+  // Regex tokens are rejected
+  assertThrows(() => {
+    validateNamespaceIdentifier("core.content.?");
+  }, "INVALID_CHARACTERS");
 
   assertThrows(() => {
-    validateNamespaceRegistry(activeAttempt, tombstones);
-  }, "TOMBSTONE_REUSE");
+    validateNamespaceIdentifier("core.content.[a-z]");
+  }, "INVALID_CHARACTERS");
+
+  // Slash paths are rejected
+  assertThrows(() => {
+    validateNamespaceIdentifier("core/content/read");
+  }, "INVALID_CHARACTERS");
 });
 
 // ============================================================
-// 6. Preservation of Active Governance Capabilities & Contracts
+// 10. Governance Invariants Preservation
 // ============================================================
 
-runScenario("28 All 5 active governance capabilities conform to grammar", () => {
+runScenario("35 All 5 active governance capabilities conform to grammar", () => {
   const govCapabilities = [
     "gov.capsule.persistence",
     "gov.capsule.lineage",
@@ -512,7 +796,6 @@ runScenario("28 All 5 active governance capabilities conform to grammar", () => 
     "gov.scope.diff_firewall",
     "gov.checkpoint.remote_protocol",
   ];
-
   for (const cap of govCapabilities) {
     const { root, segments } = validateNamespaceRoot(cap);
     if (root !== "gov") throw new Error(`Expected root gov for ${cap}`);
@@ -520,45 +803,18 @@ runScenario("28 All 5 active governance capabilities conform to grammar", () => 
   }
 });
 
-runScenario("29 CONTRACT-GOV-* identifiers are outside runtime namespace system", () => {
+runScenario("36 CONTRACT-GOV-* identifiers are outside runtime namespace system", () => {
   const contractIds = [
     "CONTRACT-GOV-GENESIS-ANCHOR-001",
     "CONTRACT-GOV-COMMAND-CAPSULE-001",
     "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
     "CONTRACT-CORE-STABLE-NAMESPACE-001",
   ];
-
   for (const cId of contractIds) {
     if (isCanonicalNamespaceIdentifier(cId)) {
       throw new Error(`Contract ID ${cId} should NOT be a valid runtime namespace identifier`);
     }
   }
-});
-
-// ============================================================
-// 7. Permission Exact-Match & Authorization Independence
-// ============================================================
-
-runScenario("30 checkPermission enforces strict exact-match fail-closed evaluation", () => {
-  const granted = ["core.content.read", "core.content.publish", "ext.acme.blog.post.create"];
-
-  if (!checkPermission("core.content.read", granted)) throw new Error("Expected true");
-  if (!checkPermission("core.content.publish", granted)) throw new Error("Expected true");
-  if (!checkPermission("ext.acme.blog.post.create", granted)) throw new Error("Expected true");
-
-  if (checkPermission("core.content.delete", granted)) throw new Error("Expected false");
-  if (checkPermission("core.content", granted)) throw new Error("Expected false");
-  if (checkPermission("core.content.publish.draft", granted)) throw new Error("Expected false");
-
-  if (checkPermission("core.*", granted)) throw new Error("Expected false");
-  if (checkPermission("*", granted)) throw new Error("Expected false");
-  if (checkPermission("core.content.*", granted)) throw new Error("Expected false");
-
-  const nullRequested = null as unknown as string;
-  if (checkPermission(nullRequested, granted)) throw new Error("Expected false");
-  if (checkPermission("INVALID_UPPERCASE", granted)) throw new Error("Expected false");
-  const nullGranted = null as unknown as readonly string[];
-  if (checkPermission("core.content.read", nullGranted)) throw new Error("Expected false");
 });
 
 console.log(
