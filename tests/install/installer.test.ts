@@ -22,9 +22,13 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   type BootstrapParticipant,
   type InstallDependencies,
+  extractSecretsFromDatabaseUrl,
   runCleanInstall,
 } from "../../core/src/install/installer.ts";
 import {
@@ -403,48 +407,164 @@ void describe("Clean-Install / Bootstrap Framework Unit Tests", () => {
     }
   });
 
-  void it("18. Fails closed during filesystem migration discovery when existing path is unreadable/not a directory", () => {
-    // Pass an existing file path (e.g. package.json) where readdirSync fails with ENOTDIR
-    const regularFilePath = new URL("../../package.json", import.meta.url).pathname;
+  void it("18. Finding 1 regression: migration discovery handles missing dirs and fails closed on unreadable/invalid paths", () => {
+    // 18a. Missing directory => returns 0
+    const nonExistentDir = path.join(
+      os.tmpdir(),
+      `non_existent_migrations_${String(Date.now())}_${String(Math.random())}`,
+    );
+    assert.equal(getFilesystemMigrationCount(nonExistentDir), 0);
 
+    // 18b. Existing valid directory => returns exact migration count
+    const validTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "synthesis_valid_migrations_"));
+    try {
+      fs.mkdirSync(path.join(validTmpDir, "20261001_init"));
+      fs.mkdirSync(path.join(validTmpDir, "20261002_add_table"));
+      fs.writeFileSync(path.join(validTmpDir, "migration_lock.toml"), "lock file content");
+      fs.mkdirSync(path.join(validTmpDir, ".hidden_dir"));
+
+      const count = getFilesystemMigrationCount(validTmpDir);
+      assert.equal(count, 2);
+    } finally {
+      fs.rmSync(validTmpDir, { recursive: true, force: true });
+    }
+
+    // 18c. Existing regular file => fails closed with MIGRATION_DISCOVERY_FAILED (ENOTDIR)
+    const regularFilePath = new URL("../../package.json", import.meta.url).pathname;
     assert.throws(
       () => getFilesystemMigrationCount(regularFilePath),
       /MIGRATION_DISCOVERY_FAILED: Unable to read existing migrations directory/,
     );
+
+    // 18d. Inaccessible parent / permission denied => fails closed with MIGRATION_DISCOVERY_FAILED (EACCES)
+    // Deterministic simulation via readdirSyncFn injection so test does not depend on root UID
+    const eaccesError = Object.assign(new Error("Permission denied"), { code: "EACCES" });
+    assert.throws(
+      () =>
+        getFilesystemMigrationCount("/some/path", () => {
+          throw eaccesError;
+        }),
+      /MIGRATION_DISCOVERY_FAILED: Unable to read existing migrations directory.*Permission denied/,
+    );
+
+    // 18e. Unexpected filesystem failure (e.g. ELOOP, EIO) => fails closed with MIGRATION_DISCOVERY_FAILED
+    const eloopError = Object.assign(new Error("Too many symbolic links encountered"), {
+      code: "ELOOP",
+    });
+    assert.throws(
+      () =>
+        getFilesystemMigrationCount("/some/path", () => {
+          throw eloopError;
+        }),
+      /MIGRATION_DISCOVERY_FAILED: Unable to read existing migrations directory.*Too many symbolic links/,
+    );
   });
 
-  void it("19. Redacts isolated password sentinel from probe and apply error messages even if full URL is absent", async () => {
-    const secretPassword = "isolated_secret_pw_987";
-    const sensitiveDbUrl = `postgresql://synthesis_user:${secretPassword}@127.0.0.1:5432/db`;
+  void it("19. Finding 2 regression: redacts full URL, encoded password, and decoded password across probe and apply", async () => {
+    const rawEncodedPassword = "fixture_p%40ss";
+    const decodedPassword = "fixture_p@ss";
+    const sensitiveDbUrl = `postgresql://synthesis_user:${rawEncodedPassword}@127.0.0.1:5432/db`;
 
-    // 19a. Probe database with isolated password
-    const probeFailRunner = () =>
+    // 19a. Full URL leakage in probe
+    const probeFullUrlRunner = () =>
       Promise.resolve({
         exitCode: 1,
         stdout: "",
-        stderr: `FATAL: password authentication failed for user: ${secretPassword}`,
+        stderr: `Connection refused for ${sensitiveDbUrl}`,
       });
-    const probeRes = await probeDatabaseWithPrisma(sensitiveDbUrl, probeFailRunner);
-    assert.equal(probeRes.ready, false);
-    const probeErr = probeRes.error ?? "";
-    assert.equal(probeErr.includes(secretPassword), false);
-    assert.match(probeErr, /\[REDACTED\]/);
+    const probeRes1 = await probeDatabaseWithPrisma(sensitiveDbUrl, probeFullUrlRunner);
+    assert.equal(probeRes1.ready, false);
+    const err1 = probeRes1.error ?? "";
+    assert.equal(err1.includes(sensitiveDbUrl), false);
+    assert.equal(err1.includes(rawEncodedPassword), false);
+    assert.equal(err1.includes(decodedPassword), false);
+    assert.match(err1, /\[REDACTED\]/);
 
-    // 19b. Apply migrations with isolated password
-    const applyFailRunner = () =>
+    // 19b. Encoded password only in probe
+    const probeEncodedRunner = () =>
       Promise.resolve({
         exitCode: 1,
         stdout: "",
-        stderr: `P1000: Authentication failed against database with credentials: ${secretPassword}`,
+        stderr: `Auth failed for credentials with password: ${rawEncodedPassword}`,
       });
-    const applyRes = await applyMigrationsWithPrisma(sensitiveDbUrl, applyFailRunner);
+    const probeRes2 = await probeDatabaseWithPrisma(sensitiveDbUrl, probeEncodedRunner);
+    assert.equal(probeRes2.ready, false);
+    const err2 = probeRes2.error ?? "";
+    assert.equal(err2.includes(rawEncodedPassword), false);
+    assert.equal(err2.includes(decodedPassword), false);
+    assert.match(err2, /\[REDACTED\]/);
+
+    // 19c. Decoded password only in probe (Finding 2 exact bug scenario)
+    const probeDecodedRunner = () =>
+      Promise.resolve({
+        exitCode: 1,
+        stdout: "",
+        stderr: `FATAL: password authentication failed for user synthesis_user with decoded password: ${decodedPassword}`,
+      });
+    const probeRes3 = await probeDatabaseWithPrisma(sensitiveDbUrl, probeDecodedRunner);
+    assert.equal(probeRes3.ready, false);
+    const err3 = probeRes3.error ?? "";
+    assert.equal(err3.includes(decodedPassword), false);
+    assert.equal(err3.includes(rawEncodedPassword), false);
+    assert.match(err3, /\[REDACTED\]/);
+
+    // 19d. Decoded password only in applyMigrations
+    const applyDecodedRunner = () =>
+      Promise.resolve({
+        exitCode: 1,
+        stdout: "",
+        stderr: `P1000: Authentication failed against database using password: ${decodedPassword}`,
+      });
+    const applyRes = await applyMigrationsWithPrisma(sensitiveDbUrl, applyDecodedRunner);
     assert.equal(applyRes.applied, false);
     const applyErr = applyRes.error ?? "";
-    assert.equal(applyErr.includes(secretPassword), false);
+    assert.equal(applyErr.includes(decodedPassword), false);
+    assert.equal(applyErr.includes(rawEncodedPassword), false);
     assert.match(applyErr, /\[REDACTED\]/);
   });
 
-  void it("20. Ensures bootstrap participant and selfCheck InstallContext does NOT expose raw databaseUrl", async () => {
+  void it("20. Finding 2 regression: fails closed with secret-free diagnostic when percent-encoding is malformed", async () => {
+    const malformedPassword = "bad_pass%ZZ_sentinel";
+    const malformedDbUrl = `postgresql://synthesis_user:${malformedPassword}@127.0.0.1:5432/db`;
+
+    // 20a. extractSecretsFromDatabaseUrl fails closed
+    const extraction = extractSecretsFromDatabaseUrl(malformedDbUrl);
+    assert.equal(extraction.isSafe, false);
+
+    // 20b. probeDatabaseWithPrisma returns safe generic diagnostic without raw CLI output
+    const failRunner = () =>
+      Promise.resolve({
+        exitCode: 1,
+        stdout: "",
+        stderr: `Raw error leaking ${malformedPassword}`,
+      });
+    const probeRes = await probeDatabaseWithPrisma(malformedDbUrl, failRunner);
+    assert.equal(probeRes.ready, false);
+    const probeErr = probeRes.error ?? "";
+    assert.equal(probeErr.includes(malformedPassword), false);
+    assert.match(probeErr, /\[REDACTED_SECURE_DIAGNOSTIC: Secret redaction could not be verified/);
+
+    // 20c. applyMigrationsWithPrisma returns safe generic diagnostic without raw CLI output
+    const applyRes = await applyMigrationsWithPrisma(malformedDbUrl, failRunner);
+    assert.equal(applyRes.applied, false);
+    const applyErr = applyRes.error ?? "";
+    assert.equal(applyErr.includes(malformedPassword), false);
+    assert.match(applyErr, /\[REDACTED_SECURE_DIAGNOSTIC: Secret redaction could not be verified/);
+
+    // 20d. runCleanInstall returns safe generic diagnostic when encoding is malformed
+    const deps = createValidDependencies({
+      validateConfig: () => ({ valid: true, databaseUrl: malformedDbUrl }),
+      probeDatabase: () =>
+        Promise.resolve({ ready: false, error: `Failed with ${malformedPassword}` }),
+    });
+    const runRes = await runCleanInstall({ SYNTHESIS_SECRET_DATABASE_URL: malformedDbUrl }, deps);
+    assert.equal(runRes.status, "FAILED");
+    const runErr = runRes.error ?? "";
+    assert.equal(runErr.includes(malformedPassword), false);
+    assert.match(runErr, /\[REDACTED_SECURE_DIAGNOSTIC: Secret redaction could not be verified/);
+  });
+
+  void it("21. Ensures bootstrap participant and selfCheck InstallContext does NOT expose raw databaseUrl", async () => {
     let capturedContext: Record<string, unknown> | null = null;
     let capturedSelfCheckContext: Record<string, unknown> | null = null;
 

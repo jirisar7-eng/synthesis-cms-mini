@@ -1,0 +1,25 @@
+{
+  "format_version": "1.0.0",
+  "record_kind": "LINKED_CAPSULE_FILE_ATTESTATION",
+  "attestation_id": "ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-004R02",
+  "status": "OBSERVED_UNANCHORED",
+  "observed_at_utc": "2026-10-08T16:35:00.000Z",
+  "source_repository": "jirisar7-eng/synthesis-cms-mini",
+  "genesis_anchor_reference": {
+    "genesis_file": ".synthesis/lineage/genesis.json",
+    "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+  },
+  "parent_attestation": {
+    "attestation_id": "ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-004R01",
+    "file_path": ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-004R01.json",
+    "raw_file_sha256": "39ab28009f8e6fb48f9fd29602f2f55b65babb7a32803abc2b66169fb934d9ed"
+  },
+  "new_capsule": {
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-004R02",
+    "file_path": ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-CLEAN-INSTALL-BOOTSTRAP-001-20261008-004R02.json",
+    "payload_sha256": "84775f0f427add509e6af52c01708ee8dd0ddbbce4c6c5149e667c929578fff4",
+    "raw_file_sha256": "151349b2469543e8e6b92e70bfdf9364ff6e103f551e872714a1721e36388e9d",
+    "git_blob_sha": "c1467feafa650a7f12f54c55910a28c342057c85",
+    "file_size_bytes": 7394
+  }
+}

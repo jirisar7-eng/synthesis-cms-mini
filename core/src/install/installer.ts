@@ -1,3 +1,4 @@
+/// <reference types="node" />
 /**
  * Synthesis CMS mini — Clean-Install / Bootstrap Framework Installer
  *
@@ -63,9 +64,68 @@ export interface InstallResult {
   readonly error?: string;
 }
 
-export function redactSensitiveText(text: string, secrets: ReadonlyArray<string>): string {
+export interface SecretExtractionResult {
+  readonly secrets: ReadonlyArray<string>;
+  readonly isSafe: boolean;
+}
+
+/**
+ * Safely extracts credentials (complete URL, encoded password, and decoded password)
+ * from a database connection URI without ever logging or exposing the source password.
+ * Fails closed (isSafe = false) if percent-encoding is malformed or invalid.
+ */
+export function extractSecretsFromDatabaseUrl(databaseUrl: string): SecretExtractionResult {
+  const secrets: string[] = [];
+  if (databaseUrl && databaseUrl.length > 0) {
+    secrets.push(databaseUrl);
+  }
+
+  let isSafe = true;
+
+  try {
+    const parsedUri = new URL(databaseUrl);
+    const rawPassword = parsedUri.password;
+    if (rawPassword && rawPassword.length > 0) {
+      secrets.push(rawPassword);
+      try {
+        const decodedPassword = decodeURIComponent(rawPassword);
+        if (decodedPassword && decodedPassword.length > 0 && decodedPassword !== rawPassword) {
+          secrets.push(decodedPassword);
+        }
+      } catch {
+        // Malformed percent encoding in password - redaction safety cannot be established
+        isSafe = false;
+      }
+    }
+  } catch {
+    // Non-standard URI format
+    if (databaseUrl.includes("@") && databaseUrl.includes(":")) {
+      isSafe = false;
+    }
+  }
+
+  const uniqueSecrets = Array.from(new Set(secrets.filter((s) => s.length > 0))).sort(
+    (a, b) => b.length - a.length,
+  );
+
+  return {
+    secrets: uniqueSecrets,
+    isSafe,
+  };
+}
+
+export function redactSensitiveText(
+  text: string,
+  secrets: ReadonlyArray<string>,
+  isSafe = true,
+): string {
+  if (!isSafe) {
+    return "[REDACTED_SECURE_DIAGNOSTIC: Secret redaction could not be verified due to malformed credentials encoding]";
+  }
+
   let sanitized = text;
-  for (const s of secrets) {
+  const sortedSecrets = [...secrets].sort((a, b) => b.length - a.length);
+  for (const s of sortedSecrets) {
     if (s && s.length > 0) {
       sanitized = sanitized.split(s).join("[REDACTED]");
     }
@@ -80,6 +140,7 @@ export async function runCleanInstall(
   let currentStage: InstallStage = "PREFLIGHT";
   let databaseUrl = "";
   let sensitiveSecrets: string[] = [];
+  let isRedactionSafe = true;
 
   try {
     // 1. PREFLIGHT
@@ -104,23 +165,19 @@ export async function runCleanInstall(
       };
     }
     databaseUrl = configResult.databaseUrl;
-    sensitiveSecrets = [databaseUrl];
-
-    // Try extracting password substring from databaseUrl if present
-    try {
-      const parsedUri = new URL(databaseUrl);
-      if (parsedUri.password) {
-        sensitiveSecrets.push(parsedUri.password);
-      }
-    } catch {
-      // Non-URL format or unparseable; databaseUrl is already in sensitiveSecrets
-    }
+    const extraction = extractSecretsFromDatabaseUrl(databaseUrl);
+    sensitiveSecrets = [...extraction.secrets];
+    isRedactionSafe = extraction.isSafe;
 
     // 3. DATABASE_READY
     currentStage = "DATABASE_READY";
     const dbProbe = await deps.probeDatabase(databaseUrl);
     if (!dbProbe.ready) {
-      const err = redactSensitiveText(dbProbe.error ?? "Database probe failed", sensitiveSecrets);
+      const err = redactSensitiveText(
+        dbProbe.error ?? "Database probe failed",
+        sensitiveSecrets,
+        isRedactionSafe,
+      );
       return {
         status: "FAILED",
         stage: currentStage,
@@ -160,6 +217,7 @@ export async function runCleanInstall(
         const err = redactSensitiveText(
           migrationRun.error ?? "Migration execution failed",
           sensitiveSecrets,
+          isRedactionSafe,
         );
         return {
           status: "FAILED",
@@ -233,6 +291,7 @@ export async function runCleanInstall(
           const err = redactSensitiveText(
             runRes.error ?? `Participant ${participant.id} failed`,
             sensitiveSecrets,
+            isRedactionSafe,
           );
           return {
             status: "FAILED",
@@ -245,7 +304,7 @@ export async function runCleanInstall(
         participantResults.push({ id: participant.id, name: participant.name, ok: true });
       } catch (execErr) {
         const rawMsg = execErr instanceof Error ? execErr.message : String(execErr);
-        const err = redactSensitiveText(rawMsg, sensitiveSecrets);
+        const err = redactSensitiveText(rawMsg, sensitiveSecrets, isRedactionSafe);
         return {
           status: "FAILED",
           stage: currentStage,
@@ -269,6 +328,7 @@ export async function runCleanInstall(
       const err = redactSensitiveText(
         selfCheckResult.error ?? "Installer self-check failed",
         sensitiveSecrets,
+        isRedactionSafe,
       );
       return {
         status: "FAILED",
@@ -290,7 +350,7 @@ export async function runCleanInstall(
   } catch (unexpectedError) {
     const rawMsg =
       unexpectedError instanceof Error ? unexpectedError.message : String(unexpectedError);
-    const err = redactSensitiveText(rawMsg, sensitiveSecrets);
+    const err = redactSensitiveText(rawMsg, sensitiveSecrets, isRedactionSafe);
     return {
       status: "FAILED",
       stage: currentStage,

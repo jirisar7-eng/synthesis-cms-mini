@@ -15,7 +15,7 @@ import {
   DATABASE_URL_VARIABLE_NAME,
   validateDatabaseEnvironment,
 } from "../../../contracts/src/database/index.ts";
-import { redactSensitiveText } from "./installer.ts";
+import { extractSecretsFromDatabaseUrl, redactSensitiveText } from "./installer.ts";
 
 export type CommandRunner = (
   command: string,
@@ -57,24 +57,11 @@ export function validateDatabaseConfig(env: Readonly<Record<string, string | und
   }
 }
 
-function extractSecrets(databaseUrl: string): string[] {
-  const secrets = [databaseUrl];
-  try {
-    const parsedUri = new URL(databaseUrl);
-    if (parsedUri.password) {
-      secrets.push(parsedUri.password);
-    }
-  } catch {
-    // Non-URL format or unparseable; databaseUrl is already in secrets
-  }
-  return secrets;
-}
-
 export async function probeDatabaseWithPrisma(
   databaseUrl: string,
   runner: CommandRunner,
 ): Promise<{ ready: boolean; error?: string }> {
-  const secrets = extractSecrets(databaseUrl);
+  const { secrets, isSafe } = extractSecretsFromDatabaseUrl(databaseUrl);
   try {
     const res = await runner("npx", ["--no-install", "prisma", "db", "execute", "--stdin"], {
       stdin: "SELECT 1;\n",
@@ -89,14 +76,14 @@ export async function probeDatabaseWithPrisma(
 
     const rawError =
       res.stderr.trim() || res.stdout.trim() || `Command exited with code ${String(res.exitCode)}`;
-    const safeError = redactSensitiveText(rawError, secrets);
+    const safeError = redactSensitiveText(rawError, secrets, isSafe);
     return {
       ready: false,
       error: `DATABASE_PROBE_FAILED (exit code ${String(res.exitCode)}): ${safeError}`,
     };
   } catch (err) {
     const rawError = err instanceof Error ? err.message : String(err);
-    const safeError = redactSensitiveText(rawError, secrets);
+    const safeError = redactSensitiveText(rawError, secrets, isSafe);
     return {
       ready: false,
       error: `DATABASE_PROBE_EXECUTION_ERROR: ${safeError}`,
@@ -104,21 +91,28 @@ export async function probeDatabaseWithPrisma(
   }
 }
 
-export function getFilesystemMigrationCount(migrationsDir?: string): number {
+export function getFilesystemMigrationCount(
+  migrationsDir?: string,
+  readdirSyncFn: (path: string, options: { withFileTypes: true }) => fs.Dirent[] = fs.readdirSync,
+): number {
   const targetDir = migrationsDir ?? path.resolve(process.cwd(), "prisma", "migrations");
 
-  if (!fs.existsSync(targetDir)) {
-    return 0;
-  }
-
   try {
-    const entries = fs.readdirSync(targetDir, { withFileTypes: true });
+    const entries = readdirSyncFn(targetDir, { withFileTypes: true });
     // Count directory entries that represent migration folders (ignore migration_lock.toml, hidden files, etc.)
     const migrationDirs = entries.filter(
       (entry) => entry.isDirectory() && !entry.name.startsWith("."),
     );
     return migrationDirs.length;
   } catch (err) {
+    if (
+      err &&
+      typeof err === "object" &&
+      "code" in err &&
+      (err as { code?: unknown }).code === "ENOENT"
+    ) {
+      return 0;
+    }
     const message = err instanceof Error ? err.message : String(err);
     throw new Error(
       `MIGRATION_DISCOVERY_FAILED: Unable to read existing migrations directory at "${targetDir}": ${message}`,
@@ -130,7 +124,7 @@ export async function applyMigrationsWithPrisma(
   databaseUrl: string,
   runner: CommandRunner,
 ): Promise<{ applied: boolean; error?: string }> {
-  const secrets = extractSecrets(databaseUrl);
+  const { secrets, isSafe } = extractSecretsFromDatabaseUrl(databaseUrl);
   try {
     const res = await runner("npx", ["--no-install", "prisma", "migrate", "deploy"], {
       env: {
@@ -144,14 +138,14 @@ export async function applyMigrationsWithPrisma(
 
     const rawError =
       res.stderr.trim() || res.stdout.trim() || `Command exited with code ${String(res.exitCode)}`;
-    const safeError = redactSensitiveText(rawError, secrets);
+    const safeError = redactSensitiveText(rawError, secrets, isSafe);
     return {
       applied: false,
       error: `MIGRATE_DEPLOY_FAILED (exit code ${String(res.exitCode)}): ${safeError}`,
     };
   } catch (err) {
     const rawError = err instanceof Error ? err.message : String(err);
-    const safeError = redactSensitiveText(rawError, secrets);
+    const safeError = redactSensitiveText(rawError, secrets, isSafe);
     return {
       applied: false,
       error: `MIGRATE_DEPLOY_EXECUTION_ERROR: ${safeError}`,
