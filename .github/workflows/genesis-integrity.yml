@@ -473,6 +473,40 @@ jobs:
       - name: Run Prisma schema smoke check
         run: SYNTHESIS_SECRET_DATABASE_URL='postgresql://test:test@localhost:5432/synthesis_ci' npx --no-install prisma validate
 
+  clean-install-bootstrap:
+    name: Clean Install Bootstrap
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:17@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3
+        env:
+          POSTGRES_USER: synthesis_ci_user
+          POSTGRES_PASSWORD: synthesis_ci_fixture_password
+          POSTGRES_DB: synthesis_ci_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.3'
+      - name: Install exact npm version
+        run: npm install --global --ignore-scripts npm@10.9.9
+      - name: Install project dependencies
+        run: npm ci --ignore-scripts
+      - name: Run Clean Install integration test
+        env:
+          SYNTHESIS_SECRET_DATABASE_URL: 'postgresql://synthesis_ci_user:synthesis_ci_fixture_password@127.0.0.1:5432/synthesis_ci_db?schema=public'
+        run: node --test tests/install/clean-install.integration.ts
+
   required-gate:
     name: Verify Genesis Integrity
     runs-on: ubuntu-24.04
@@ -480,22 +514,29 @@ jobs:
     needs:
       - governance-integrity
       - product-security-smoke
+      - clean-install-bootstrap
     if: ${{ always() }}
     steps:
       - name: Verify required CI gate status
         env:
           GOVERNANCE_RESULT: ${{ needs.governance-integrity.result }}
           PRODUCT_RESULT: ${{ needs.product-security-smoke.result }}
+          CLEAN_INSTALL_RESULT: ${{ needs.clean-install-bootstrap.result }}
         run: |
           set -euo pipefail
           echo "Governance Integrity Result: $GOVERNANCE_RESULT"
           echo "Product Security Smoke Result: $PRODUCT_RESULT"
+          echo "Clean Install Bootstrap Result: $CLEAN_INSTALL_RESULT"
           if [[ "$GOVERNANCE_RESULT" != "success" ]]; then
             echo "FAIL: Governance Integrity result=$GOVERNANCE_RESULT"
             exit 1
           fi
           if [[ "$PRODUCT_RESULT" != "success" ]]; then
             echo "FAIL: Product Security Smoke result=$PRODUCT_RESULT"
+            exit 1
+          fi
+          if [[ "$CLEAN_INSTALL_RESULT" != "success" ]]; then
+            echo "FAIL: Clean Install Bootstrap result=$CLEAN_INSTALL_RESULT"
             exit 1
           fi
           echo "REQUIRED_CI_GATE: PASS"
