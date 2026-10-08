@@ -1,0 +1,168 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-003R02",
+    "task_id": "SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-003R02-REPAIR-LIFECYCLE-TRANSITION",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "13/60 — Stable namespace registry",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-08T19:10:00.000Z",
+      "development_phase": "IMPLEMENT",
+      "execution_mode": "IMPLEMENT"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "bb711288e3ab61ac2c12830eee5f64cf1dae8043",
+      "source_branch": "task/SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-003R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-003R01.json",
+        "contracts/src/namespace/index.ts",
+        "contracts/src/namespace/namespace.contract.ts",
+        "tests/namespace/namespace.contract.test.ts"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-003R02.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-003R02.json",
+        "contracts/src/namespace/namespace.contract.ts",
+        "tests/namespace/namespace.contract.test.ts"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 4,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-003R01",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-003R01-REPAIR-IMPLEMENTATION-SEMANTICS",
+          "payload_sha256": "efa3288ce1983773d1e4274f84a481d2e5567af096ef63a5cd73f657fcce03a8",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [
+          "CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-003R01"
+        ],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-003R02.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-003R02.json",
+        "contracts/src/namespace/namespace.contract.ts",
+        "tests/namespace/namespace.contract.test.ts"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-003R02.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-20261008-003R02.json",
+        "contracts/src/namespace/namespace.contract.ts",
+        "tests/namespace/namespace.contract.test.ts"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "CMD-SYN-MINI-FOUNDATION-STABLE-NAMESPACE-REGISTRY-001-004-OPEN-REVIEW-PR",
+      "stateless_recovery_context": {
+        "verified_task_head": "d59abe14c00a9d6513f10caf0b43f4d64d6fd335",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-08T19:10:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_OPEN",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step8_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step9_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step10_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step11_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step12_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step13_status": "LIFECYCLE_TRANSITIONS_REPAIRED_AND_VERIFIED",
+        "step14_status": "NOT_STARTED",
+        "deployment_status": "NOT_DEPLOYED",
+        "repair_summary": {
+          "lifecycle_transition_rule": "Enforced strictly: ACTIVE -> DEPRECATED -> RETIRED. Allowed: ACTIVE->ACTIVE, ACTIVE->DEPRECATED, DEPRECATED->DEPRECATED, DEPRECATED->RETIRED, RETIRED->RETIRED. Direct ACTIVE->RETIRED rejected without deprecation; all reverse transitions strictly rejected.",
+          "test_suite_status": "36 scenarios passed, all assertions green."
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "49bcbd5330922d08dc002a5ed32de8ded25081a7201ceb3efaa0e2aace64c285",
+    "sealed_at": "2026-10-08T19:10:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}

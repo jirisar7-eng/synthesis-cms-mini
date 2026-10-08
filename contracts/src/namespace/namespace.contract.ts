@@ -387,7 +387,7 @@ export function validateLifecycleTransition(
   if (currentStatus === targetStatus) {
     return;
   }
-  if (currentStatus === "ACTIVE" && (targetStatus === "DEPRECATED" || targetStatus === "RETIRED")) {
+  if (currentStatus === "ACTIVE" && targetStatus === "DEPRECATED") {
     return;
   }
   if (currentStatus === "DEPRECATED" && targetStatus === "RETIRED") {

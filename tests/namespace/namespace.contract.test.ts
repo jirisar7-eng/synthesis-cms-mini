@@ -405,13 +405,18 @@ runScenario("22 Valid lifecycle transitions: ACTIVE -> DEPRECATED -> RETIRED", (
   validateLifecycleTransition("DEPRECATED", "DEPRECATED");
   validateLifecycleTransition("RETIRED", "RETIRED");
 
-  // Forward transitions
+  // Strict stepwise forward transitions
   validateLifecycleTransition("ACTIVE", "DEPRECATED");
   validateLifecycleTransition("DEPRECATED", "RETIRED");
-  validateLifecycleTransition("ACTIVE", "RETIRED");
 });
 
-runScenario("23 Reverse lifecycle transitions are strictly rejected", () => {
+runScenario("23 Disallowed lifecycle transitions are strictly rejected", () => {
+  // ACTIVE -> RETIRED direct transition is rejected (must deprecate first)
+  assertThrows(() => {
+    validateLifecycleTransition("ACTIVE", "RETIRED");
+  }, "INVALID_LIFECYCLE_TRANSITION");
+
+  // Reverse transitions are rejected
   assertThrows(() => {
     validateLifecycleTransition("DEPRECATED", "ACTIVE");
   }, "INVALID_LIFECYCLE_TRANSITION");
