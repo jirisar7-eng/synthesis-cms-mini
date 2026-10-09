@@ -1,0 +1,243 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-003",
+    "task_id": "SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-003-IMPLEMENT-APPROVED-CORE-CONTEXT",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "15/60",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-09T12:05:00.000Z",
+      "development_phase": "IMPLEMENT",
+      "execution_mode": "IMPLEMENT"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "70818749132ee7a64d39756635a3b7310e2691db",
+      "source_branch": "task/SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-discover-plan",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-002.json",
+        "contracts/src/error/error.contract.ts",
+        "contracts/src/error/index.ts",
+        "contracts/src/namespace/namespace.contract.ts",
+        "contracts/src/namespace/index.ts"
+      ],
+      "permitted_write_paths": [
+        "contracts/src/context/context.contract.ts",
+        "contracts/src/context/index.ts",
+        "core/src/context/context.issuer.ts",
+        "tests/context/context.contract.test.ts",
+        "tests/context/fixtures/context.contract.snapshot.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-003.json",
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-003.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 7,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-002",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-002-FINALIZE-ISSUER-IMPLEMENTATION-PLAN",
+          "payload_sha256": "9af0b9b3fc99ead46f0ee5aee4827ca2ba3992ffa2ccce2cce077a84d01d329e",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-CONTEXT-REQUEST-ACTOR-PROVENANCE-001"
+      ],
+      "affected_capabilities": [
+        "core.context.request",
+        "core.context.provenance"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        "contracts/src/context/context.contract.ts",
+        "contracts/src/context/index.ts",
+        "core/src/context/context.issuer.ts",
+        "tests/context/context.contract.test.ts",
+        "tests/context/fixtures/context.contract.snapshot.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-003.json",
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-003.json"
+      ],
+      "actual_changed_files": [
+        "contracts/src/context/context.contract.ts",
+        "contracts/src/context/index.ts",
+        "core/src/context/context.issuer.ts",
+        "tests/context/context.contract.test.ts",
+        "tests/context/fixtures/context.contract.snapshot.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-003.json",
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-003.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "INDEPENDENT_STEP15_IMPLEMENTATION_SECURITY_REVIEW",
+      "stateless_recovery_context": {
+        "verified_task_head": "792ab625c42282972b1f7846a53b1eb9358329a2",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-09T12:05:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_OPEN",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step8_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step9_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step10_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step11_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step12_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step13_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step14_status": "COMPLETED_AND_MERGED_ON_MAIN",
+        "deployment_status": "NOT_DEPLOYED",
+        "step14_plan": {
+          "discovery_summary": {
+            "objective": "Establish a standardized, unified error contract across Synthesis CMS mini Core, Contracts, Runtimes, Modules, and API responses.",
+            "error_handling_necessity": "Without a unified error contract, modules and services throw heterogeneous, untyped errors, exposing stack traces or raw internal exceptions to public clients."
+          },
+          "error_contract_specification": {
+            "contract_id": "CONTRACT-CORE-UNIFIED-ERROR-001",
+            "version": "1.0.0",
+            "error_kinds": [
+              "DOMAIN_ERROR",
+              "SYSTEM_ERROR",
+              "SECURITY_ERROR",
+              "VALIDATION_ERROR",
+              "GOVERNANCE_ERROR",
+              "MODULE_ERROR",
+              "INTEGRATION_ERROR",
+              "LICENSE_ERROR",
+              "INFRASTRUCTURE_ERROR"
+            ],
+            "severity_levels": [
+              "FATAL",
+              "ERROR",
+              "WARNING",
+              "INFO"
+            ],
+            "canonical_payload_fields": [
+              "code",
+              "message",
+              "kind",
+              "severity",
+              "http_status",
+              "details",
+              "correlation_id",
+              "timestamp",
+              "recoverable"
+            ],
+            "code_formatting_rule": "UPPERCASE_SNAKE_CASE prefixed with ERR_"
+          },
+          "security_and_privacy_invariants": [
+            "INV-ERROR-NO-STACK-LEAK: Stack traces and internal frame details must never be serialized into public/client error payloads.",
+            "INV-ERROR-NO-SECRET-LEAK: DB credentials, JWT tokens, private keys, and internal system paths must be stripped before error emission.",
+            "INV-ERROR-STRICT-TYPING: All system and module errors must derive from or serialize to Unified Error Contract format.",
+            "INV-ERROR-FAIL-CLOSED: Unhandled internal exceptions map to ERR_INTERNAL_SERVER_ERROR (HTTP 500) with sanitized client message."
+          ],
+          "step14_boundaries": {
+            "owned_by_step14": [
+              "Specification of Unified Error Contract schema and TypeScript interface",
+              "Error code taxonomy, error categories, and severity levels",
+              "Minimal contract definition file (contracts/src/error/error.contract.ts)",
+              "Comprehensive positive and negative test suite for error normalization"
+            ],
+            "forbidden_in_step14": [
+              "Step15 Actor/Provenance Context",
+              "Step16 Registry Framework",
+              "Step17 Provider Contracts",
+              "Application HTTP routes or UI error pages",
+              "Database schema migrations or backend implementation"
+            ]
+          }
+        },
+        "step15_status": "IMPLEMENTATION_COMPLETE_AWAITING_REVIEW",
+        "repair_summary": {
+          "approved_scope_correction": "Owner approved 5 product files instead of 4 originally planned in CAP002, adding core/src/context/context.issuer.ts to enforce architectural separation between public contracts and internal trusted core context issuance.",
+          "implemented_components": [
+            "contracts/src/context/context.contract.ts: ActorKind, ActorContext, ProvenanceContext, RequestContext, strict validators",
+            "contracts/src/context/index.ts: Safe public exports only (no privileged root issuer)",
+            "core/src/context/context.issuer.ts: Internal trusted core root context issuance and safe child derivation with MAX_HOP_COUNT=32 and WeakSet guard",
+            "tests/context/context.contract.test.ts: Comprehensive 22-test unit and security suite (P1-P8, N1-N14)",
+            "tests/context/fixtures/context.contract.snapshot.json: Deterministic contract shape snapshot"
+          ],
+          "security_invariants_verified": [
+            "ActorKind classifies execution modality only; default authorization is server-side DENY.",
+            "request_id and correlation_id are platform-minted using cryptographically secure UUIDv4.",
+            "Child derivation increments hop_count, tracks causal_parent_id, preserves root correlation_id, and fails closed at hop 33.",
+            "Privilege escalation across child contexts is strictly forbidden.",
+            "WeakSet detects forged or non-genuine instances within runtime.",
+            "Full compatibility with Step 14 Unified Error Contract verified."
+          ]
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "ba2bc6b0b50a1db32c728e859e41ed143530fed57fc2638f5f9634c43161b0be",
+    "sealed_at": "2026-10-09T12:05:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}
