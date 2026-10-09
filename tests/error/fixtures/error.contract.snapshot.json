@@ -1,0 +1,36 @@
+{
+  "contract_id": "CONTRACT-CORE-UNIFIED-ERROR-001",
+  "roadmap_step": "14/60 — Unified error contract",
+  "error_kinds": [
+    "DOMAIN_ERROR",
+    "SYSTEM_ERROR",
+    "SECURITY_ERROR",
+    "VALIDATION_ERROR",
+    "GOVERNANCE_ERROR",
+    "MODULE_ERROR",
+    "INTEGRATION_ERROR",
+    "LICENSE_ERROR",
+    "INFRASTRUCTURE_ERROR"
+  ],
+  "error_severities": ["FATAL", "ERROR", "WARNING", "INFO"],
+  "defaults": {
+    "code": "ERR_INTERNAL_SERVER_ERROR",
+    "message": "An internal server error occurred.",
+    "message_key": "core.error.internal_server_error",
+    "kind": "SYSTEM_ERROR",
+    "severity": "ERROR",
+    "recoverable": false,
+    "http_status": 500
+  },
+  "public_allowlist_keys": [
+    "code",
+    "message",
+    "message_key",
+    "kind",
+    "severity",
+    "correlation_id",
+    "timestamp",
+    "recoverable",
+    "public_details"
+  ]
+}
