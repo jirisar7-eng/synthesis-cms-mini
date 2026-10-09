@@ -1,0 +1,286 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-002",
+    "task_id": "SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-002-FINALIZE-ISSUER-IMPLEMENTATION-PLAN",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "15/60",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-09T11:45:00.000Z",
+      "development_phase": "PLAN",
+      "execution_mode": "PLAN"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "70818749132ee7a64d39756635a3b7310e2691db",
+      "source_branch": "task/SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-discover-plan",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-001R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-001R01.json",
+        "contracts/src/error/error.contract.ts",
+        "contracts/src/error/index.ts",
+        "contracts/src/namespace/namespace.contract.ts",
+        "contracts/src/namespace/index.ts"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-002.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 2,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-001R01",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-001R01-REPAIR-PLAN-PROVENANCE-COMPATIBILITY",
+          "payload_sha256": "390f5dffc5f5c393978791417ec8cec57482d42ff3a00008b96272c46f62bb42",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [],
+      "affected_capabilities": [],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-002.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-002.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "INDEPENDENT_STEP15_CMD002_REVIEW",
+      "stateless_recovery_context": {
+        "verified_task_head": "aa0c1e626f256f0d44354d8b7b553ed64e6505ce",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-09T11:45:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_OPEN",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step8_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step9_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step10_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step11_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step12_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step13_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step14_status": "COMPLETED_AND_MERGED_ON_MAIN",
+        "deployment_status": "NOT_DEPLOYED",
+        "step14_plan": {
+          "discovery_summary": {
+            "objective": "Establish a standardized, unified error contract across Synthesis CMS mini Core, Contracts, Runtimes, Modules, and API responses.",
+            "error_handling_necessity": "Without a unified error contract, modules and services throw heterogeneous, untyped errors, exposing stack traces or raw internal exceptions to public clients."
+          },
+          "error_contract_specification": {
+            "contract_id": "CONTRACT-CORE-UNIFIED-ERROR-001",
+            "version": "1.0.0",
+            "error_kinds": [
+              "DOMAIN_ERROR",
+              "SYSTEM_ERROR",
+              "SECURITY_ERROR",
+              "VALIDATION_ERROR",
+              "GOVERNANCE_ERROR",
+              "MODULE_ERROR",
+              "INTEGRATION_ERROR",
+              "LICENSE_ERROR",
+              "INFRASTRUCTURE_ERROR"
+            ],
+            "severity_levels": [
+              "FATAL",
+              "ERROR",
+              "WARNING",
+              "INFO"
+            ],
+            "canonical_payload_fields": [
+              "code",
+              "message",
+              "kind",
+              "severity",
+              "http_status",
+              "details",
+              "correlation_id",
+              "timestamp",
+              "recoverable"
+            ],
+            "code_formatting_rule": "UPPERCASE_SNAKE_CASE prefixed with ERR_"
+          },
+          "security_and_privacy_invariants": [
+            "INV-ERROR-NO-STACK-LEAK: Stack traces and internal frame details must never be serialized into public/client error payloads.",
+            "INV-ERROR-NO-SECRET-LEAK: DB credentials, JWT tokens, private keys, and internal system paths must be stripped before error emission.",
+            "INV-ERROR-STRICT-TYPING: All system and module errors must derive from or serialize to Unified Error Contract format.",
+            "INV-ERROR-FAIL-CLOSED: Unhandled internal exceptions map to ERR_INTERNAL_SERVER_ERROR (HTTP 500) with sanitized client message."
+          ],
+          "step14_boundaries": {
+            "owned_by_step14": [
+              "Specification of Unified Error Contract schema and TypeScript interface",
+              "Error code taxonomy, error categories, and severity levels",
+              "Minimal contract definition file (contracts/src/error/error.contract.ts)",
+              "Comprehensive positive and negative test suite for error normalization"
+            ],
+            "forbidden_in_step14": [
+              "Step15 Actor/Provenance Context",
+              "Step16 Registry Framework",
+              "Step17 Provider Contracts",
+              "Application HTTP routes or UI error pages",
+              "Database schema migrations or backend implementation"
+            ]
+          }
+        },
+        "step15_status": "FINAL_IMPLEMENTATION_PLAN_COMPLETE_AWAITING_REVIEW",
+        "repair_summary": {
+          "final_implementation_plan": {
+            "exact_typescript_interfaces": {
+              "ActorKind": [
+                "HUMAN",
+                "AI",
+                "SYSTEM",
+                "MODULE",
+                "INTEGRATION",
+                "JOB"
+              ],
+              "ActorContext": {
+                "kind": "ActorKind",
+                "actor_id": "string (1-128 chars, safe regex ^[a-zA-Z0-9_.-]+$)",
+                "tenant_id": "string | undefined (1-64 chars, safe regex ^[a-zA-Z0-9_.-]+$)"
+              },
+              "ProvenanceContext": {
+                "origin": "string (1-256 chars)",
+                "issuer": "string (1-128 chars)",
+                "hop_count": "number (integer 0..32)",
+                "causal_parent_id": "string | undefined (req-<UUIDv4>)",
+                "external_trace_id": "string | undefined (1-128 chars, telemetry only)"
+              },
+              "RequestContext": {
+                "request_id": "string (req-<UUIDv4>)",
+                "correlation_id": "string (corr-<UUIDv4>)",
+                "timestamp": "string (strict ISO 8601 UTC)",
+                "actor": "ActorContext (frozen)",
+                "provenance": "ProvenanceContext (frozen)"
+              }
+            },
+            "issuer_authority_and_trust_boundaries": {
+              "authority_model": "Kernel/runtime platform creates root context at ingress boundaries. External callers and untrusted code have no access to privileged issuance. ActorKind is purely an execution modality classification and does not convey authorization.",
+              "untrusted_module_isolation": "Untrusted modules cannot invoke root context issuance; they receive context from caller and can only derive child contexts with equal or diminished privilege.",
+              "privilege_escalation_guards": "Child derivation fails closed if AI or MODULE attempts to change kind to SYSTEM or HUMAN.",
+              "runtime_process_isolation_limits": "WeakSet authenticates genuine platform factory construction against object spoofing; it is not an OS process sandbox. Full execution isolation requires separate worker/process boundaries."
+            },
+            "anchored_uuidv4_validation": {
+              "request_id_regex": "^req-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "correlation_id_regex": "^corr-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "entropy_source": "crypto.randomUUID() (cryptographically secure version 4 and variant bits)"
+            },
+            "step14_interoperability": {
+              "correlation_id_compatibility": "corr-<UUIDv4> matches TRUSTED_CORRELATION_PREFIXES and passes isValidCorrelationId() from Step 14.",
+              "public_error_serialization": "serializePublicErrorPayload() continues to omit correlation_id publicly, maintaining zero leakage of internal tracing topologies."
+            },
+            "historical_metadata_clarification": {
+              "old_step14_planning_status": "HISTORICAL_NOT_AUTHORITATIVE. Current merged source in contracts/src/error/error.contract.ts on main is the sole authoritative interface."
+            },
+            "test_matrix": {
+              "positive_cases": [
+                "P1: Root context creation for all 6 ActorKinds",
+                "P2: req-<UUIDv4> format with valid version 4 and variant bits",
+                "P3: corr-<UUIDv4> format with valid version 4 and variant bits",
+                "P4: Child derivation with hop_count + 1 and causal_parent_id",
+                "P5: Multi-hop derivation up to hop 32",
+                "P6: Sibling child derivation isolation",
+                "P7: External trace ID sanitization",
+                "P8: Integration with Step 14 SynthesisBaseError"
+              ],
+              "negative_cases": [
+                "N1: Invalid ActorKind",
+                "N2: Privilege escalation in child derivation (AI->SYSTEM, MODULE->SYSTEM, MODULE->HUMAN)",
+                "N3: Hop count exceeding 32 (fail-closed)",
+                "N4: Non-genuine parent context (WeakSet guard failure)",
+                "N5: Mutation of frozen context properties",
+                "N6: Invalid UUIDv4 syntax or variant bits",
+                "N7: Prototype pollution attempt",
+                "N8: Non-UTC or malformed timestamp",
+                "N9: String length boundary violations",
+                "N10: Shell metacharacters in identifiers"
+              ]
+            },
+            "proposed_scope": [
+              "contracts/src/context/context.contract.ts",
+              "contracts/src/context/index.ts",
+              "tests/context/context.contract.test.ts",
+              "tests/context/fixtures/context.contract.snapshot.json"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "9af0b9b3fc99ead46f0ee5aee4827ca2ba3992ffa2ccce2cce077a84d01d329e",
+    "sealed_at": "2026-10-09T11:45:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "contract_id": "CONTRACT-CONTEXT-REQUEST-ACTOR-PROVENANCE-001",
+  "version": "1.0.0",
+  "actor_kinds": ["HUMAN", "AI", "SYSTEM", "MODULE", "INTEGRATION", "JOB"],
+  "invariants": {
+    "max_hop_count": 32,
+    "request_id_prefix": "req-",
+    "correlation_id_prefix": "corr-",
+    "default_authorization": "DENY",
+    "actor_kind_grants_permissions": false
+  },
+  "structures": {
+    "ActorContext": {
+      "fields": {
+        "kind": "ActorKind",
+        "actor_id": "string",
+        "tenant_id": "string | undefined"
+      }
+    },
+    "ProvenanceContext": {
+      "fields": {
+        "origin": "string",
+        "issuer": "string",
+        "hop_count": "number",
+        "causal_parent_id": "string | undefined",
+        "external_trace_id": "string | undefined"
+      }
+    },
+    "RequestContext": {
+      "fields": {
+        "request_id": "string",
+        "correlation_id": "string",
+        "timestamp": "string",
+        "actor": "ActorContext",
+        "provenance": "ProvenanceContext"
+      }
+    }
+  }
+}
