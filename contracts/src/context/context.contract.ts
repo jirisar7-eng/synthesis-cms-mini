@@ -71,7 +71,8 @@ export const MAX_EXTERNAL_TRACE_ID_LENGTH = 128;
 /**
  * Strict UTC ISO 8601 timestamp regular expression (millisecond precision optional).
  */
-export const UTC_TIMESTAMP_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
+export const UTC_TIMESTAMP_REGEX =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?Z$/;
 
 /**
  * Immutable Actor Context interface.
@@ -177,11 +178,38 @@ export function isValidExternalTraceId(val: unknown): val is string {
 }
 
 /**
- * Validates a strict UTC ISO 8601 timestamp string.
+ * Validates a strict UTC ISO 8601 timestamp string with calendar correctness.
+ * Rejects calendar-impossible dates (e.g. Feb 30 or Feb 29 in non-leap years)
+ * without relying solely on permissive Date parsing normalization.
  */
 export function isValidUtcTimestamp(val: unknown): val is string {
   if (typeof val !== "string") return false;
-  if (!UTC_TIMESTAMP_REGEX.test(val)) return false;
-  const d = new Date(val);
-  return !Number.isNaN(d.getTime());
+  const match = UTC_TIMESTAMP_REGEX.exec(val);
+  if (!match) return false;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+  const second = Number(match[6]);
+  const ms = match[7] !== undefined ? Number(match[7].padEnd(3, "0")) : 0;
+
+  if (month < 1 || month > 12) return false;
+  if (day < 1 || day > 31) return false;
+  if (hour > 23 || minute > 59 || second > 59) return false;
+
+  const d = new Date(Date.UTC(year, month - 1, day, hour, minute, second, ms));
+  if (Number.isNaN(d.getTime())) return false;
+
+  // Strict calendar verification: prevent Date normalization (e.g. Feb 30 -> Mar 2)
+  return (
+    d.getUTCFullYear() === year &&
+    d.getUTCMonth() === month - 1 &&
+    d.getUTCDate() === day &&
+    d.getUTCHours() === hour &&
+    d.getUTCMinutes() === minute &&
+    d.getUTCSeconds() === second &&
+    d.getUTCMilliseconds() === ms
+  );
 }

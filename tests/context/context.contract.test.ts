@@ -191,10 +191,10 @@ void describe("Step 15: Request, Actor & Provenance Context Contract", () => {
   });
 
   // =========================================================================
-  // NEGATIVE TEST SUITE
+  // NEGATIVE & SECURITY REPAIR TEST SUITE
   // =========================================================================
 
-  void describe("Negative & Security Cases (N1 - N14)", () => {
+  void describe("Negative & Security Cases (N1 - N20)", () => {
     void it("N1: Unknown or malformed ActorKind is rejected (fail-closed)", () => {
       assert.strictEqual(isValidActorKind("ROOT"), false);
       assert.strictEqual(isValidActorKind("ADMIN"), false);
@@ -264,19 +264,150 @@ void describe("Step 15: Request, Actor & Provenance Context Contract", () => {
       assert.throws(() => deriveChildContext(current), /MAX_HOP_COUNT_EXCEEDED/);
     });
 
-    void it("N5: Cross-tenant derivation is forbidden", () => {
-      const root = createRootContext({
-        actor: { kind: "HUMAN", actor_id: "tenant-user", tenant_id: "tenant-alpha" },
-        provenance: { origin: "web", issuer: "ingress" },
-      });
-
+    void it("N5: Security R01: Caller-supplied correlation_id is rejected in root context", () => {
+      const validLookingCorrId = "corr-11111111-2222-4333-8444-555555555555";
       assert.throws(
-        () => deriveChildContext(root, { tenant_id: "tenant-beta" }),
-        /CROSS_TENANT_DERIVATION_FORBIDDEN/,
+        () =>
+          createRootContext({
+            actor: { kind: "HUMAN", actor_id: "user-1" },
+            provenance: { origin: "web", issuer: "ingress" },
+            // @ts-expect-error Testing forbidden root correlation_id override
+            correlation_id: validLookingCorrId,
+          }),
+        /UNKNOWN_PROPERTY_DETECTED/,
       );
     });
 
-    void it("N6: Mutation attempts on frozen context throw TypeError", () => {
+    void it("N6: Security R01: Successive root contexts mint independent correlation IDs", () => {
+      const root1 = createRootContext({
+        actor: { kind: "SYSTEM", actor_id: "sys" },
+        provenance: { origin: "kernel", issuer: "kernel" },
+      });
+      const root2 = createRootContext({
+        actor: { kind: "SYSTEM", actor_id: "sys" },
+        provenance: { origin: "kernel", issuer: "kernel" },
+      });
+      assert.notStrictEqual(root1.correlation_id, root2.correlation_id);
+      assert.ok(isValidCorrelationId(root1.correlation_id));
+      assert.ok(isValidCorrelationId(root2.correlation_id));
+    });
+
+    void it("N7: Security R02: Tenant override in child derivation is forbidden and rejected", () => {
+      const rootWithoutTenant = createRootContext({
+        actor: { kind: "HUMAN", actor_id: "user-global" },
+        provenance: { origin: "web", issuer: "ingress" },
+      });
+
+      // Tenantless parent cannot acquire tenant scope
+      assert.throws(
+        () =>
+          deriveChildContext(rootWithoutTenant, {
+            // @ts-expect-error Testing forbidden tenant_id in child options
+            tenant_id: "tenant-injected",
+          }),
+        /UNKNOWN_PROPERTY_DETECTED/,
+      );
+
+      const rootWithTenant = createRootContext({
+        actor: { kind: "HUMAN", actor_id: "user-tenant", tenant_id: "tenant-primary" },
+        provenance: { origin: "web", issuer: "ingress" },
+      });
+
+      // Tenant-scoped parent retains exact tenant_id
+      const child = deriveChildContext(rootWithTenant);
+      assert.strictEqual(child.actor.tenant_id, "tenant-primary");
+
+      // Attempt to override tenant in child derivation is rejected
+      assert.throws(
+        () =>
+          deriveChildContext(rootWithTenant, {
+            // @ts-expect-error Testing forbidden tenant_id in child options
+            tenant_id: "tenant-tampered",
+          }),
+        /UNKNOWN_PROPERTY_DETECTED/,
+      );
+    });
+
+    void it("N8: Security R03: Validation errors do NOT reflect raw untrusted input or secrets", () => {
+      const secretToken = "ghp_SECRET_TOKEN_REDACT_ME_123456789";
+      let errorThrown: Error | null = null;
+      try {
+        createRootContext({
+          // @ts-expect-error Testing invalid secret-bearing kind
+          actor: { kind: secretToken, actor_id: "valid-actor" },
+          provenance: { origin: "origin", issuer: "issuer" },
+        });
+      } catch (err) {
+        errorThrown = err as Error;
+      }
+      assert.ok(errorThrown);
+      assert.strictEqual(errorThrown.message.includes(secretToken), false);
+      assert.strictEqual(
+        errorThrown.message,
+        "INVALID_ACTOR_KIND: Unrecognized or invalid ActorKind",
+      );
+
+      // Test secret-bearing invalid origin
+      try {
+        createRootContext({
+          actor: { kind: "SYSTEM", actor_id: "valid-actor" },
+          // Invalid characters in origin
+          provenance: { origin: `invalid space and secret: ${secretToken}`, issuer: "issuer" },
+        });
+      } catch (err) {
+        errorThrown = err as Error;
+      }
+      assert.ok(errorThrown);
+      assert.strictEqual(errorThrown.message.includes(secretToken), false);
+    });
+
+    void it("N9: Security R04: Accessor properties and getters are rejected fail-closed", () => {
+      let getterRan = false;
+      const hostileActor = {};
+      Object.defineProperty(hostileActor, "kind", {
+        get() {
+          getterRan = true;
+          return "HUMAN";
+        },
+        enumerable: true,
+      });
+      Object.defineProperty(hostileActor, "actor_id", {
+        value: "user-1",
+        enumerable: true,
+      });
+
+      assert.throws(
+        () =>
+          createRootContext({
+            // @ts-expect-error Testing getter descriptor in actor params
+            actor: hostileActor,
+            provenance: { origin: "web", issuer: "ingress" },
+          }),
+        /HOSTILE_PROPERTY_DETECTED/,
+      );
+      assert.strictEqual(getterRan, false);
+    });
+
+    void it("N10: Security R05: Calendar-impossible UTC dates are rejected", () => {
+      // Leap year vs non-leap year
+      assert.strictEqual(isValidUtcTimestamp("2026-02-29T12:00:00Z"), false); // 2026 is NOT a leap year
+      assert.strictEqual(isValidUtcTimestamp("2024-02-29T12:00:00Z"), true); // 2024 IS a leap year
+
+      // Impossible calendar days
+      assert.strictEqual(isValidUtcTimestamp("2026-02-30T12:00:00Z"), false);
+      assert.strictEqual(isValidUtcTimestamp("2026-04-31T12:00:00Z"), false); // April has 30 days
+      assert.strictEqual(isValidUtcTimestamp("2026-06-31T12:00:00Z"), false); // June has 30 days
+      assert.strictEqual(isValidUtcTimestamp("2026-11-31T12:00:00Z"), false); // November has 30 days
+
+      // Malformed formats and non-UTC offsets
+      assert.strictEqual(isValidUtcTimestamp("2026-10-09"), false);
+      assert.strictEqual(isValidUtcTimestamp("2026-10-09 12:00:00"), false);
+      assert.strictEqual(isValidUtcTimestamp("2026-10-09T12:00:00+02:00"), false);
+      assert.strictEqual(isValidUtcTimestamp("2026-10-09T25:00:00Z"), false); // Invalid hour
+      assert.strictEqual(isValidUtcTimestamp("2026-10-09T12:65:00Z"), false); // Invalid minute
+    });
+
+    void it("N11: Mutation attempts on frozen context throw TypeError", () => {
       const ctx = createRootContext({
         actor: { kind: "SYSTEM", actor_id: "sys" },
         provenance: { origin: "kernel", issuer: "kernel" },
@@ -298,7 +429,7 @@ void describe("Step 15: Request, Actor & Provenance Context Contract", () => {
       }, TypeError);
     });
 
-    void it("N7: Prototype pollution attempts are detected and rejected", () => {
+    void it("N12: Prototype pollution attempts are detected and rejected", () => {
       const pollutedActor = JSON.parse(
         '{"__proto__":{"polluted":true},"kind":"AI","actor_id":"ai-bot"}',
       ) as { kind: ActorKind; actor_id: string };
@@ -308,32 +439,26 @@ void describe("Step 15: Request, Actor & Provenance Context Contract", () => {
             actor: pollutedActor,
             provenance: { origin: "chat", issuer: "ai-runtime" },
           }),
-        /PROTOTYPE_POLLUTION_DETECTED/,
+        /HOSTILE_OBJECT_DETECTED|UNKNOWN_PROPERTY_DETECTED/,
       );
     });
 
-    void it("N8: Hostile proxy with throwing getters is rejected safely", () => {
-      const hostileActor = new Proxy(
-        { kind: "HUMAN" as const, actor_id: "user-1" },
-        {
-          get(target, prop, receiver) {
-            if (prop === "tenant_id") {
-              throw new Error("HOSTILE_GETTER_TRAP");
-            }
-            return Reflect.get(target, prop, receiver) as unknown;
-          },
-        },
+    void it("N13: Objects with custom prototypes are rejected", () => {
+      class CustomClass {
+        kind = "HUMAN" as const;
+        actor_id = "user-custom";
+      }
+      assert.throws(
+        () =>
+          createRootContext({
+            actor: new CustomClass(),
+            provenance: { origin: "web", issuer: "ingress" },
+          }),
+        /HOSTILE_OBJECT_DETECTED/,
       );
-
-      assert.throws(() => {
-        createRootContext({
-          actor: hostileActor,
-          provenance: { origin: "web", issuer: "ingress" },
-        });
-      }, /HOSTILE_GETTER_TRAP/);
     });
 
-    void it("N9: Excessive identifier string lengths are rejected", () => {
+    void it("N14: Excessive identifier string lengths are rejected", () => {
       const oversizedActorId = "a".repeat(129);
       assert.strictEqual(isValidActorId(oversizedActorId), false);
       assert.throws(
@@ -358,15 +483,7 @@ void describe("Step 15: Request, Actor & Provenance Context Contract", () => {
       assert.strictEqual(isValidExternalTraceId(oversizedTraceId), false);
     });
 
-    void it("N10: Malformed or non-UTC timestamps are rejected", () => {
-      assert.strictEqual(isValidUtcTimestamp("2026-10-09"), false);
-      assert.strictEqual(isValidUtcTimestamp("2026-10-09 12:00:00"), false);
-      assert.strictEqual(isValidUtcTimestamp("2026-10-09T12:00:00+02:00"), false); // Non-UTC offset
-      assert.strictEqual(isValidUtcTimestamp("invalid-date"), false);
-      assert.strictEqual(isValidUtcTimestamp(123456789), false);
-    });
-
-    void it("N11: Shell metacharacters and control characters in identifiers are rejected", () => {
+    void it("N15: Shell metacharacters and control characters in identifiers are rejected", () => {
       assert.strictEqual(isValidActorId("actor;rm -rf /"), false);
       assert.strictEqual(isValidActorId("actor$(whoami)"), false);
       assert.strictEqual(isValidActorId("actor`id`"), false);
@@ -374,7 +491,7 @@ void describe("Step 15: Request, Actor & Provenance Context Contract", () => {
       assert.strictEqual(isValidActorId("actor id"), false);
     });
 
-    void it("N12: Public contract index does NOT export internal context issuer functions", async () => {
+    void it("N16: Public contract index does NOT export internal context issuer functions", async () => {
       const publicExports = (await import("../../contracts/src/context/index.ts")) as Record<
         string,
         unknown
@@ -384,21 +501,62 @@ void describe("Step 15: Request, Actor & Provenance Context Contract", () => {
       assert.strictEqual("isGenuineRequestContext" in publicExports, false);
     });
 
-    void it("N13: External headers cannot override internal issuer correlation ID", () => {
-      // Caller attempts to pass an untrusted client header as correlation_id
-      const clientHeader = "trace-client-spoof-12345";
+    void it("N17: Symbol property keys on input objects are rejected", () => {
+      const symKey = Symbol("hostile");
+      const actorWithSymbol = {
+        kind: "HUMAN" as const,
+        actor_id: "user-1",
+        [symKey]: "secret",
+      };
+      assert.throws(
+        () =>
+          createRootContext({
+            actor: actorWithSymbol,
+            provenance: { origin: "web", issuer: "ingress" },
+          }),
+        /FORBIDDEN_PROPERTY_DETECTED/,
+      );
+    });
+
+    void it("N18: Unknown properties on root params or provenance are rejected", () => {
+      assert.throws(
+        () =>
+          createRootContext({
+            actor: { kind: "HUMAN", actor_id: "user-1" },
+            // @ts-expect-error Testing unknown property in provenance
+            provenance: { origin: "web", issuer: "ingress", unknown_field: "injected" },
+          }),
+        /UNKNOWN_PROPERTY_DETECTED/,
+      );
+
       assert.throws(
         () =>
           createRootContext({
             actor: { kind: "HUMAN", actor_id: "user-1" },
             provenance: { origin: "web", issuer: "ingress" },
-            correlation_id: clientHeader,
+            // @ts-expect-error Testing unknown top-level property
+            extra_root_prop: "injected",
           }),
-        /INVALID_CORRELATION_ID/,
+        /UNKNOWN_PROPERTY_DETECTED/,
       );
     });
 
-    void it("N14: Snapshot fixture verifies frozen shape consistency", () => {
+    void it("N19: Unknown properties on deriveChildContext params are rejected", () => {
+      const root = createRootContext({
+        actor: { kind: "SYSTEM", actor_id: "core" },
+        provenance: { origin: "kernel", issuer: "kernel" },
+      });
+      assert.throws(
+        () =>
+          deriveChildContext(root, {
+            // @ts-expect-error Testing unknown property in child options
+            unauthorized_field: "injected",
+          }),
+        /UNKNOWN_PROPERTY_DETECTED/,
+      );
+    });
+
+    void it("N20: Snapshot fixture verifies frozen shape consistency", () => {
       const snapshotPath = path.resolve(
         import.meta.dirname,
         "fixtures/context.contract.snapshot.json",

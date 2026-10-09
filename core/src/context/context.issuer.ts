@@ -10,9 +10,12 @@
  * 2. The trusted-core boundary is an explicit trusted-computing-base assumption.
  * 3. ActorKind is NEVER a permission grant. Default authorization is server-side DENY.
  * 4. No caller input is automatically treated as authenticated identity.
- * 5. Child context derivation enforces strict causal lineage, increments hop_count,
- *    and forbids privilege escalation (AI or MODULE cannot become SYSTEM or HUMAN).
- * 6. Maximum causal depth is strictly enforced: MAX_HOP_COUNT = 32 (fail-closed).
+ * 5. A root context ALWAYS mints its own fresh correlation_id (corr-<UUIDv4>);
+ *    external or caller-supplied correlation_id values are strictly forbidden.
+ * 6. Child context derivation preserves parent actor, tenant scope, issuer, and root correlation_id;
+ *    tenant_id overrides in child derivation are strictly forbidden.
+ * 7. Error messages NEVER reflect raw untrusted user input or values.
+ * 8. Maximum causal depth is strictly enforced: MAX_HOP_COUNT = 32 (fail-closed).
  */
 
 import { randomUUID } from "node:crypto";
@@ -23,7 +26,6 @@ import {
   type RequestContext,
   isValidActorId,
   isValidActorKind,
-  isValidCorrelationId,
   isValidExternalTraceId,
   isValidIssuer,
   isValidOrigin,
@@ -39,6 +41,7 @@ const genuineContextInstances = new WeakSet();
 
 /**
  * Parameters for creating a platform root RequestContext.
+ * Callers cannot provide or override correlation_id; it is always platform-minted.
  */
 export interface CreateRootContextParams {
   readonly actor: {
@@ -51,15 +54,11 @@ export interface CreateRootContextParams {
     readonly issuer: string;
     readonly external_trace_id?: string | undefined;
   };
-  /**
-   * Optional platform-verified correlation_id.
-   * If not provided, a fresh platform correlation ID (corr-<UUIDv4>) is minted.
-   */
-  readonly correlation_id?: string | undefined;
 }
 
 /**
  * Parameters for deriving a child RequestContext.
+ * Tenant scope is strictly immutable and cannot be overridden.
  */
 export interface DeriveChildContextParams {
   /**
@@ -67,10 +66,6 @@ export interface DeriveChildContextParams {
    * If omitted, inherits parent origin.
    */
   readonly origin?: string | undefined;
-  /**
-   * Optional tenant scope refinement (must match parent if parent has tenant_id).
-   */
-  readonly tenant_id?: string | undefined;
   /**
    * Optional external trace ID update (telemetry only).
    */
@@ -87,78 +82,94 @@ export function isGenuineRequestContext(val: unknown): val is RequestContext {
 }
 
 /**
- * Asserts that an input object is plain and does not contain dangerous prototype tampering.
+ * Asserts that an input object is a plain data object matching exact allowlisted properties.
+ * Rejects accessor properties (getters/setters), unknown/forbidden keys, prototype tampering,
+ * and symbol keys without reflecting input values in error messages.
  */
-function assertSafeObject(obj: unknown, label: string): asserts obj is Record<string, unknown> {
+function assertStrictPlainObject(
+  obj: unknown,
+  allowedKeys: readonly string[],
+  label: string,
+): asserts obj is Record<string, unknown> {
   if (obj === null || typeof obj !== "object" || Array.isArray(obj)) {
-    throw new TypeError(`INVALID_${label.toUpperCase()}: Expected non-null object for ${label}`);
+    throw new TypeError(
+      `INVALID_${label.toUpperCase()}: Expected plain non-null object for ${label}`,
+    );
   }
-  if (Object.prototype.hasOwnProperty.call(obj, "__proto__")) {
-    throw new Error(`PROTOTYPE_POLLUTION_DETECTED: Forbidden property '__proto__' in ${label}`);
+
+  // Reject objects with non-standard prototypes
+  const proto: unknown = Object.getPrototypeOf(obj);
+  if (proto !== Object.prototype && proto !== null) {
+    throw new Error(`HOSTILE_OBJECT_DETECTED: Object for ${label} must have plain prototype`);
   }
-  if (Object.prototype.hasOwnProperty.call(obj, "constructor")) {
-    throw new Error(`PROTOTYPE_POLLUTION_DETECTED: Forbidden property 'constructor' in ${label}`);
+
+  // Reject symbol properties
+  if (Object.getOwnPropertySymbols(obj).length > 0) {
+    throw new Error(`FORBIDDEN_PROPERTY_DETECTED: Symbol properties forbidden in ${label}`);
   }
-  if (Object.prototype.hasOwnProperty.call(obj, "prototype")) {
-    throw new Error(`PROTOTYPE_POLLUTION_DETECTED: Forbidden property 'prototype' in ${label}`);
+
+  const ownKeys = Object.getOwnPropertyNames(obj);
+  const allowedSet = new Set(allowedKeys);
+
+  for (const key of ownKeys) {
+    if (!allowedSet.has(key)) {
+      throw new Error(`UNKNOWN_PROPERTY_DETECTED: Forbidden or unexpected property in ${label}`);
+    }
+
+    const desc = Object.getOwnPropertyDescriptor(obj, key);
+    if (!desc || desc.get !== undefined || desc.set !== undefined) {
+      throw new Error(`HOSTILE_PROPERTY_DETECTED: Accessor properties forbidden in ${label}`);
+    }
   }
 }
 
 /**
  * Creates a platform root RequestContext.
  *
- * This function is an internal kernel/runtime API. Ingress controllers must
- * sanitize all external inputs prior to invocation.
+ * Invariants:
+ * - correlation_id is ALWAYS platform-minted using fresh cryptographic entropy (corr-<UUIDv4>).
+ * - Caller-supplied correlation_id is forbidden and rejected.
+ * - Error messages never reflect untrusted user values.
  */
 export function createRootContext(params: CreateRootContextParams): RequestContext {
-  assertSafeObject(params, "CreateRootContextParams");
-  assertSafeObject(params.actor, "ActorContextParams");
-  assertSafeObject(params.provenance, "ProvenanceContextParams");
+  assertStrictPlainObject(params, ["actor", "provenance"], "CreateRootContextParams");
+  assertStrictPlainObject(params.actor, ["kind", "actor_id", "tenant_id"], "ActorContextParams");
+  assertStrictPlainObject(
+    params.provenance,
+    ["origin", "issuer", "external_trace_id"],
+    "ProvenanceContextParams",
+  );
 
   // 1. Validate Actor
   const { kind, actor_id, tenant_id } = params.actor;
   if (!isValidActorKind(kind)) {
-    throw new Error(`INVALID_ACTOR_KIND: Unrecognized or invalid ActorKind: ${String(kind)}`);
+    throw new Error("INVALID_ACTOR_KIND: Unrecognized or invalid ActorKind");
   }
   if (!isValidActorId(actor_id)) {
-    throw new Error(`INVALID_ACTOR_ID: Invalid actor_id format or length: ${String(actor_id)}`);
+    throw new Error("INVALID_ACTOR_ID: Invalid actor_id format or length");
   }
   if (tenant_id !== undefined && !isValidTenantId(tenant_id)) {
-    throw new Error(`INVALID_TENANT_ID: Invalid tenant_id format or length: ${String(tenant_id)}`);
+    throw new Error("INVALID_TENANT_ID: Invalid tenant_id format or length");
   }
 
   // 2. Validate Provenance
   const { origin, issuer, external_trace_id } = params.provenance;
   if (!isValidOrigin(origin)) {
-    throw new Error(`INVALID_ORIGIN: Invalid origin format or length: ${String(origin)}`);
+    throw new Error("INVALID_ORIGIN: Invalid origin format or length");
   }
   if (!isValidIssuer(issuer)) {
-    throw new Error(`INVALID_ISSUER: Invalid issuer format or length: ${String(issuer)}`);
+    throw new Error("INVALID_ISSUER: Invalid issuer format or length");
   }
   if (external_trace_id !== undefined && !isValidExternalTraceId(external_trace_id)) {
-    throw new Error(
-      `INVALID_EXTERNAL_TRACE_ID: Invalid external_trace_id format: ${String(external_trace_id)}`,
-    );
+    throw new Error("INVALID_EXTERNAL_TRACE_ID: Invalid external_trace_id format or length");
   }
 
-  // 3. Determine Correlation ID (platform-minted or platform-verified)
-  let correlationId: string;
-  if (params.correlation_id !== undefined) {
-    if (!isValidCorrelationId(params.correlation_id)) {
-      throw new Error(
-        `INVALID_CORRELATION_ID: Provided correlation_id is not valid platform corr-<UUIDv4>: ${String(params.correlation_id)}`,
-      );
-    }
-    correlationId = params.correlation_id;
-  } else {
-    correlationId = `corr-${randomUUID()}`;
-  }
-
-  // 4. Mint Request ID & Timestamp
+  // 3. Always platform-mint fresh correlation_id and request_id
+  const correlationId = `corr-${randomUUID()}`;
   const requestId = `req-${randomUUID()}`;
   const timestamp = new Date().toISOString();
 
-  // 5. Construct defensive immutable objects
+  // 4. Construct defensive immutable objects with copied primitives only
   const actorContext: ActorContext = Object.freeze({
     kind,
     actor_id,
@@ -180,7 +191,7 @@ export function createRootContext(params: CreateRootContextParams): RequestConte
     provenance: provenanceContext,
   });
 
-  // 6. Register authentic instance in WeakSet
+  // 5. Register authentic instance in WeakSet
   genuineContextInstances.add(requestContext);
 
   return requestContext;
@@ -193,10 +204,11 @@ export function createRootContext(params: CreateRootContextParams): RequestConte
  * - Parent must be a verified genuine RequestContext instance.
  * - Mints a fresh request_id for each hop.
  * - Preserves root correlation_id without modification.
- * - Preserves actor modality and actor_id (no privilege escalation or actor mutation).
+ * - Preserves actor modality, actor_id, and tenant_id strictly (no tenant scope changes or acquisition).
  * - Records causal_parent_id = parent.request_id.
  * - Increments hop_count by 1.
  * - Enforces MAX_HOP_COUNT = 32 limit (fails closed with error if exceeded).
+ * - Reject unknown options or tenant overrides.
  */
 export function deriveChildContext(
   parent: RequestContext,
@@ -209,43 +221,31 @@ export function deriveChildContext(
   }
 
   if (params !== undefined) {
-    assertSafeObject(params, "DeriveChildContextParams");
+    assertStrictPlainObject(params, ["origin", "external_trace_id"], "DeriveChildContextParams");
   }
 
   // Enforce causal depth boundary
   const nextHopCount = parent.provenance.hop_count + 1;
   if (nextHopCount > MAX_HOP_COUNT) {
-    throw new Error(
-      `MAX_HOP_COUNT_EXCEEDED: Causal depth ${String(nextHopCount)} exceeds maximum limit of ${String(MAX_HOP_COUNT)}`,
-    );
+    throw new Error("MAX_HOP_COUNT_EXCEEDED: Causal depth exceeds maximum allowed limit");
   }
 
   // Resolve origin
   let childOrigin = parent.provenance.origin;
   if (params?.origin !== undefined) {
     if (!isValidOrigin(params.origin)) {
-      throw new Error("INVALID_ORIGIN: Invalid child origin");
+      throw new Error("INVALID_ORIGIN: Invalid child origin format or length");
     }
     childOrigin = params.origin;
-  }
-
-  // Resolve tenant scope (may narrow or inherit, but cannot cross tenants)
-  let childTenantId = parent.actor.tenant_id;
-  if (params?.tenant_id !== undefined) {
-    if (!isValidTenantId(params.tenant_id)) {
-      throw new Error("INVALID_TENANT_ID: Invalid child tenant_id");
-    }
-    if (parent.actor.tenant_id !== undefined && parent.actor.tenant_id !== params.tenant_id) {
-      throw new Error("CROSS_TENANT_DERIVATION_FORBIDDEN: Child tenant does not match parent");
-    }
-    childTenantId = params.tenant_id;
   }
 
   // Resolve external trace ID
   let childExternalTraceId = parent.provenance.external_trace_id;
   if (params?.external_trace_id !== undefined) {
     if (!isValidExternalTraceId(params.external_trace_id)) {
-      throw new Error("INVALID_EXTERNAL_TRACE_ID: Invalid child external_trace_id");
+      throw new Error(
+        "INVALID_EXTERNAL_TRACE_ID: Invalid child external_trace_id format or length",
+      );
     }
     childExternalTraceId = params.external_trace_id;
   }
@@ -254,11 +254,11 @@ export function deriveChildContext(
   const childRequestId = `req-${randomUUID()}`;
   const timestamp = new Date().toISOString();
 
-  // Construct defensive immutable child structures
+  // Child strictly retains parent's tenant_id (cannot acquire, alter, or drop tenant scope)
   const childActor: ActorContext = Object.freeze({
     kind: parent.actor.kind,
     actor_id: parent.actor.actor_id,
-    ...(childTenantId !== undefined ? { tenant_id: childTenantId } : {}),
+    ...(parent.actor.tenant_id !== undefined ? { tenant_id: parent.actor.tenant_id } : {}),
   });
 
   const childProvenance: ProvenanceContext = Object.freeze({
