@@ -1,0 +1,170 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-002R02",
+    "task_id": "SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-002R02-CLARIFY-MESSAGE-KEY-TRUST-AND-FALLBACK",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "14/60 \u2014 Unified error contract",
+    "actors": {
+      "owner": "Ji\u0159\u00ed \u0160\u00e1r",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-09T05:00:00.000Z",
+      "development_phase": "GOVERNANCE",
+      "execution_mode": "GOVERNANCE"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "b6a409ae1eede9f28cbc82b25e2be1f6b3e8efe8",
+      "source_branch": "task/SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-discover-plan",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-002R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-002R01.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-002R02.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-002R02.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 2,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-002R01",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-002R01-REPAIR-MESSAGE-KEY-PLAN-CONTRACT",
+          "payload_sha256": "c8bfd8765512f6b4d9df3fb32599b88103270b10bfbd15fb2f79038d62fd25f3",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [
+          "CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-002R01"
+        ],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-002R02.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-002R02.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-002R02.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-002R02.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "OPEN",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "INDEPENDENT_STEP14_R02_PLAN_REVIEW",
+      "stateless_recovery_context": {
+        "verified_task_head": "bc19e3ce2c695925c56582933bd0d49bd1d117fd",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-09T05:00:00.000Z",
+        "pull_request_number": 22,
+        "pull_request_state": "OPEN",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "step13_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step14_status": "REPAIRED_PLAN_R02_AWAITING_INDEPENDENT_REVIEW",
+        "deployment_status": "NOT_DEPLOYED",
+        "three_message_key_design_finding_resolutions": {
+          "finding_1_trust_validation_vs_untrusted_normalization": {
+            "title": "Strict trusted contract validation vs untrusted exception normalization",
+            "resolution": "Strict trusted contract validation requires every verified domain error object deriving from SynthesisBaseError to declare a valid message_key matching the canonical grammar. If a domain error lacks a message_key or declares a malformed message_key, contract validation fails closed. Unknown native Error objects, unhandled exceptions, or untrusted throw values are caught by the error normalizer and safely mapped to generic code ERR_INTERNAL_SERVER_ERROR, generic message_key core.error.internal_server_error, and safe display message \"An internal server error occurred.\" Untrusted inputs are never reflected or echoed in public error fields. Every public allowlist property is explicitly validated before emission."
+          },
+          "finding_2_step13_namespace_rule_alignment": {
+            "title": "Compatibility and alignment with Step 13 dot-separated namespace rules",
+            "resolution": "message_key fully conforms to Step 13 namespace rules (roots: core, gov, sys, pack, ext). Lexical grammar constraints: total length <= 128 characters, 2 to 6 dot-separated segments, max 48 characters per segment, lowercase ASCII lowercase and underscores only matching ^[a-z0-9_]+(\\.[a-z0-9_]+){1,5}$. The invalid example \"error.validation.failed\" (missing a root) is resolved by replacing it with valid canonical examples: core.error.validation_failed (root=core), core.error.unauthorized_access (root=core), gov.error.access_denied (root=gov), ext.acme.blog.error.not_found (root=ext). Step 13 namespace rules remain unchanged and preserved."
+          },
+          "finding_3_trusted_provenance_and_untrusted_key_rejection": {
+            "title": "Trusted message_key provenance and rejection of untrusted keys",
+            "resolution": "A message_key is trusted ONLY if emitted by a verified domain error instance deriving from the official SynthesisBaseError class within trusted application code. Lexically valid strings supplied via untrusted input (such as HTTP request bodies or query parameters) are NEVER accepted as trusted message_keys and are NEVER echoed back in public payloads. Untrusted throw values or injected strings normalize fail-closed to core.error.internal_server_error. Dynamic key registration, tombstoning, and collision checks remain deferred to Step 16 (Registry Framework)."
+          },
+          "negative_test_suite_specifications": [
+            "Rejection of invalid trusted contract declaring missing or malformed message_key",
+            "Safe normalization of unknown native Error instance or raw throw value to core.error.internal_server_error",
+            "Rejection of valid-looking untrusted key passed in untrusted request input",
+            "Rejection of oversized identifiers (>128 chars total, >48 chars per segment, >6 segments)",
+            "Stripping / non-leakage of secret-bearing messages, stack traces, and details in public error context",
+            "Fail-closed rejection / dropping of unknown public payload fields not present on allowlist"
+          ]
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "7e65a998522b443e8c7bcc3219fc502d7cb8f5ba4fa1e0690bdab9c5dd54e46e",
+    "sealed_at": "2026-10-09T05:00:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}
