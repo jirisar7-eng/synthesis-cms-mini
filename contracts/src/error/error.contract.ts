@@ -122,6 +122,121 @@ export const AUTHORIZED_PUBLIC_DETAIL_KEYS = Object.freeze([
 ] as const);
 
 /**
+ * Static enum of authorized public roles for safe detail provenance.
+ */
+export const ALLOWED_PUBLIC_ROLES = Object.freeze([
+  "guest",
+  "user",
+  "admin",
+  "editor",
+  "viewer",
+  "anonymous",
+  "owner",
+  "member",
+  "system",
+  "moderator",
+] as const);
+
+/**
+ * Static enum of authorized public fields for safe detail provenance.
+ */
+export const ALLOWED_PUBLIC_FIELDS = Object.freeze([
+  "email",
+  "username",
+  "password",
+  "title",
+  "name",
+  "slug",
+  "content",
+  "status",
+  "id",
+  "type",
+  "description",
+  "role",
+  "payload",
+] as const);
+
+/**
+ * Static enum of authorized public reasons for safe detail provenance.
+ */
+export const ALLOWED_PUBLIC_REASONS = Object.freeze([
+  "not_found",
+  "already_exists",
+  "expired",
+  "invalid_format",
+  "required",
+  "forbidden",
+  "rate_limited",
+  "conflict",
+  "inactive",
+  "unsupported",
+  "invalid_state",
+] as const);
+
+/**
+ * Static enum of authorized public entities/resources for safe detail provenance.
+ */
+export const ALLOWED_PUBLIC_ENTITIES = Object.freeze([
+  "user",
+  "role",
+  "session",
+  "content",
+  "page",
+  "post",
+  "media",
+  "module",
+  "theme",
+  "setting",
+  "permission",
+] as const);
+
+/**
+ * Static enum of authorized public actions for safe detail provenance.
+ */
+export const ALLOWED_PUBLIC_ACTIONS = Object.freeze([
+  "read",
+  "write",
+  "create",
+  "update",
+  "delete",
+  "list",
+  "publish",
+  "unpublish",
+  "execute",
+] as const);
+
+/**
+ * Static enum of authorized public statuses for safe detail provenance.
+ */
+export const ALLOWED_PUBLIC_STATUSES = Object.freeze([
+  "active",
+  "inactive",
+  "pending",
+  "disabled",
+  "draft",
+  "published",
+  "archived",
+] as const);
+
+/**
+ * Static enum of authorized values for demonstration safeField key.
+ */
+export const ALLOWED_PUBLIC_SAFE_VALUES = Object.freeze(["allowed_value"] as const);
+
+/**
+ * Trusted system correlation ID prefixes representing safe platform/framework origin.
+ * Never reflects arbitrary user-supplied tokens, client headers, or auth tokens.
+ */
+export const TRUSTED_CORRELATION_PREFIXES = Object.freeze([
+  "corr-",
+  "req-",
+  "syn-",
+  "trace-",
+  "sys-",
+  "fallback-",
+] as const);
+
+/**
  * Module-private non-forgeable instance tracking for authentic SynthesisBaseError instances.
  */
 const genuineErrorInstances = new WeakSet();
@@ -375,14 +490,48 @@ export function isValidUtcTimestamp(ts: unknown): ts is string {
   }
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const FORBIDDEN_CORRELATION_PATTERNS = [
+  /token/i,
+  /bearer/i,
+  /secret/i,
+  /jwt/i,
+  /auth/i,
+  /key/i,
+  /session/i,
+  /cookie/i,
+  /password/i,
+  /credential/i,
+  /user-/i,
+  /client-/i,
+  /attacker/i,
+  /forged/i,
+  /header/i,
+];
+
 /**
- * Validates correlation_id string (1-128 alphanumeric, hyphen, underscore, dot).
+ * Validates correlation_id string enforcing safe origin provenance.
+ * Rejects attacker-supplied headers, request tokens, and arbitrary user IDs.
  */
 export function isValidCorrelationId(id: unknown): id is string {
   if (typeof id !== "string") return false;
   const trimmed = id.trim();
-  if (trimmed.length === 0 || trimmed.length > 128) return false;
-  return /^[a-zA-Z0-9_.-]+$/.test(trimmed);
+  if (trimmed.length < 4 || trimmed.length > 128) return false;
+  if (!/^[a-zA-Z0-9_.-]+$/.test(trimmed)) return false;
+
+  for (const pattern of FORBIDDEN_CORRELATION_PATTERNS) {
+    if (pattern.test(trimmed)) return false;
+  }
+
+  const hasTrustedPrefix = (TRUSTED_CORRELATION_PREFIXES as readonly string[]).some((prefix) =>
+    trimmed.startsWith(prefix),
+  );
+  if (!hasTrustedPrefix && !UUID_REGEX.test(trimmed)) {
+    return false;
+  }
+
+  return true;
 }
 
 /**
@@ -422,9 +571,29 @@ const FORBIDDEN_STRING_PATTERNS = [
   /\.env/i,
 ];
 
+const SAFE_RESOURCE_ID_REGEX =
+  /^(res|item|doc|node|user|page|post|file|media|entity)-[a-zA-Z0-9_-]{1,32}$/;
+
+/**
+ * Validates whether a value is an authorized safe resourceId.
+ */
+function isValidPublicResourceId(val: unknown): boolean {
+  if (typeof val !== "string") return false;
+  if (val.length < 3 || val.length > 36) return false;
+  if (!SAFE_RESOURCE_ID_REGEX.test(val) && !UUID_REGEX.test(val)) return false;
+  for (const pattern of FORBIDDEN_STRING_PATTERNS) {
+    if (pattern.test(val)) return false;
+  }
+  for (const pattern of FORBIDDEN_CORRELATION_PATTERNS) {
+    if (pattern.test(val)) return false;
+  }
+  return true;
+}
+
 /**
  * Positively sanitizes public_details to prevent secret, internal-path, and diagnostic leaks.
- * Enforces positive authorization of detail keys and omits untrusted nested data by default.
+ * Enforces positive authorization of detail keys and strictly bounded typed values / static enums.
+ * Arbitrary strings are rejected even under authorized keys. Omit untrusted details by default.
  */
 export function sanitizePublicDetails(
   input: unknown,
@@ -465,24 +634,66 @@ export function sanitizePublicDetails(
         continue;
       }
 
-      if (typeof val === "boolean") {
-        clean[key] = val;
-        keyCount++;
-      } else if (typeof val === "number") {
-        if (Number.isFinite(val)) {
+      if (key === "role" || key === "roleRequired") {
+        if (typeof val === "string" && (ALLOWED_PUBLIC_ROLES as readonly string[]).includes(val)) {
           clean[key] = val;
           keyCount++;
         }
-      } else if (typeof val === "string") {
-        if (val.length > 256) continue;
-        let isUnsafe = false;
-        for (const pattern of FORBIDDEN_STRING_PATTERNS) {
-          if (pattern.test(val)) {
-            isUnsafe = true;
-            break;
-          }
+      } else if (key === "field") {
+        if (typeof val === "string" && (ALLOWED_PUBLIC_FIELDS as readonly string[]).includes(val)) {
+          clean[key] = val;
+          keyCount++;
         }
-        if (!isUnsafe) {
+      } else if (key === "reason") {
+        if (
+          typeof val === "string" &&
+          (ALLOWED_PUBLIC_REASONS as readonly string[]).includes(val)
+        ) {
+          clean[key] = val;
+          keyCount++;
+        }
+      } else if (key === "resource" || key === "entity") {
+        if (
+          typeof val === "string" &&
+          (ALLOWED_PUBLIC_ENTITIES as readonly string[]).includes(val)
+        ) {
+          clean[key] = val;
+          keyCount++;
+        }
+      } else if (key === "action") {
+        if (
+          typeof val === "string" &&
+          (ALLOWED_PUBLIC_ACTIONS as readonly string[]).includes(val)
+        ) {
+          clean[key] = val;
+          keyCount++;
+        }
+      } else if (key === "safeField") {
+        if (
+          typeof val === "string" &&
+          (ALLOWED_PUBLIC_SAFE_VALUES as readonly string[]).includes(val)
+        ) {
+          clean[key] = val;
+          keyCount++;
+        }
+      } else if (key === "resourceId") {
+        if (isValidPublicResourceId(val)) {
+          clean[key] = val;
+          keyCount++;
+        }
+      } else if (key === "status") {
+        if (typeof val === "boolean") {
+          clean[key] = val;
+          keyCount++;
+        } else if (
+          typeof val === "string" &&
+          (ALLOWED_PUBLIC_STATUSES as readonly string[]).includes(val)
+        ) {
+          clean[key] = val;
+          keyCount++;
+        }
+      } else if (key === "limit" || key === "count") {
+        if (typeof val === "number" && Number.isSafeInteger(val) && val >= 0 && val <= 100000) {
           clean[key] = val;
           keyCount++;
         }

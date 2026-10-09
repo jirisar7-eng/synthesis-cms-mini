@@ -520,4 +520,127 @@ void describe("Unified Error Contract", () => {
       name: "TypeError",
     });
   });
+
+  void it("18. Demonstration: Secret values under ALLOWED detail keys are omitted", () => {
+    const err = new SynthesisBaseError({
+      code: "ERR_VALIDATION_FAILED",
+      message: "Input validation failed.",
+      message_key: "core.error.validation_failed",
+      kind: "VALIDATION_ERROR",
+      public_details: {
+        role: "sk_live_secret_role_token_12345",
+        field: "sk_live_api_key_secret_leak",
+        reason: "database connection failed with password postgresql://admin:secret@host/db",
+        resourceId: "secret_token_key_12345",
+        safeField: "unauthorized_secret_string",
+      },
+    });
+
+    const ctx = normalizeToErrorContract(err);
+    const payload = serializePublicErrorPayload(ctx);
+
+    // All secret or unauthorized values under allowed detail keys must be omitted
+    assert.equal(payload.public_details, undefined);
+
+    // Mixed case: valid static enum alongside unauthorized string
+    const mixedErr = new SynthesisBaseError({
+      code: "ERR_VALIDATION_FAILED",
+      message: "Input validation failed.",
+      message_key: "core.error.validation_failed",
+      kind: "VALIDATION_ERROR",
+      public_details: {
+        role: "guest",
+        field: "arbitrary_untrusted_field_value_with_secrets",
+      },
+    });
+    const mixedCtx = normalizeToErrorContract(mixedErr);
+    const mixedPayload = serializePublicErrorPayload(mixedCtx);
+    assert.deepEqual(mixedPayload.public_details, { role: "guest" });
+  });
+
+  void it("19. Demonstration: Forged user-sourced correlation_id is rejected", () => {
+    // Arbitrary user-supplied correlation IDs must be rejected at construction
+    const forgedIds = [
+      "user-supplied-trace-id",
+      "client-request-token-999",
+      "bearer-token-secret-123",
+      "req-with-secret-jwt-token",
+      "forged-correlation-id",
+      "header-x-request-id-attacker",
+    ];
+
+    for (const forgedId of forgedIds) {
+      assert.throws(
+        () =>
+          new SynthesisBaseError({
+            code: "ERR_UNAUTHORIZED",
+            message: "User is not authorized to perform this operation.",
+            message_key: "core.error.unauthorized",
+            kind: "SECURITY_ERROR",
+            correlation_id: forgedId,
+          }),
+        /Invalid SynthesisBaseError correlation_id/,
+      );
+    }
+
+    // Untrusted object with forged correlation_id normalized fail-closed
+    const rawHostile = {
+      name: "Error",
+      message: "Hostile throw",
+      correlation_id: "user-supplied-trace-id",
+    };
+    const ctx = normalizeToErrorContract(rawHostile);
+    assert.equal(ctx.contract.correlation_id, undefined);
+    const payload = serializePublicErrorPayload(ctx);
+    assert.equal(payload.correlation_id, undefined);
+  });
+
+  void it("20. Demonstration: Normal safe use cases with trusted enums and platform correlation_id", () => {
+    const safeErr = new SynthesisBaseError({
+      code: "ERR_VALIDATION_FAILED",
+      message: "Input validation failed.",
+      message_key: "core.error.validation_failed",
+      kind: "VALIDATION_ERROR",
+      severity: "ERROR",
+      recoverable: false,
+      correlation_id: "corr-test-123",
+      public_details: {
+        role: "guest",
+        roleRequired: "admin",
+        field: "email",
+        resourceId: "res-99",
+        safeField: "allowed_value",
+        status: "active",
+        count: 5,
+        limit: 100,
+      },
+    });
+
+    const ctx = normalizeToErrorContract(safeErr);
+    const payload = serializePublicErrorPayload(ctx);
+
+    assert.equal(payload.correlation_id, "corr-test-123");
+    assert.deepEqual(payload.public_details, {
+      role: "guest",
+      roleRequired: "admin",
+      field: "email",
+      resourceId: "res-99",
+      safeField: "allowed_value",
+      status: "active",
+      count: 5,
+      limit: 100,
+    });
+
+    // UUID correlation_id is also trusted
+    const uuidErr = new SynthesisBaseError({
+      code: "ERR_UNAUTHORIZED",
+      message: "User is not authorized to perform this operation.",
+      message_key: "core.error.unauthorized",
+      kind: "SECURITY_ERROR",
+      correlation_id: "550e8400-e29b-41d4-a716-446655440000",
+    });
+    const uuidCtx = normalizeToErrorContract(uuidErr);
+    const uuidPayload = serializePublicErrorPayload(uuidCtx);
+    assert.equal(uuidPayload.correlation_id, "550e8400-e29b-41d4-a716-446655440000");
+  });
 });
