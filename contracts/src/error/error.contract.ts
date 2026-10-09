@@ -98,8 +98,6 @@ export const AUTHORIZED_PUBLIC_MESSAGES: Readonly<Record<string, string>> = Obje
   "core.error.resource_not_found": "Requested resource was not found.",
   "core.error.configuration": "Configuration error.",
   "gov.error.access_denied": "Access is denied.",
-  "core.error.fake": "Fake error",
-  "core.error.test": "Test message",
 });
 
 /**
@@ -124,29 +122,93 @@ export const AUTHORIZED_PUBLIC_DETAIL_KEYS = Object.freeze([
  * Known-safe authored public error codes for Step 14.
  * In Step 16, this extension seam connects to the dynamic contract registry.
  */
-export const AUTHORIZED_PUBLIC_CODES = Object.freeze([
-  "ERR_INTERNAL_SERVER_ERROR",
-  "ERR_VALIDATION_FAILED",
-  "ERR_UNAUTHORIZED",
-  "ERR_FORBIDDEN",
-  "ERR_RESOURCE_NOT_FOUND",
-  "ERR_CONFIG_INVALID",
-  "ERR_INVALID_CONFIG",
-  "ERR_ACCESS_DENIED",
-  "ERR_TEST",
-] as const);
+export interface PublicErrorTriplet {
+  readonly code: string;
+  readonly message_key: string;
+  readonly kind: ErrorKind;
+}
 
 /**
- * Validates whether an error code is an explicitly authored known-safe code for public emission.
- * Future Step 16 extension seam: query dynamic contract registry for module-declared error codes.
+ * Minimal static approved mapping of (code, message_key, kind) tuples for Step 14.
+ * Future Step 16 extension seam: module contracts will register dynamic triplets.
+ */
+export const APPROVED_PUBLIC_ERROR_TRIPLETS: readonly Readonly<PublicErrorTriplet>[] =
+  Object.freeze([
+    Object.freeze({
+      code: "ERR_INTERNAL_SERVER_ERROR",
+      message_key: "core.error.internal_server_error",
+      kind: "SYSTEM_ERROR" as const,
+    }),
+    Object.freeze({
+      code: "ERR_VALIDATION_FAILED",
+      message_key: "core.error.validation_failed",
+      kind: "VALIDATION_ERROR" as const,
+    }),
+    Object.freeze({
+      code: "ERR_UNAUTHORIZED",
+      message_key: "core.error.unauthorized",
+      kind: "SECURITY_ERROR" as const,
+    }),
+    Object.freeze({
+      code: "ERR_UNAUTHORIZED",
+      message_key: "core.error.unauthorized_access",
+      kind: "SECURITY_ERROR" as const,
+    }),
+    Object.freeze({
+      code: "ERR_FORBIDDEN",
+      message_key: "gov.error.access_denied",
+      kind: "SECURITY_ERROR" as const,
+    }),
+    Object.freeze({
+      code: "ERR_RESOURCE_NOT_FOUND",
+      message_key: "core.error.resource_not_found",
+      kind: "DOMAIN_ERROR" as const,
+    }),
+    Object.freeze({
+      code: "ERR_CONFIG_INVALID",
+      message_key: "core.error.configuration",
+      kind: "SYSTEM_ERROR" as const,
+    }),
+    Object.freeze({
+      code: "ERR_INVALID_CONFIG",
+      message_key: "core.error.configuration",
+      kind: "SYSTEM_ERROR" as const,
+    }),
+  ]);
+
+/**
+ * Validates whether (code, message_key, kind) form an approved atomic public error triplet.
+ * Future Step 16 extension seam: query dynamic contract registry for module-declared triplets.
+ */
+export function isApprovedPublicErrorTriplet(
+  code: unknown,
+  message_key: unknown,
+  kind: unknown,
+): boolean {
+  if (typeof code !== "string" || typeof message_key !== "string" || typeof kind !== "string") {
+    return false;
+  }
+  return APPROVED_PUBLIC_ERROR_TRIPLETS.some(
+    (t) => t.code === code && t.message_key === message_key && t.kind === kind,
+  );
+}
+
+/**
+ * Known-safe authored public error codes for Step 14.
+ */
+export const AUTHORIZED_PUBLIC_CODES: readonly string[] = Object.freeze(
+  Array.from(new Set(APPROVED_PUBLIC_ERROR_TRIPLETS.map((t) => t.code))),
+);
+
+/**
+ * Validates whether an error code is part of an approved public error triplet.
  */
 export function isAuthorizedPublicCode(code: string): boolean {
-  return (AUTHORIZED_PUBLIC_CODES as readonly string[]).includes(code);
+  return AUTHORIZED_PUBLIC_CODES.includes(code);
 }
 
 /**
  * Validates whether a message key is an explicitly authored known-safe key for public emission.
- * Future Step 16 extension seam: query dynamic message registry for module-declared keys.
  */
 export function isAuthorizedPublicMessageKey(key: string): boolean {
   return Object.prototype.hasOwnProperty.call(AUTHORIZED_PUBLIC_MESSAGES, key);
@@ -890,31 +952,48 @@ export function serializePublicErrorPayload(
   }
 
   const contract = errorContext.contract;
-  let code: string = ERROR_DEFAULTS.CODE;
-  let message_key: string = ERROR_DEFAULTS.MESSAGE_KEY;
-  let kind: ErrorKind = ERROR_DEFAULTS.KIND;
+
+  // Validate atomic public error triplet consistency
+  let isAtomicValid = false;
+  try {
+    isAtomicValid =
+      isValidErrorCode(contract.code) &&
+      isValidMessageKey(contract.message_key) &&
+      isApprovedPublicErrorTriplet(contract.code, contract.message_key, contract.kind);
+  } catch {
+    isAtomicValid = false;
+  }
+
+  if (!isAtomicValid) {
+    // Entirely generic safe error tuple. No partial fallbacks or mixed error semantics.
+    // Invalid tuples cannot retain public details or other inappropriate metadata.
+    const fallbackPayload: Record<string, unknown> = {
+      code: ERROR_DEFAULTS.CODE,
+      message: ERROR_DEFAULTS.MESSAGE,
+      message_key: ERROR_DEFAULTS.MESSAGE_KEY,
+      kind: ERROR_DEFAULTS.KIND,
+      severity: ERROR_DEFAULTS.SEVERITY,
+      timestamp:
+        typeof contract.timestamp === "string" && isValidUtcTimestamp(contract.timestamp)
+          ? contract.timestamp
+          : new Date().toISOString(),
+      recoverable: ERROR_DEFAULTS.RECOVERABLE,
+    };
+    return Object.freeze(fallbackPayload as unknown as PublicErrorPayload);
+  }
+
+  // At this point, (code, message_key, kind) is an approved atomic triplet
+  const code = contract.code;
+  const message_key = contract.message_key;
+  const kind = contract.kind;
+  const message = resolveSafePublicMessage(message_key);
+
   let severity: ErrorSeverity = ERROR_DEFAULTS.SEVERITY;
   let timestamp = new Date().toISOString();
   let recoverable: boolean = ERROR_DEFAULTS.RECOVERABLE;
   let public_details: Readonly<Record<string, unknown>> | undefined;
 
   try {
-    if (isValidErrorCode(contract.code) && isAuthorizedPublicCode(contract.code)) {
-      code = contract.code;
-    } else {
-      code = ERROR_DEFAULTS.CODE;
-    }
-
-    if (
-      isValidMessageKey(contract.message_key) &&
-      isAuthorizedPublicMessageKey(contract.message_key)
-    ) {
-      message_key = contract.message_key;
-    } else {
-      message_key = ERROR_DEFAULTS.MESSAGE_KEY;
-    }
-
-    if (ERROR_KINDS.includes(contract.kind)) kind = contract.kind;
     if (ERROR_SEVERITIES.includes(contract.severity)) severity = contract.severity;
     if (isValidUtcTimestamp(contract.timestamp)) timestamp = contract.timestamp;
     if (typeof contract.recoverable === "boolean") recoverable = contract.recoverable;
@@ -923,8 +1002,6 @@ export function serializePublicErrorPayload(
   } catch {
     // Fail closed on hostile contract getters
   }
-
-  const message = resolveSafePublicMessage(message_key);
 
   const rawPayload: Record<string, unknown> = {
     code,

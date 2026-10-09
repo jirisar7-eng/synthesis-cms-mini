@@ -687,4 +687,90 @@ void describe("Unified Error Contract", () => {
     const rawDetails = payload.public_details as unknown as Record<string, unknown>;
     assert.equal(rawDetails.resourceId, undefined);
   });
+
+  void it("23. Regression: Enforces atomic public error code, message_key, and kind consistency", () => {
+    // 23a. Known code with wrong known message_key fails closed atomically
+    const wrongKeyErr = new SynthesisBaseError({
+      code: "ERR_UNAUTHORIZED",
+      message: "Input validation failed.",
+      message_key: "core.error.validation_failed", // Mismatched key for ERR_UNAUTHORIZED
+      kind: "SECURITY_ERROR",
+      public_details: { role: "guest" },
+    });
+    const wrongKeyCtx = normalizeToErrorContract(wrongKeyErr);
+    const wrongKeyPayload = serializePublicErrorPayload(wrongKeyCtx);
+    assert.equal(wrongKeyPayload.code, ERROR_DEFAULTS.CODE);
+    assert.equal(wrongKeyPayload.message_key, ERROR_DEFAULTS.MESSAGE_KEY);
+    assert.equal(wrongKeyPayload.message, ERROR_DEFAULTS.MESSAGE);
+    assert.equal(wrongKeyPayload.kind, ERROR_DEFAULTS.KIND);
+    assert.equal(wrongKeyPayload.public_details, undefined); // Cannot retain public details
+
+    // 23b. Known code and message_key with mismatched kind fails closed atomically
+    const wrongKindErr = new SynthesisBaseError({
+      code: "ERR_VALIDATION_FAILED",
+      message: "Input validation failed.",
+      message_key: "core.error.validation_failed",
+      kind: "SECURITY_ERROR", // Mismatched kind for validation failed (expected VALIDATION_ERROR)
+      public_details: { role: "guest" },
+    });
+    const wrongKindCtx = normalizeToErrorContract(wrongKindErr);
+    const wrongKindPayload = serializePublicErrorPayload(wrongKindCtx);
+    assert.equal(wrongKindPayload.code, ERROR_DEFAULTS.CODE);
+    assert.equal(wrongKindPayload.message_key, ERROR_DEFAULTS.MESSAGE_KEY);
+    assert.equal(wrongKindPayload.message, ERROR_DEFAULTS.MESSAGE);
+    assert.equal(wrongKindPayload.kind, ERROR_DEFAULTS.KIND);
+    assert.equal(wrongKindPayload.public_details, undefined);
+
+    // 23c. Unknown code with known message_key fails closed atomically
+    const unknownCodeErr = new SynthesisBaseError({
+      code: "ERR_UNKNOWN_CODE_PROBE",
+      message: "Input validation failed.",
+      message_key: "core.error.validation_failed",
+      kind: "VALIDATION_ERROR",
+      public_details: { role: "guest" },
+    });
+    const unknownCodeCtx = normalizeToErrorContract(unknownCodeErr);
+    const unknownCodePayload = serializePublicErrorPayload(unknownCodeCtx);
+    assert.equal(unknownCodePayload.code, ERROR_DEFAULTS.CODE);
+    assert.equal(unknownCodePayload.message_key, ERROR_DEFAULTS.MESSAGE_KEY);
+    assert.equal(unknownCodePayload.message, ERROR_DEFAULTS.MESSAGE);
+    assert.equal(unknownCodePayload.kind, ERROR_DEFAULTS.KIND);
+    assert.equal(unknownCodePayload.public_details, undefined);
+
+    // 23d. Known code with unknown message_key fails closed atomically
+    const unknownKeyErr = new SynthesisBaseError({
+      code: "ERR_VALIDATION_FAILED",
+      message: "An internal server error occurred.",
+      message_key: "core.error.unregistered_custom_key",
+      kind: "VALIDATION_ERROR",
+      public_details: { role: "guest" },
+    });
+    const unknownKeyCtx = normalizeToErrorContract(unknownKeyErr);
+    const unknownKeyPayload = serializePublicErrorPayload(unknownKeyCtx);
+    assert.equal(unknownKeyPayload.code, ERROR_DEFAULTS.CODE);
+    assert.equal(unknownKeyPayload.message_key, ERROR_DEFAULTS.MESSAGE_KEY);
+    assert.equal(unknownKeyPayload.message, ERROR_DEFAULTS.MESSAGE);
+    assert.equal(unknownKeyPayload.kind, ERROR_DEFAULTS.KIND);
+    assert.equal(unknownKeyPayload.public_details, undefined);
+
+    // 23e. Valid approved tuple retains correct output and authorized details without secret reflection
+    const validErr = new SynthesisBaseError({
+      code: "ERR_VALIDATION_FAILED",
+      message: "Input validation failed.",
+      message_key: "core.error.validation_failed",
+      kind: "VALIDATION_ERROR",
+      public_details: {
+        role: "guest",
+        field: "email",
+        secret_leak: "sk_test_secret_key_never_emitted",
+      },
+    });
+    const validCtx = normalizeToErrorContract(validErr);
+    const validPayload = serializePublicErrorPayload(validCtx);
+    assert.equal(validPayload.code, "ERR_VALIDATION_FAILED");
+    assert.equal(validPayload.message_key, "core.error.validation_failed");
+    assert.equal(validPayload.message, "Input validation failed.");
+    assert.equal(validPayload.kind, "VALIDATION_ERROR");
+    assert.deepEqual(validPayload.public_details, { role: "guest", field: "email" });
+  });
 });
