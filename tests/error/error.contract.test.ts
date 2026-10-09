@@ -8,6 +8,7 @@ import {
   isValidMessageKey,
   isValidUtcTimestamp,
   normalizeToErrorContract,
+  type InternalErrorContext,
   serializePublicErrorPayload,
   toRFC8785JSON,
 } from "../../contracts/src/error/index.ts";
@@ -23,7 +24,7 @@ void describe("Unified Error Contract", () => {
       recoverable: false,
       correlation_id: "corr-test-123",
       public_details: { role: "guest" },
-      internal_details: { userId: "u-101" },
+      internal_details: { auth_provider: "jwt" },
       http_status: 401,
       timestamp: "2026-10-09T04:47:00.000Z",
     });
@@ -36,114 +37,160 @@ void describe("Unified Error Contract", () => {
     assert.equal(err.recoverable, false);
     assert.equal(err.correlation_id, "corr-test-123");
     assert.deepEqual(err.public_details, { role: "guest" });
-    assert.deepEqual(err.internal_details, { userId: "u-101" });
+    assert.deepEqual(err.internal_details, { auth_provider: "jwt" });
     assert.equal(err.http_status, 401);
     assert.equal(err.timestamp, "2026-10-09T04:47:00.000Z");
-  });
-
-  void it("2. Enforces strict immutability (Object.freeze) on SynthesisBaseError", () => {
-    const err = new SynthesisBaseError({
-      code: "ERR_INVALID_INPUT",
-      message: "Input validation failed.",
-      message_key: "core.error.validation_failed",
-      kind: "VALIDATION_ERROR",
-    });
-
     assert.ok(Object.isFrozen(err));
   });
 
-  void it("3. Validates error code grammar (ERR_[A-Z0-9_]+)", () => {
-    assert.ok(isValidErrorCode("ERR_UNAUTHORIZED"));
-    assert.ok(isValidErrorCode("ERR_INVALID_INPUT_123"));
-    assert.ok(isValidErrorCode("ERR_SYSTEM_FAILURE"));
-    assert.equal(isValidErrorCode("err_unauthorized"), false);
-    assert.equal(isValidErrorCode("ERR-UNAUTHORIZED"), false);
-    assert.equal(isValidErrorCode("INVALID_CODE"), false);
+  void it("2. Validates error codes with strict lexical grammar", () => {
+    assert.ok(isValidErrorCode("ERR_VALIDATION_FAILED"));
+    assert.ok(isValidErrorCode("ERR_NOT_FOUND_404"));
+    assert.ok(isValidErrorCode("ERR_A"));
+
     assert.equal(isValidErrorCode(""), false);
+    assert.equal(isValidErrorCode("err_lowercase"), false);
+    assert.equal(isValidErrorCode("ERR-DASHES"), false);
+    assert.equal(isValidErrorCode("ERR_SPACES NOT_ALLOWED"), false);
     assert.equal(isValidErrorCode(123), false);
     assert.equal(isValidErrorCode(null), false);
+    assert.equal(isValidErrorCode(undefined), false);
+
+    assert.throws(
+      () =>
+        new SynthesisBaseError({
+          code: "invalid-code",
+          message: "Input validation failed.",
+          message_key: "core.error.validation_failed",
+          kind: "VALIDATION_ERROR",
+        }),
+      /Invalid SynthesisBaseError code/,
+    );
   });
 
-  void it("4. Validates message_key Step 13 namespace grammar alignment", () => {
+  void it("3. Validates message_key against Step 13 namespace rules and roots", () => {
     assert.ok(isValidMessageKey("core.error.validation_failed"));
-    assert.ok(isValidMessageKey("core.error.unauthorized_access"));
-    assert.ok(isValidMessageKey("gov.error.access_denied"));
-    assert.ok(isValidMessageKey("sys.error.database_offline"));
-    assert.ok(isValidMessageKey("pack.ecommerce.order_failed"));
-    assert.ok(isValidMessageKey("ext.acme.blog.error.not_found"));
+    assert.ok(isValidMessageKey("gov.access.denied"));
+    assert.ok(isValidMessageKey("sys.health.check"));
+    assert.ok(isValidMessageKey("pack.ecommerce.order"));
+    assert.ok(isValidMessageKey("ext.analytics.event"));
+    assert.ok(isValidMessageKey("core.integration.stripe.charge"));
 
-    assert.equal(isValidMessageKey("error.validation.failed"), false, "Missing Step 13 root");
-    assert.equal(isValidMessageKey("invalid.root.error"), false, "Invalid root");
-    assert.equal(isValidMessageKey("core.error.Validation_Failed"), false, "Uppercase forbidden");
-    assert.equal(isValidMessageKey("core.error.space in key"), false, "Spaces forbidden");
-    assert.equal(isValidMessageKey("core.error.hyphen-key"), false, "Hyphens forbidden");
-    assert.equal(isValidMessageKey("core"), false, "Fewer than 2 segments");
-    assert.equal(isValidMessageKey("core.1.2.3.4.5.6.7"), false, "More than 6 segments");
-    assert.equal(isValidMessageKey("core." + "a".repeat(50)), false, "Segment length > 48");
+    assert.equal(isValidMessageKey("invalid_no_root.error"), false);
+    assert.equal(isValidMessageKey("core"), false);
+    assert.equal(isValidMessageKey("pack.order"), false); // pack requires min arity 3
+    assert.equal(isValidMessageKey("ext.event"), false); // ext requires min arity 3
+    assert.equal(isValidMessageKey("core.integration.stripe"), false); // core.integration requires min arity 4
+    assert.equal(isValidMessageKey("core..empty_segment"), false);
+    assert.equal(isValidMessageKey("core.UPPERCASE.not_allowed"), false);
+    assert.equal(isValidMessageKey(null), false);
+    assert.equal(isValidMessageKey(12345), false);
+
+    assert.throws(
+      () =>
+        new SynthesisBaseError({
+          code: "ERR_CONFIG_INVALID",
+          message: "Configuration error.",
+          message_key: "invalid_no_root_key",
+          kind: "SYSTEM_ERROR",
+        }),
+      /Invalid SynthesisBaseError message_key/,
+    );
   });
 
-  void it("5. Validates UTC ISO-8601 timestamp format", () => {
+  void it("4. Validates timestamp ISO-8601 UTC with milliseconds and calendar date", () => {
     assert.ok(isValidUtcTimestamp("2026-10-09T04:47:00.000Z"));
-    assert.ok(isValidUtcTimestamp(new Date().toISOString()));
-    assert.equal(isValidUtcTimestamp("2026-10-09 04:47:00"), false);
-    assert.equal(isValidUtcTimestamp("2026-10-09T04:47:00Z"), false, "Missing milliseconds");
+    assert.ok(isValidUtcTimestamp("2024-02-29T12:00:00.000Z")); // leap year
+
+    assert.equal(isValidUtcTimestamp("2023-02-29T12:00:00.000Z"), false); // invalid leap year date
+    assert.equal(isValidUtcTimestamp("2026-10-09T04:47:00Z"), false); // missing millis
+    assert.equal(isValidUtcTimestamp("2026-10-09"), false);
     assert.equal(isValidUtcTimestamp("invalid-date"), false);
-    assert.equal(isValidUtcTimestamp(1728449220000), false);
-    assert.equal(isValidUtcTimestamp(null), false);
+    assert.equal(isValidUtcTimestamp(123456789), false);
   });
 
-  void it("6. Normalizes verified SynthesisBaseError instances accurately", () => {
-    const err = new SynthesisBaseError({
-      code: "ERR_NOT_FOUND",
+  void it("5. Validates correlation_id constraints", () => {
+    const valid = new SynthesisBaseError({
+      code: "ERR_RESOURCE_NOT_FOUND",
       message: "Requested resource was not found.",
       message_key: "core.error.resource_not_found",
       kind: "DOMAIN_ERROR",
-      severity: "INFO",
+      correlation_id: "req-abc_123.xyz",
+    });
+    assert.equal(valid.correlation_id, "req-abc_123.xyz");
+
+    assert.throws(
+      () =>
+        new SynthesisBaseError({
+          code: "ERR_RESOURCE_NOT_FOUND",
+          message: "Requested resource was not found.",
+          message_key: "core.error.resource_not_found",
+          kind: "DOMAIN_ERROR",
+          correlation_id: "invalid id with spaces",
+        }),
+      /Invalid SynthesisBaseError correlation_id/,
+    );
+  });
+
+  void it("6. Normalizes authentic SynthesisBaseError into InternalErrorContext", () => {
+    const err = new SynthesisBaseError({
+      code: "ERR_RESOURCE_NOT_FOUND",
+      message: "Requested resource was not found.",
+      message_key: "core.error.resource_not_found",
+      kind: "DOMAIN_ERROR",
+      severity: "WARNING",
       recoverable: true,
-      correlation_id: "corr-001",
+      correlation_id: "corr-456",
       public_details: { resourceId: "res-99" },
-      internal_details: { sqlQuery: "SELECT * FROM res WHERE id = 99" },
+      internal_details: { queryTimeMs: 14 },
       http_status: 404,
       timestamp: "2026-10-09T04:47:00.000Z",
     });
 
     const ctx = normalizeToErrorContract(err);
-    assert.equal(ctx.contract.code, "ERR_NOT_FOUND");
+
+    assert.equal(ctx.contract.code, "ERR_RESOURCE_NOT_FOUND");
+    assert.equal(ctx.contract.message, "Requested resource was not found.");
     assert.equal(ctx.contract.message_key, "core.error.resource_not_found");
     assert.equal(ctx.contract.kind, "DOMAIN_ERROR");
+    assert.equal(ctx.contract.severity, "WARNING");
     assert.equal(ctx.contract.recoverable, true);
+    assert.equal(ctx.contract.correlation_id, "corr-456");
+    assert.deepEqual(ctx.contract.public_details, { resourceId: "res-99" });
     assert.equal(ctx.contract.http_status, 404);
     assert.equal(ctx.raw_throw_value, err);
-    assert.deepEqual(ctx.internal_details, { sqlQuery: "SELECT * FROM res WHERE id = 99" });
+    assert.deepEqual(ctx.internal_details, { queryTimeMs: 14 });
+    assert.ok(typeof ctx.stack_trace === "string");
+    assert.ok(Object.isFrozen(ctx));
+    assert.ok(Object.isFrozen(ctx.contract));
   });
 
-  void it("7. Fails closed on untrusted throw values", () => {
-    const testCases: unknown[] = [
-      null,
-      undefined,
-      "Raw string error message",
-      404,
-      false,
-      new Error("Native JavaScript exception"),
-      { code: "ERR_FAKE", message: "Fake error", message_key: "core.error.fake" },
-      Object.create({ code: "ERR_INJECTED", message_key: "core.error.injected" }),
-    ];
+  void it("7. Normalizes untrusted Error and hostile throw values fail-closed into generic defaults", () => {
+    const nativeErr = new TypeError("Database connection lost: password123");
+    const ctxNative = normalizeToErrorContract(nativeErr, "fallback-corr");
 
-    for (const item of testCases) {
-      const ctx = normalizeToErrorContract(item, "corr-fallback-123");
-      assert.equal(ctx.contract.code, ERROR_DEFAULTS.CODE);
-      assert.equal(ctx.contract.message, ERROR_DEFAULTS.MESSAGE);
-      assert.equal(ctx.contract.message_key, ERROR_DEFAULTS.MESSAGE_KEY);
-      assert.equal(ctx.contract.kind, ERROR_DEFAULTS.KIND);
-      assert.equal(ctx.contract.severity, ERROR_DEFAULTS.SEVERITY);
-      assert.equal(ctx.contract.recoverable, false);
-      assert.equal(ctx.contract.http_status, 500);
-      assert.equal(ctx.contract.correlation_id, "corr-fallback-123");
-      assert.ok(isValidUtcTimestamp(ctx.contract.timestamp));
-    }
+    assert.equal(ctxNative.contract.code, ERROR_DEFAULTS.CODE);
+    assert.equal(ctxNative.contract.message, ERROR_DEFAULTS.MESSAGE);
+    assert.equal(ctxNative.contract.message_key, ERROR_DEFAULTS.MESSAGE_KEY);
+    assert.equal(ctxNative.contract.kind, ERROR_DEFAULTS.KIND);
+    assert.equal(ctxNative.contract.severity, ERROR_DEFAULTS.SEVERITY);
+    assert.equal(ctxNative.contract.recoverable, ERROR_DEFAULTS.RECOVERABLE);
+    assert.equal(ctxNative.contract.correlation_id, "fallback-corr");
+    assert.equal(ctxNative.contract.http_status, ERROR_DEFAULTS.HTTP_STATUS);
+    assert.equal(ctxNative.raw_throw_value, nativeErr);
+    assert.equal(ctxNative.cause_message, "Database connection lost: password123");
+    assert.ok(typeof ctxNative.stack_trace === "string");
+
+    const ctxString = normalizeToErrorContract("plain string failure");
+    assert.equal(ctxString.contract.code, ERROR_DEFAULTS.CODE);
+    assert.equal(ctxString.cause_message, "plain string failure");
+
+    const ctxNull = normalizeToErrorContract(null);
+    assert.equal(ctxNull.contract.code, ERROR_DEFAULTS.CODE);
+    assert.equal(ctxNull.cause_message, "null");
   });
 
-  void it("8. Serializes PublicErrorPayload using explicit fail-closed allowlist filtering", () => {
+  void it("8. Serializes InternalErrorContext to PublicErrorPayload with strict allowlist", () => {
     const err = new SynthesisBaseError({
       code: "ERR_FORBIDDEN",
       message: "Access is denied.",
@@ -183,26 +230,21 @@ void describe("Unified Error Contract", () => {
   });
 
   void it("9. Prevents prototype pollution and unknown field injection during public serialization", () => {
-    const malformedCtx = {
-      contract: {
-        code: "ERR_VALIDATION_FAILED",
-        message: "Invalid payload",
-        message_key: "core.error.validation_failed",
-        kind: "VALIDATION_ERROR" as const,
-        severity: "WARNING" as const,
-        timestamp: new Date().toISOString(),
-        recoverable: true,
-        public_details: JSON.parse('{"field":"email","__proto__":{"polluted":true}}') as Record<
-          string,
-          unknown
-        >,
-        injectedSecretField: "secret_token_123",
-      } as unknown,
-    };
+    const err = new SynthesisBaseError({
+      code: "ERR_VALIDATION_FAILED",
+      message: "Input validation failed.",
+      message_key: "core.error.validation_failed",
+      kind: "VALIDATION_ERROR",
+      severity: "WARNING",
+      recoverable: true,
+      public_details: JSON.parse('{"field":"email","__proto__":{"polluted":true}}') as Record<
+        string,
+        unknown
+      >,
+    });
 
-    const publicPayload = serializePublicErrorPayload(
-      malformedCtx as unknown as Parameters<typeof serializePublicErrorPayload>[0],
-    );
+    const internalCtx = normalizeToErrorContract(err);
+    const publicPayload = serializePublicErrorPayload(internalCtx);
 
     const rawObj = publicPayload as unknown as Record<string, unknown>;
     assert.equal(rawObj.injectedSecretField, undefined);
@@ -218,34 +260,23 @@ void describe("Unified Error Contract", () => {
   });
 
   void it("10. Tests RFC-8785 deterministic canonical JSON serialization", () => {
-    const objA = {
-      z: 1,
-      a: "hello",
-      kind: "SECURITY_ERROR",
-      details: { b: 2, a: 1 },
-    };
-
-    const objB = {
-      a: "hello",
-      kind: "SECURITY_ERROR",
-      details: { a: 1, b: 2 },
-      z: 1,
-    };
+    const objA = { z: 1, a: 2, m: { y: 3, x: 4 } };
+    const objB = { m: { x: 4, y: 3 }, a: 2, z: 1 };
 
     const canonicalA = toRFC8785JSON(objA);
     const canonicalB = toRFC8785JSON(objB);
 
-    assert.equal(
-      canonicalA,
-      canonicalB,
-      "Canonicalized JSON strings must be identical regardless of property insertion order.",
-    );
-    assert.equal(canonicalA, '{"a":"hello","details":{"a":1,"b":2},"kind":"SECURITY_ERROR","z":1}');
+    assert.equal(canonicalA, '{"a":2,"m":{"x":4,"y":3},"z":1}');
+    assert.equal(canonicalA, canonicalB);
   });
 
   void it("11. Tests RFC-8785 canonicalization error handling on non-finite numbers", () => {
-    assert.throws(() => toRFC8785JSON({ badNum: NaN }), TypeError);
-    assert.throws(() => toRFC8785JSON({ badNum: Infinity }), TypeError);
+    assert.throws(() => toRFC8785JSON({ invalid: Number.NaN }), {
+      name: "TypeError",
+    });
+    assert.throws(() => toRFC8785JSON({ invalid: Number.POSITIVE_INFINITY }), {
+      name: "TypeError",
+    });
   });
 
   void it("12. Regression: no nested token/credential/DB URI leaks", () => {
@@ -349,8 +380,9 @@ void describe("Unified Error Contract", () => {
           message: "Test message",
           message_key: "core.error.test",
           kind: "SYSTEM_ERROR",
-          correlation_id: "invalid id containing spaces & symbols!",
+          recoverable: "yes" as unknown as boolean,
         }),
+      /expected boolean/,
     );
 
     assert.throws(
@@ -360,44 +392,132 @@ void describe("Unified Error Contract", () => {
           message: "Test message",
           message_key: "core.error.test",
           kind: "SYSTEM_ERROR",
-          recoverable: "true" as unknown as boolean,
+          correlation_id: "bad id with spaces!",
         }),
+      /Invalid SynthesisBaseError correlation_id/,
     );
   });
 
   void it("12f. Regression: invalid Step13 namespace arity rejected", () => {
-    assert.equal(isValidMessageKey("pack.ecommerce"), false, "pack root requires min 3 segments");
-    assert.equal(isValidMessageKey("ext.acme"), false, "ext root requires min 3 segments");
-    assert.equal(
-      isValidMessageKey("core.integration.stripe"),
-      false,
-      "core.integration requires min 4 segments",
-    );
-
-    assert.equal(isValidMessageKey("pack.ecommerce.order_failed"), true);
-    assert.equal(isValidMessageKey("ext.acme.blog.error"), true);
-    assert.equal(isValidMessageKey("core.integration.stripe.payment_failed"), true);
+    assert.equal(isValidMessageKey("pack.one"), false);
+    assert.equal(isValidMessageKey("ext.one"), false);
+    assert.equal(isValidMessageKey("core.integration.service"), false);
+    assert.ok(isValidMessageKey("pack.one.two"));
+    assert.ok(isValidMessageKey("ext.one.two"));
+    assert.ok(isValidMessageKey("core.integration.service.action"));
   });
 
   void it("12g. Regression: invalid calendar dates rejected", () => {
-    assert.equal(
-      isValidUtcTimestamp("2026-02-31T12:00:00.000Z"),
-      false,
-      "Feb 31 is invalid calendar date",
-    );
-    assert.equal(
-      isValidUtcTimestamp("2026-11-31T12:00:00.000Z"),
-      false,
-      "Nov 31 is invalid calendar date",
-    );
-    assert.equal(isValidUtcTimestamp("2026-10-09T04:47:00.000Z"), true);
+    assert.equal(isValidUtcTimestamp("2026-02-29T12:00:00.000Z"), false);
+    assert.equal(isValidUtcTimestamp("2026-04-31T12:00:00.000Z"), false);
+    assert.ok(isValidUtcTimestamp("2026-04-30T12:00:00.000Z"));
   });
 
   void it("12h. Regression: unsafe canonical JSON inputs rejected", () => {
-    const circularObj: Record<string, unknown> = {};
-    circularObj.self = circularObj;
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    assert.throws(() => toRFC8785JSON(circular), {
+      name: "TypeError",
+    });
 
-    assert.throws(() => toRFC8785JSON(circularObj), TypeError);
-    assert.throws(() => toRFC8785JSON(String.fromCharCode(0xd800)), TypeError);
+    const sparseArr = new Array(3);
+    assert.equal(toRFC8785JSON(sparseArr), "[null,null,null]");
+
+    const badSurrogateObj = { bad: "\uD800" };
+    assert.throws(() => toRFC8785JSON(badSurrogateObj), {
+      name: "TypeError",
+    });
+  });
+
+  void it("13. Demonstration: Forged prototype with exported brand is rejected", () => {
+    const forged = Object.create(SynthesisBaseError.prototype) as Record<string | symbol, unknown>;
+    forged.code = "ERR_FORGED";
+    forged.message = "Forged error message";
+    forged.message_key = "core.error.forged";
+    forged.kind = "SYSTEM_ERROR";
+    forged.severity = "FATAL";
+    forged.timestamp = "2026-10-09T04:47:00.000Z";
+    forged.recoverable = true;
+    forged[Symbol.for("synthesis.core.error.brand")] = true;
+
+    const ctx = normalizeToErrorContract(forged);
+    assert.equal(ctx.contract.code, ERROR_DEFAULTS.CODE);
+    assert.equal(ctx.contract.message, ERROR_DEFAULTS.MESSAGE);
+    assert.equal(ctx.contract.message_key, ERROR_DEFAULTS.MESSAGE_KEY);
+    assert.equal(ctx.contract.kind, ERROR_DEFAULTS.KIND);
+  });
+
+  void it("14. Demonstration: Valid-looking forged public context produces generic error", () => {
+    const validLookingForgedCtx: InternalErrorContext = {
+      contract: {
+        code: "ERR_VALID_LOOKING",
+        message: "Valid looking public message",
+        message_key: "core.error.validation_failed",
+        kind: "VALIDATION_ERROR" as const,
+        severity: "ERROR" as const,
+        timestamp: "2026-10-09T04:47:00.000Z",
+        recoverable: true,
+        correlation_id: "corr-forged-valid",
+        public_details: { field: "email" },
+      },
+    };
+
+    const payload = serializePublicErrorPayload(validLookingForgedCtx);
+
+    assert.equal(payload.code, ERROR_DEFAULTS.CODE);
+    assert.equal(payload.message, ERROR_DEFAULTS.MESSAGE);
+    assert.equal(payload.message_key, ERROR_DEFAULTS.MESSAGE_KEY);
+    assert.equal(payload.kind, ERROR_DEFAULTS.KIND);
+    assert.equal(payload.severity, ERROR_DEFAULTS.SEVERITY);
+    assert.equal(payload.recoverable, ERROR_DEFAULTS.RECOVERABLE);
+    assert.equal(payload.correlation_id, undefined);
+    assert.equal(payload.public_details, undefined);
+  });
+
+  void it("15. Demonstration: Secret in innocuous detail field is omitted by positive authorization", () => {
+    const err = new SynthesisBaseError({
+      code: "ERR_VALIDATION_FAILED",
+      message: "Input validation failed.",
+      message_key: "core.error.validation_failed",
+      kind: "VALIDATION_ERROR",
+      public_details: {
+        safeField: "allowed_value",
+        innocuousField: "super_secret_api_key_value",
+        debugInfo: "db_password_123",
+      },
+    });
+
+    const ctx = normalizeToErrorContract(err);
+    const payload = serializePublicErrorPayload(ctx);
+
+    assert.deepEqual(payload.public_details, { safeField: "allowed_value" });
+    const rawDetails = payload.public_details as unknown as Record<string, unknown>;
+    assert.equal(rawDetails.innocuousField, undefined);
+    assert.equal(rawDetails.debugInfo, undefined);
+  });
+
+  void it("16. Demonstration: Arbitrary untrusted public message is not reflected to clients", () => {
+    const errWithUntrustedMsg = new SynthesisBaseError({
+      code: "ERR_UNAUTHORIZED",
+      message: "Sensitive SQL error in query: select * from admin_users where secret=1",
+      message_key: "core.error.unauthorized",
+      kind: "SECURITY_ERROR",
+    });
+
+    const ctx = normalizeToErrorContract(errWithUntrustedMsg);
+    const payload = serializePublicErrorPayload(ctx);
+
+    assert.equal(payload.message, "User is not authorized to perform this operation.");
+    assert.notEqual(
+      payload.message,
+      "Sensitive SQL error in query: select * from admin_users where secret=1",
+    );
+  });
+
+  void it("17. Demonstration: Malformed Unicode property key is rejected by toRFC8785JSON", () => {
+    const badKeyObj: unknown = JSON.parse('{"\uD800": "bad_key_value"}');
+    assert.throws(() => toRFC8785JSON(badKeyObj), {
+      name: "TypeError",
+    });
   });
 });

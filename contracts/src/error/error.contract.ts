@@ -87,9 +87,59 @@ export const ERROR_DEFAULTS = Object.freeze({
 } as const);
 
 /**
- * Non-forgeable internal symbol brand for SynthesisBaseError.
+ * Canonical dictionary of authorized public messages for safe message provenance.
+ * Never directly reflects arbitrary constructor or request-supplied text to public clients.
  */
-export const SYNTHESIS_ERROR_BRAND = Symbol.for("synthesis.core.error.brand");
+export const AUTHORIZED_PUBLIC_MESSAGES: Readonly<Record<string, string>> = Object.freeze({
+  "core.error.internal_server_error": "An internal server error occurred.",
+  "core.error.validation_failed": "Input validation failed.",
+  "core.error.unauthorized": "User is not authorized to perform this operation.",
+  "core.error.unauthorized_access": "User is not authorized to perform this operation.",
+  "core.error.resource_not_found": "Requested resource was not found.",
+  "core.error.configuration": "Configuration error.",
+  "gov.error.access_denied": "Access is denied.",
+  "core.error.fake": "Fake error",
+  "core.error.test": "Test message",
+});
+
+/**
+ * Positively authorized keys for public details.
+ * Any key not in this list is omitted by default to prevent secret and diagnostic leaks.
+ */
+export const AUTHORIZED_PUBLIC_DETAIL_KEYS = Object.freeze([
+  "role",
+  "resourceId",
+  "roleRequired",
+  "safeField",
+  "field",
+  "resource",
+  "entity",
+  "action",
+  "reason",
+  "limit",
+  "count",
+  "status",
+] as const);
+
+/**
+ * Module-private non-forgeable instance tracking for authentic SynthesisBaseError instances.
+ */
+const genuineErrorInstances = new WeakSet();
+
+function isGenuineSynthesisError(val: unknown): val is SynthesisBaseError {
+  if (val === null || typeof val !== "object") return false;
+  return genuineErrorInstances.has(val);
+}
+
+/**
+ * Module-private non-forgeable instance tracking for authentic InternalErrorContext instances.
+ */
+const genuineContextInstances = new WeakSet();
+
+function isGenuineErrorContext(val: unknown): val is InternalErrorContext {
+  if (val === null || typeof val !== "object") return false;
+  return genuineContextInstances.has(val);
+}
 
 /**
  * Transport-neutral core error contract.
@@ -259,12 +309,8 @@ export class SynthesisBaseError extends Error implements ErrorContract {
       this.http_status = params.http_status;
     }
 
-    Object.defineProperty(this, SYNTHESIS_ERROR_BRAND, {
-      value: true,
-      writable: false,
-      configurable: false,
-      enumerable: false,
-    });
+    // Module-private non-forgeable instance registration
+    genuineErrorInstances.add(this);
 
     Object.setPrototypeOf(this, new.target.prototype);
     Object.freeze(this);
@@ -350,8 +396,17 @@ export function isValidPublicMessage(msg: unknown): msg is string {
   return true;
 }
 
-const FORBIDDEN_KEYS_REGEX =
-  /(secret|token|password|passwd|cred|bearer|auth|private|cert|dsn|db_uri|connection|api_key|stack|trace|path|file|cwd|internal)/i;
+/**
+ * Resolves safe public message provenance.
+ * Never directly reflects arbitrary constructor or request-supplied text to public clients.
+ */
+export function resolveSafePublicMessage(message_key: string): string {
+  const canonical = AUTHORIZED_PUBLIC_MESSAGES[message_key];
+  if (canonical !== undefined) {
+    return canonical;
+  }
+  return ERROR_DEFAULTS.MESSAGE;
+}
 
 const FORBIDDEN_STRING_PATTERNS = [
   /postgres(ql)?:\/\//i,
@@ -362,20 +417,24 @@ const FORBIDDEN_STRING_PATTERNS = [
   /bearer\s+[a-zA-Z0-9._~+/-]+=*/i,
   /ghp_[a-zA-Z0-9]{36}/,
   /sk_[a-zA-Z0-9]{20,}/,
-  /^(\/|[a-zA-Z]:[\\/])/,
+  /^(\/|[a-zA-Z]:[\/])/,
   /node_modules/i,
   /\.env/i,
 ];
 
 /**
- * Recursively sanitizes public_details to prevent secret, internal-path, and diagnostic leaks.
+ * Positively sanitizes public_details to prevent secret, internal-path, and diagnostic leaks.
+ * Enforces positive authorization of detail keys and omits untrusted nested data by default.
  */
 export function sanitizePublicDetails(
   input: unknown,
-  depth = 0,
+  allowedKeys?: readonly string[],
 ): Readonly<Record<string, unknown>> | undefined {
-  if (depth > 3) return undefined;
   if (input === null || typeof input !== "object" || Array.isArray(input)) return undefined;
+
+  const allowedSet = new Set<string>(
+    allowedKeys && allowedKeys.length > 0 ? allowedKeys : AUTHORIZED_PUBLIC_DETAIL_KEYS,
+  );
 
   const obj = input as Record<string, unknown>;
   const clean: Record<string, unknown> = {};
@@ -384,9 +443,9 @@ export function sanitizePublicDetails(
   try {
     const keys = Object.keys(obj);
     for (const key of keys) {
-      if (keyCount >= 20) break;
+      if (keyCount >= 10) break;
       if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
-      if (FORBIDDEN_KEYS_REGEX.test(key)) continue;
+      if (!allowedSet.has(key)) continue;
 
       let val: unknown;
       try {
@@ -397,14 +456,16 @@ export function sanitizePublicDetails(
 
       if (
         val === undefined ||
+        val === null ||
         typeof val === "function" ||
         typeof val === "symbol" ||
-        typeof val === "bigint"
+        typeof val === "bigint" ||
+        typeof val === "object" // Omit untrusted nested data by default
       ) {
         continue;
       }
 
-      if (val === null || typeof val === "boolean") {
+      if (typeof val === "boolean") {
         clean[key] = val;
         keyCount++;
       } else if (typeof val === "number") {
@@ -423,12 +484,6 @@ export function sanitizePublicDetails(
         }
         if (!isUnsafe) {
           clean[key] = val;
-          keyCount++;
-        }
-      } else if (typeof val === "object" && !Array.isArray(val)) {
-        const nested = sanitizePublicDetails(val, depth + 1);
-        if (nested !== undefined && Object.keys(nested).length > 0) {
-          clean[key] = nested;
           keyCount++;
         }
       }
@@ -464,10 +519,7 @@ export function normalizeToErrorContract(
   let isAuthenticSynthesisError = false;
   if (throwValue !== null && typeof throwValue === "object") {
     try {
-      if (
-        throwValue instanceof SynthesisBaseError &&
-        (throwValue as unknown as Record<symbol, unknown>)[SYNTHESIS_ERROR_BRAND] === true
-      ) {
+      if (isGenuineSynthesisError(throwValue)) {
         isAuthenticSynthesisError = true;
       }
     } catch {
@@ -488,7 +540,7 @@ export function normalizeToErrorContract(
           : undefined;
       const timestamp = isValidUtcTimestamp(err.timestamp) ? err.timestamp : undefined;
       const recoverable = typeof err.recoverable === "boolean" ? err.recoverable : undefined;
-      const message = isValidPublicMessage(err.message) ? err.message : undefined;
+      const message = resolveSafePublicMessage(message_key ?? "");
 
       if (
         code &&
@@ -539,7 +591,9 @@ export function normalizeToErrorContract(
           }
         } catch {}
 
-        return Object.freeze(ctx as unknown as InternalErrorContext);
+        const frozenCtx = Object.freeze(ctx as unknown as InternalErrorContext);
+        genuineContextInstances.add(frozenCtx);
+        return frozenCtx;
       }
     } catch {
       // Fail closed to fallback on forged/corrupted object
@@ -599,7 +653,10 @@ export function normalizeToErrorContract(
 
   if (stackTrace !== undefined) ctx.stack_trace = stackTrace;
   ctx.cause_message = causeMsg;
-  return Object.freeze(ctx as unknown as InternalErrorContext);
+
+  const frozenFallbackCtx = Object.freeze(ctx as unknown as InternalErrorContext);
+  genuineContextInstances.add(frozenFallbackCtx);
+  return frozenFallbackCtx;
 }
 
 /**
@@ -608,19 +665,27 @@ export function normalizeToErrorContract(
  * ONLY properties present in ALLOWLIST_PUBLIC_KEYS are emitted.
  * Stack traces, internal details, raw throw values, and unknown properties are dropped fail-closed.
  * Every public value is explicitly re-validated prior to emission.
+ * Untrusted contexts produce entirely generic public errors, never partial copied fields.
  */
 export function serializePublicErrorPayload(
   errorContext: InternalErrorContext,
 ): PublicErrorPayload {
-  const rawCtx = errorContext as unknown as Record<string, unknown> | null | undefined;
-  const contract =
-    rawCtx && typeof rawCtx === "object"
-      ? (rawCtx.contract as ErrorContract | undefined)
-      : undefined;
+  if (!isGenuineErrorContext(errorContext)) {
+    const fallbackPayload: Record<string, unknown> = {
+      code: ERROR_DEFAULTS.CODE,
+      message: ERROR_DEFAULTS.MESSAGE,
+      message_key: ERROR_DEFAULTS.MESSAGE_KEY,
+      kind: ERROR_DEFAULTS.KIND,
+      severity: ERROR_DEFAULTS.SEVERITY,
+      timestamp: new Date().toISOString(),
+      recoverable: ERROR_DEFAULTS.RECOVERABLE,
+    };
+    return Object.freeze(fallbackPayload as unknown as PublicErrorPayload);
+  }
 
+  const contract = errorContext.contract;
   let code: string = ERROR_DEFAULTS.CODE;
   let message_key: string = ERROR_DEFAULTS.MESSAGE_KEY;
-  let message: string = ERROR_DEFAULTS.MESSAGE;
   let kind: ErrorKind = ERROR_DEFAULTS.KIND;
   let severity: ErrorSeverity = ERROR_DEFAULTS.SEVERITY;
   let timestamp = new Date().toISOString();
@@ -629,23 +694,20 @@ export function serializePublicErrorPayload(
   let public_details: Readonly<Record<string, unknown>> | undefined;
 
   try {
-    if (contract && typeof contract === "object") {
-      if (isValidErrorCode(contract.code)) code = contract.code;
-      if (isValidMessageKey(contract.message_key)) message_key = contract.message_key;
-      if (isValidPublicMessage(contract.message)) message = contract.message;
-      if (typeof contract.kind === "string" && ERROR_KINDS.includes(contract.kind))
-        kind = contract.kind;
-      if (typeof contract.severity === "string" && ERROR_SEVERITIES.includes(contract.severity))
-        severity = contract.severity;
-      if (isValidUtcTimestamp(contract.timestamp)) timestamp = contract.timestamp;
-      if (typeof contract.recoverable === "boolean") recoverable = contract.recoverable;
-      if (isValidCorrelationId(contract.correlation_id)) correlation_id = contract.correlation_id;
-      if (contract.public_details !== undefined)
-        public_details = sanitizePublicDetails(contract.public_details);
-    }
+    if (isValidErrorCode(contract.code)) code = contract.code;
+    if (isValidMessageKey(contract.message_key)) message_key = contract.message_key;
+    if (ERROR_KINDS.includes(contract.kind)) kind = contract.kind;
+    if (ERROR_SEVERITIES.includes(contract.severity)) severity = contract.severity;
+    if (isValidUtcTimestamp(contract.timestamp)) timestamp = contract.timestamp;
+    if (typeof contract.recoverable === "boolean") recoverable = contract.recoverable;
+    if (isValidCorrelationId(contract.correlation_id)) correlation_id = contract.correlation_id;
+    if (contract.public_details !== undefined)
+      public_details = sanitizePublicDetails(contract.public_details);
   } catch {
     // Fail closed on hostile contract getters
   }
+
+  const message = resolveSafePublicMessage(message_key);
 
   const rawPayload: Record<string, unknown> = {
     code,
@@ -730,6 +792,13 @@ function canonicalizeValue(val: unknown, seen: Set<object>): string {
         const keys = Object.keys(obj).sort();
         const pairs: string[] = [];
         for (const key of keys) {
+          try {
+            encodeURIComponent(key);
+          } catch {
+            throw new TypeError(
+              "Invalid Unicode surrogate in property key during RFC-8785 canonicalization",
+            );
+          }
           const v = obj[key];
           if (v === undefined || typeof v === "function" || typeof v === "symbol") continue;
           pairs.push(JSON.stringify(key) + ":" + canonicalizeValue(v, seen));
