@@ -9,7 +9,12 @@
  * serialization, and RFC-8785 deterministic canonicalization without external dependencies.
  */
 
-import { NAMESPACE_ROOTS, type NamespaceRoot } from "../namespace/namespace.contract.ts";
+import {
+  NAMESPACE_ROOTS,
+  ROOT_MIN_ARITY,
+  CORE_INTEGRATION_MIN_ARITY,
+  type NamespaceRoot,
+} from "../namespace/namespace.contract.ts";
 
 export const UNIFIED_ERROR_CONTRACT_ID = "CONTRACT-CORE-UNIFIED-ERROR-001" as const;
 
@@ -47,7 +52,7 @@ export const ERROR_GRAMMAR = Object.freeze({
   MESSAGE_KEY_MAX_LENGTH: 128,
   MESSAGE_KEY_MIN_SEGMENTS: 2,
   MESSAGE_KEY_MAX_SEGMENTS: 6,
-  UTC_TIMESTAMP_REGEX: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/,
+  UTC_TIMESTAMP_REGEX: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
 } as const);
 
 /**
@@ -80,6 +85,11 @@ export const ERROR_DEFAULTS = Object.freeze({
   RECOVERABLE: false,
   HTTP_STATUS: 500,
 } as const);
+
+/**
+ * Non-forgeable internal symbol brand for SynthesisBaseError.
+ */
+export const SYNTHESIS_ERROR_BRAND = Symbol.for("synthesis.core.error.brand");
 
 /**
  * Transport-neutral core error contract.
@@ -153,15 +163,22 @@ export class SynthesisBaseError extends Error implements ErrorContract {
     http_status?: number | undefined;
     timestamp?: string | undefined;
   }) {
-    super(params.message);
+    const p = params as unknown as Record<string, unknown> | null | undefined;
+    const safeMsg =
+      p && typeof p === "object" && isValidPublicMessage(p.message)
+        ? p.message
+        : ERROR_DEFAULTS.MESSAGE;
+    super(safeMsg);
     this.name = this.constructor.name;
+
+    if (!p || typeof p !== "object") {
+      throw new Error("SynthesisBaseError requires params object.");
+    }
 
     const rawCode: unknown = params.code;
     if (!isValidErrorCode(rawCode)) {
       throw new Error(
-        'Invalid SynthesisBaseError code: "' +
-          String(rawCode) +
-          '". Must match /^ERR_[A-Z0-9_]+$/.',
+        'Invalid SynthesisBaseError code: "' + params.code + '". Must match /^ERR_[A-Z0-9_]+$/.',
       );
     }
 
@@ -169,7 +186,7 @@ export class SynthesisBaseError extends Error implements ErrorContract {
     if (!isValidMessageKey(rawKey)) {
       throw new Error(
         'Invalid SynthesisBaseError message_key: "' +
-          String(rawKey) +
+          params.message_key +
           '". Must conform to Step 13 namespace rules.',
       );
     }
@@ -189,20 +206,65 @@ export class SynthesisBaseError extends Error implements ErrorContract {
         'Invalid SynthesisBaseError timestamp: "' + String(rawTs) + '". Must be ISO-8601 UTC.',
       );
     }
-    const timestampStr = rawTs;
+
+    if (params.correlation_id !== undefined && !isValidCorrelationId(params.correlation_id)) {
+      throw new Error(
+        'Invalid SynthesisBaseError correlation_id: "' + String(params.correlation_id) + '".',
+      );
+    }
+
+    if (params.recoverable !== undefined && typeof params.recoverable !== "boolean") {
+      throw new Error("Invalid SynthesisBaseError recoverable: expected boolean.");
+    }
+
+    if (
+      params.http_status !== undefined &&
+      (typeof params.http_status !== "number" ||
+        !Number.isInteger(params.http_status) ||
+        params.http_status < 100 ||
+        params.http_status > 599)
+    ) {
+      throw new Error(
+        'Invalid SynthesisBaseError http_status: "' + String(params.http_status) + '".',
+      );
+    }
 
     this.code = params.code;
     this.message_key = params.message_key;
     this.kind = params.kind;
     this.severity = severity;
-    this.recoverable = params.recoverable ?? false;
-    if (params.correlation_id !== undefined) this.correlation_id = params.correlation_id;
-    if (params.public_details !== undefined)
-      this.public_details = Object.freeze({ ...params.public_details });
-    if (params.internal_details !== undefined)
-      this.internal_details = Object.freeze({ ...params.internal_details });
-    if (params.http_status !== undefined) this.http_status = params.http_status;
-    this.timestamp = timestampStr;
+    this.recoverable = typeof params.recoverable === "boolean" ? params.recoverable : false;
+    this.timestamp = rawTs;
+
+    if (params.correlation_id !== undefined) {
+      this.correlation_id = params.correlation_id;
+    }
+
+    if (params.public_details !== undefined) {
+      const safePublic = sanitizePublicDetails(params.public_details);
+      if (safePublic !== undefined) {
+        this.public_details = safePublic;
+      }
+    }
+
+    if (params.internal_details !== undefined) {
+      try {
+        this.internal_details = Object.freeze({ ...params.internal_details });
+      } catch {
+        // Ignore hostile internal details getter
+      }
+    }
+
+    if (params.http_status !== undefined) {
+      this.http_status = params.http_status;
+    }
+
+    Object.defineProperty(this, SYNTHESIS_ERROR_BRAND, {
+      value: true,
+      writable: false,
+      configurable: false,
+      enumerable: false,
+    });
 
     Object.setPrototypeOf(this, new.target.prototype);
     Object.freeze(this);
@@ -219,13 +281,13 @@ export function isValidErrorCode(code: unknown): code is string {
 /**
  * Validates whether a message_key conforms to Step 13 namespace rules.
  * Must begin with an approved Step 13 root (core, gov, sys, pack, ext),
- * total length <= 128, 2 to 6 dot-separated segments, max 48 chars per segment.
+ * total length <= 128, 2 to 6 dot-separated segments, max 48 chars per segment,
+ * and satisfy root-specific arity (including pack.*, ext.* and core.integration.*).
  */
 export function isValidMessageKey(key: unknown): key is string {
   if (typeof key !== "string") return false;
   if (key.length < 3 || key.length > ERROR_GRAMMAR.MESSAGE_KEY_MAX_LENGTH) return false;
   if (!ERROR_GRAMMAR.MESSAGE_KEY_REGEX.test(key)) return false;
-
   const segments = key.split(".");
   if (
     segments.length < ERROR_GRAMMAR.MESSAGE_KEY_MIN_SEGMENTS ||
@@ -233,25 +295,150 @@ export function isValidMessageKey(key: unknown): key is string {
   ) {
     return false;
   }
-
   const root = segments[0] as NamespaceRoot;
   if (!NAMESPACE_ROOTS.includes(root)) return false;
+
+  const minArity = ROOT_MIN_ARITY[root];
+  if (segments.length < minArity) {
+    return false;
+  }
+  if (root === "core" && segments.length >= 2 && segments[1] === "integration") {
+    if (segments.length < CORE_INTEGRATION_MIN_ARITY) {
+      return false;
+    }
+  }
 
   for (const seg of segments) {
     if (!ERROR_GRAMMAR.MESSAGE_KEY_SEGMENT_REGEX.test(seg)) return false;
   }
-
   return true;
 }
 
 /**
- * Validates whether a timestamp is ISO-8601 UTC string format (YYYY-MM-DDTHH:mm:ss.sssZ).
+ * Validates whether a timestamp is ISO-8601 UTC string format with 3 decimal milliseconds (YYYY-MM-DDTHH:mm:ss.sssZ) and a valid calendar date.
  */
 export function isValidUtcTimestamp(ts: unknown): ts is string {
   if (typeof ts !== "string") return false;
   if (!ERROR_GRAMMAR.UTC_TIMESTAMP_REGEX.test(ts)) return false;
-  const parsed = Date.parse(ts);
-  return !Number.isNaN(parsed);
+  try {
+    const parsed = new Date(ts);
+    if (Number.isNaN(parsed.getTime())) return false;
+    return parsed.toISOString() === ts;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Validates correlation_id string (1-128 alphanumeric, hyphen, underscore, dot).
+ */
+export function isValidCorrelationId(id: unknown): id is string {
+  if (typeof id !== "string") return false;
+  const trimmed = id.trim();
+  if (trimmed.length === 0 || trimmed.length > 128) return false;
+  return /^[a-zA-Z0-9_.-]+$/.test(trimmed);
+}
+
+/**
+ * Validates public message string (non-empty string, <= 1024 chars, no raw control chars).
+ */
+export function isValidPublicMessage(msg: unknown): msg is string {
+  if (typeof msg !== "string") return false;
+  const trimmed = msg.trim();
+  if (trimmed.length === 0 || trimmed.length > 1024) return false;
+  if (/[ --]/.test(msg)) return false;
+  return true;
+}
+
+const FORBIDDEN_KEYS_REGEX =
+  /(secret|token|password|passwd|cred|bearer|auth|private|cert|dsn|db_uri|connection|api_key|stack|trace|path|file|cwd|internal)/i;
+
+const FORBIDDEN_STRING_PATTERNS = [
+  /postgres(ql)?:\/\//i,
+  /mysql:\/\//i,
+  /mongodb(\+srv)?:\/\//i,
+  /redis:\/\//i,
+  /sqlite:\/\//i,
+  /bearer\s+[a-zA-Z0-9._~+/-]+=*/i,
+  /ghp_[a-zA-Z0-9]{36}/,
+  /sk_[a-zA-Z0-9]{20,}/,
+  /^(\/|[a-zA-Z]:[\\/])/,
+  /node_modules/i,
+  /\.env/i,
+];
+
+/**
+ * Recursively sanitizes public_details to prevent secret, internal-path, and diagnostic leaks.
+ */
+export function sanitizePublicDetails(
+  input: unknown,
+  depth = 0,
+): Readonly<Record<string, unknown>> | undefined {
+  if (depth > 3) return undefined;
+  if (input === null || typeof input !== "object" || Array.isArray(input)) return undefined;
+
+  const obj = input as Record<string, unknown>;
+  const clean: Record<string, unknown> = {};
+  let keyCount = 0;
+
+  try {
+    const keys = Object.keys(obj);
+    for (const key of keys) {
+      if (keyCount >= 20) break;
+      if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
+      if (FORBIDDEN_KEYS_REGEX.test(key)) continue;
+
+      let val: unknown;
+      try {
+        val = obj[key];
+      } catch {
+        continue;
+      }
+
+      if (
+        val === undefined ||
+        typeof val === "function" ||
+        typeof val === "symbol" ||
+        typeof val === "bigint"
+      ) {
+        continue;
+      }
+
+      if (val === null || typeof val === "boolean") {
+        clean[key] = val;
+        keyCount++;
+      } else if (typeof val === "number") {
+        if (Number.isFinite(val)) {
+          clean[key] = val;
+          keyCount++;
+        }
+      } else if (typeof val === "string") {
+        if (val.length > 256) continue;
+        let isUnsafe = false;
+        for (const pattern of FORBIDDEN_STRING_PATTERNS) {
+          if (pattern.test(val)) {
+            isUnsafe = true;
+            break;
+          }
+        }
+        if (!isUnsafe) {
+          clean[key] = val;
+          keyCount++;
+        }
+      } else if (typeof val === "object" && !Array.isArray(val)) {
+        const nested = sanitizePublicDetails(val, depth + 1);
+        if (nested !== undefined && Object.keys(nested).length > 0) {
+          clean[key] = nested;
+          keyCount++;
+        }
+      }
+    }
+  } catch {
+    return undefined;
+  }
+
+  if (Object.keys(clean).length === 0) return undefined;
+  return Object.freeze(clean);
 }
 
 /**
@@ -270,58 +457,127 @@ export function normalizeToErrorContract(
   defaultCorrelationId?: string,
 ): InternalErrorContext {
   const nowUtc = new Date().toISOString();
+  const safeDefaultCorr = isValidCorrelationId(defaultCorrelationId)
+    ? defaultCorrelationId
+    : undefined;
 
-  if (
-    throwValue !== null &&
-    typeof throwValue === "object" &&
-    throwValue instanceof SynthesisBaseError
-  ) {
-    const err = throwValue;
-    const contract: ErrorContract = {
-      code: err.code,
-      message: err.message,
-      message_key: err.message_key,
-      kind: err.kind,
-      severity: err.severity,
-      timestamp: isValidUtcTimestamp(err.timestamp) ? err.timestamp : nowUtc,
-      recoverable: err.recoverable,
-      ...(err.correlation_id !== undefined
-        ? { correlation_id: err.correlation_id }
-        : defaultCorrelationId !== undefined
-          ? { correlation_id: defaultCorrelationId }
-          : {}),
-      ...(err.public_details !== undefined ? { public_details: err.public_details } : {}),
-      ...(err.http_status !== undefined ? { http_status: err.http_status } : {}),
-    };
+  let isAuthenticSynthesisError = false;
+  if (throwValue !== null && typeof throwValue === "object") {
+    try {
+      if (
+        throwValue instanceof SynthesisBaseError &&
+        (throwValue as unknown as Record<symbol, unknown>)[SYNTHESIS_ERROR_BRAND] === true
+      ) {
+        isAuthenticSynthesisError = true;
+      }
+    } catch {
+      isAuthenticSynthesisError = false;
+    }
+  }
 
-    const ctx: Record<string, unknown> = {
-      contract: Object.freeze(contract),
-      raw_throw_value: err,
-    };
-    if (err.stack !== undefined) ctx.stack_trace = err.stack;
-    if (err.internal_details !== undefined) ctx.internal_details = err.internal_details;
+  if (isAuthenticSynthesisError) {
+    const err = throwValue as SynthesisBaseError;
+    try {
+      const code = isValidErrorCode(err.code) ? err.code : undefined;
+      const message_key = isValidMessageKey(err.message_key) ? err.message_key : undefined;
+      const kind =
+        typeof err.kind === "string" && ERROR_KINDS.includes(err.kind) ? err.kind : undefined;
+      const severity =
+        typeof err.severity === "string" && ERROR_SEVERITIES.includes(err.severity)
+          ? err.severity
+          : undefined;
+      const timestamp = isValidUtcTimestamp(err.timestamp) ? err.timestamp : undefined;
+      const recoverable = typeof err.recoverable === "boolean" ? err.recoverable : undefined;
+      const message = isValidPublicMessage(err.message) ? err.message : undefined;
 
-    return Object.freeze(ctx as unknown as InternalErrorContext);
+      if (
+        code &&
+        message_key &&
+        kind &&
+        severity &&
+        timestamp &&
+        recoverable !== undefined &&
+        message
+      ) {
+        const corrId = isValidCorrelationId(err.correlation_id)
+          ? err.correlation_id
+          : safeDefaultCorr;
+        const safePublic = sanitizePublicDetails(err.public_details);
+        const httpStatus =
+          typeof err.http_status === "number" &&
+          Number.isInteger(err.http_status) &&
+          err.http_status >= 100 &&
+          err.http_status <= 599
+            ? err.http_status
+            : undefined;
+
+        const contract: ErrorContract = {
+          code,
+          message,
+          message_key,
+          kind,
+          severity,
+          timestamp,
+          recoverable,
+          ...(corrId !== undefined ? { correlation_id: corrId } : {}),
+          ...(safePublic !== undefined ? { public_details: safePublic } : {}),
+          ...(httpStatus !== undefined ? { http_status: httpStatus } : {}),
+        };
+
+        const ctx: Record<string, unknown> = {
+          contract: Object.freeze(contract),
+          raw_throw_value: err,
+        };
+
+        try {
+          if (typeof err.stack === "string") ctx.stack_trace = err.stack;
+        } catch {}
+
+        try {
+          if (err.internal_details !== undefined) {
+            ctx.internal_details = Object.freeze({ ...err.internal_details });
+          }
+        } catch {}
+
+        return Object.freeze(ctx as unknown as InternalErrorContext);
+      }
+    } catch {
+      // Fail closed to fallback on forged/corrupted object
+    }
   }
 
   // Untrusted or unknown throw value: native Error, primitive, plain object, forged error
   let stackTrace: string | undefined;
   let causeMsg: string | undefined;
 
-  if (throwValue instanceof Error) {
-    stackTrace = throwValue.stack;
-    causeMsg = throwValue.message;
-  } else if (typeof throwValue === "string") {
-    causeMsg = throwValue;
-  } else if (throwValue !== null && typeof throwValue === "object") {
-    try {
-      const msg = (throwValue as { message?: unknown }).message;
-      causeMsg = typeof msg === "string" ? msg : "Object thrown";
-    } catch {
-      causeMsg = "Unserializable object thrown";
+  try {
+    if (throwValue instanceof Error) {
+      try {
+        stackTrace = typeof throwValue.stack === "string" ? throwValue.stack : undefined;
+      } catch {}
+      try {
+        causeMsg = isValidPublicMessage(throwValue.message) ? throwValue.message : "Error thrown";
+      } catch {
+        causeMsg = "Hostile error message getter";
+      }
+    } else if (typeof throwValue === "string") {
+      causeMsg = isValidPublicMessage(throwValue) ? throwValue : "String thrown";
+    } else if (throwValue !== null && typeof throwValue === "object") {
+      try {
+        const msg = (throwValue as Record<string, unknown>).message;
+        causeMsg = isValidPublicMessage(msg) ? msg : "Object thrown";
+      } catch {
+        causeMsg = "Unserializable object thrown";
+      }
+    } else {
+      try {
+        causeMsg = String(throwValue);
+      } catch {
+        causeMsg = "Unprintable primitive thrown";
+      }
     }
-  } else {
-    causeMsg = String(throwValue);
+  } catch {
+    causeMsg = "Hostile throw value";
   }
 
   const fallbackContract: ErrorContract = {
@@ -332,7 +588,7 @@ export function normalizeToErrorContract(
     severity: ERROR_DEFAULTS.SEVERITY,
     timestamp: nowUtc,
     recoverable: ERROR_DEFAULTS.RECOVERABLE,
-    ...(defaultCorrelationId !== undefined ? { correlation_id: defaultCorrelationId } : {}),
+    ...(safeDefaultCorr !== undefined ? { correlation_id: safeDefaultCorr } : {}),
     http_status: ERROR_DEFAULTS.HTTP_STATUS,
   };
 
@@ -340,9 +596,9 @@ export function normalizeToErrorContract(
     contract: Object.freeze(fallbackContract),
     raw_throw_value: throwValue,
   };
+
   if (stackTrace !== undefined) ctx.stack_trace = stackTrace;
   ctx.cause_message = causeMsg;
-
   return Object.freeze(ctx as unknown as InternalErrorContext);
 }
 
@@ -356,60 +612,39 @@ export function normalizeToErrorContract(
 export function serializePublicErrorPayload(
   errorContext: InternalErrorContext,
 ): PublicErrorPayload {
-  const contract = errorContext.contract;
-
-  // Validate or fallback code
-  const code = isValidErrorCode(contract.code) ? contract.code : ERROR_DEFAULTS.CODE;
-
-  // Validate or fallback message_key
-  const message_key = isValidMessageKey(contract.message_key)
-    ? contract.message_key
-    : ERROR_DEFAULTS.MESSAGE_KEY;
-
-  // Validate or fallback message
-  const message =
-    typeof contract.message === "string" && contract.message.trim().length > 0
-      ? contract.message
-      : ERROR_DEFAULTS.MESSAGE;
-
-  // Validate or fallback kind
-  const kind = ERROR_KINDS.includes(contract.kind) ? contract.kind : ERROR_DEFAULTS.KIND;
-
-  // Validate or fallback severity
-  const severity = ERROR_SEVERITIES.includes(contract.severity)
-    ? contract.severity
-    : ERROR_DEFAULTS.SEVERITY;
-
-  // Validate or fallback timestamp
-  const timestamp = isValidUtcTimestamp(contract.timestamp)
-    ? contract.timestamp
-    : new Date().toISOString();
-
-  // Validate recoverable
-  const recoverable = contract.recoverable;
-
-  // Validate correlation_id
-  const correlation_id =
-    typeof contract.correlation_id === "string" && contract.correlation_id.trim().length > 0
-      ? contract.correlation_id
+  const rawCtx = errorContext as unknown as Record<string, unknown> | null | undefined;
+  const contract =
+    rawCtx && typeof rawCtx === "object"
+      ? (rawCtx.contract as ErrorContract | undefined)
       : undefined;
 
-  // Validate public_details
+  let code: string = ERROR_DEFAULTS.CODE;
+  let message_key: string = ERROR_DEFAULTS.MESSAGE_KEY;
+  let message: string = ERROR_DEFAULTS.MESSAGE;
+  let kind: ErrorKind = ERROR_DEFAULTS.KIND;
+  let severity: ErrorSeverity = ERROR_DEFAULTS.SEVERITY;
+  let timestamp = new Date().toISOString();
+  let recoverable: boolean = ERROR_DEFAULTS.RECOVERABLE;
+  let correlation_id: string | undefined;
   let public_details: Readonly<Record<string, unknown>> | undefined;
-  if (
-    contract.public_details !== undefined &&
-    typeof contract.public_details === "object" &&
-    !Array.isArray(contract.public_details)
-  ) {
-    const cleanDetails: Record<string, unknown> = {};
-    for (const [key, val] of Object.entries(contract.public_details)) {
-      // Reject prototype pollution / internal keys
-      if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
-      cleanDetails[key] = val;
+
+  try {
+    if (contract && typeof contract === "object") {
+      if (isValidErrorCode(contract.code)) code = contract.code;
+      if (isValidMessageKey(contract.message_key)) message_key = contract.message_key;
+      if (isValidPublicMessage(contract.message)) message = contract.message;
+      if (typeof contract.kind === "string" && ERROR_KINDS.includes(contract.kind))
+        kind = contract.kind;
+      if (typeof contract.severity === "string" && ERROR_SEVERITIES.includes(contract.severity))
+        severity = contract.severity;
+      if (isValidUtcTimestamp(contract.timestamp)) timestamp = contract.timestamp;
+      if (typeof contract.recoverable === "boolean") recoverable = contract.recoverable;
+      if (isValidCorrelationId(contract.correlation_id)) correlation_id = contract.correlation_id;
+      if (contract.public_details !== undefined)
+        public_details = sanitizePublicDetails(contract.public_details);
     }
-    if (Object.keys(cleanDetails).length > 0) {
-      public_details = Object.freeze(cleanDetails);
-    }
+  } catch {
+    // Fail closed on hostile contract getters
   }
 
   const rawPayload: Record<string, unknown> = {
@@ -442,38 +677,69 @@ export function serializePublicErrorPayload(
  * No indentation or whitespace is inserted outside string literals.
  */
 export function toRFC8785JSON(value: unknown): string {
-  return canonicalizeValue(value);
+  const seen = new Set<object>();
+  return canonicalizeValue(value, seen);
 }
 
-function canonicalizeValue(val: unknown): string {
+function canonicalizeValue(val: unknown, seen: Set<object>): string {
   if (val === null) return "null";
   if (typeof val === "boolean") return val ? "true" : "false";
   if (typeof val === "number") {
     if (!Number.isFinite(val)) {
-      throw new TypeError();
+      throw new TypeError("Non-finite number forbidden in RFC-8785 JSON");
     }
     return JSON.stringify(val);
   }
-  if (typeof val === "string") return JSON.stringify(val);
-
-  if (Array.isArray(val)) {
-    const items = val.map((item) => canonicalizeValue(item));
-    return "[" + items.join(",") + "]";
+  if (typeof val === "string") {
+    try {
+      encodeURIComponent(val);
+    } catch {
+      throw new TypeError("Invalid Unicode surrogate in toRFC8785JSON");
+    }
+    return JSON.stringify(val);
+  }
+  if (typeof val === "symbol" || typeof val === "function" || typeof val === "bigint") {
+    throw new TypeError("Unsupported data type in toRFC8785JSON");
   }
 
   if (typeof val === "object") {
-    const obj = val as Record<string, unknown>;
-    const keys = Object.keys(obj).sort();
-    const pairs: string[] = [];
-
-    for (const key of keys) {
-      const v = obj[key];
-      if (v === undefined) continue; // undefined properties are omitted
-      pairs.push(JSON.stringify(key) + ":" + canonicalizeValue(v));
+    const objVal = val;
+    if (seen.has(objVal)) {
+      throw new TypeError("Circular reference detected in toRFC8785JSON");
     }
-
-    return "{" + pairs.join(",") + "}";
+    seen.add(objVal);
+    try {
+      if (Array.isArray(val)) {
+        const items: string[] = [];
+        const arr = val as readonly unknown[];
+        for (let i = 0; i < arr.length; i++) {
+          if (!(i in arr)) {
+            items.push("null");
+          } else {
+            const item = arr[i];
+            if (item === undefined || typeof item === "function" || typeof item === "symbol") {
+              items.push("null");
+            } else {
+              items.push(canonicalizeValue(item, seen));
+            }
+          }
+        }
+        return "[" + items.join(",") + "]";
+      } else {
+        const obj = val as Record<string, unknown>;
+        const keys = Object.keys(obj).sort();
+        const pairs: string[] = [];
+        for (const key of keys) {
+          const v = obj[key];
+          if (v === undefined || typeof v === "function" || typeof v === "symbol") continue;
+          pairs.push(JSON.stringify(key) + ":" + canonicalizeValue(v, seen));
+        }
+        return "{" + pairs.join(",") + "}";
+      }
+    } finally {
+      seen.delete(objVal);
+    }
   }
 
-  throw new TypeError();
+  throw new TypeError("Unsupported value in toRFC8785JSON");
 }

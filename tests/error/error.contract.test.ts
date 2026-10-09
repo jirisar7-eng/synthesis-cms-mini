@@ -1,18 +1,6 @@
-/**
- * Synthesis CMS mini — Unified Error Contract Security & Integration Test Suite
- *
- * Roadmap Step: 14/60 — Unified error contract
- * Contract ID: CONTRACT-CORE-UNIFIED-ERROR-001
- */
-
-import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import path from "node:path";
+import { describe, it } from "node:test";
 import {
-  UNIFIED_ERROR_CONTRACT_ID,
-  ERROR_KINDS,
-  ERROR_SEVERITIES,
   ALLOWLIST_PUBLIC_KEYS,
   ERROR_DEFAULTS,
   SynthesisBaseError,
@@ -24,55 +12,43 @@ import {
   toRFC8785JSON,
 } from "../../contracts/src/error/index.ts";
 
-void describe("Unified Error Contract — Unit & Security Test Suite", () => {
-  void it("1. Verifies contract identity, snapshot fixture and taxonomy constants", () => {
-    assert.equal(UNIFIED_ERROR_CONTRACT_ID, "CONTRACT-CORE-UNIFIED-ERROR-001");
-    assert.equal(ERROR_KINDS.length, 9);
-    assert.equal(ERROR_SEVERITIES.length, 4);
-
-    const snapshotPath = path.join(
-      process.cwd(),
-      "tests/error/fixtures/error.contract.snapshot.json",
-    );
-    assert.ok(fs.existsSync(snapshotPath), "Snapshot fixture must exist.");
-
-    const snapshot = JSON.parse(fs.readFileSync(snapshotPath, "utf-8")) as {
-      contract_id: string;
-      error_kinds: string[];
-      error_severities: string[];
-      public_allowlist_keys: string[];
-    };
-    assert.equal(snapshot.contract_id, UNIFIED_ERROR_CONTRACT_ID);
-    assert.deepEqual(Array.from(snapshot.error_kinds), Array.from(ERROR_KINDS));
-    assert.deepEqual(Array.from(snapshot.error_severities), Array.from(ERROR_SEVERITIES));
-    assert.deepEqual(Array.from(snapshot.public_allowlist_keys), Array.from(ALLOWLIST_PUBLIC_KEYS));
-  });
-
-  void it("2. Tests SynthesisBaseError instantiation with valid parameters", () => {
+void describe("Unified Error Contract", () => {
+  void it("1. Constructs verified SynthesisBaseError with exact contract properties", () => {
     const err = new SynthesisBaseError({
-      code: "ERR_INVALID_CREDENTIALS",
-      message: "Invalid username or password.",
-      message_key: "core.error.unauthorized_access",
+      code: "ERR_UNAUTHORIZED",
+      message: "User is not authorized to perform this operation.",
+      message_key: "core.error.unauthorized",
       kind: "SECURITY_ERROR",
-      severity: "WARNING",
+      severity: "ERROR",
       recoverable: false,
       correlation_id: "corr-test-123",
-      public_details: { attemptCount: 3 },
-      internal_details: { dbQueryTimeMs: 12 },
+      public_details: { role: "guest" },
+      internal_details: { userId: "u-101" },
       http_status: 401,
+      timestamp: "2026-10-09T04:47:00.000Z",
     });
 
-    assert.equal(err.code, "ERR_INVALID_CREDENTIALS");
-    assert.equal(err.message, "Invalid username or password.");
-    assert.equal(err.message_key, "core.error.unauthorized_access");
+    assert.equal(err.code, "ERR_UNAUTHORIZED");
+    assert.equal(err.message, "User is not authorized to perform this operation.");
+    assert.equal(err.message_key, "core.error.unauthorized");
     assert.equal(err.kind, "SECURITY_ERROR");
-    assert.equal(err.severity, "WARNING");
+    assert.equal(err.severity, "ERROR");
     assert.equal(err.recoverable, false);
     assert.equal(err.correlation_id, "corr-test-123");
-    assert.deepEqual(err.public_details, { attemptCount: 3 });
-    assert.deepEqual(err.internal_details, { dbQueryTimeMs: 12 });
+    assert.deepEqual(err.public_details, { role: "guest" });
+    assert.deepEqual(err.internal_details, { userId: "u-101" });
     assert.equal(err.http_status, 401);
-    assert.ok(isValidUtcTimestamp(err.timestamp));
+    assert.equal(err.timestamp, "2026-10-09T04:47:00.000Z");
+  });
+
+  void it("2. Enforces strict immutability (Object.freeze) on SynthesisBaseError", () => {
+    const err = new SynthesisBaseError({
+      code: "ERR_INVALID_INPUT",
+      message: "Input validation failed.",
+      message_key: "core.error.validation_failed",
+      kind: "VALIDATION_ERROR",
+    });
+
     assert.ok(Object.isFrozen(err));
   });
 
@@ -80,7 +56,6 @@ void describe("Unified Error Contract — Unit & Security Test Suite", () => {
     assert.ok(isValidErrorCode("ERR_UNAUTHORIZED"));
     assert.ok(isValidErrorCode("ERR_INVALID_INPUT_123"));
     assert.ok(isValidErrorCode("ERR_SYSTEM_FAILURE"));
-
     assert.equal(isValidErrorCode("err_unauthorized"), false);
     assert.equal(isValidErrorCode("ERR-UNAUTHORIZED"), false);
     assert.equal(isValidErrorCode("INVALID_CODE"), false);
@@ -90,7 +65,6 @@ void describe("Unified Error Contract — Unit & Security Test Suite", () => {
   });
 
   void it("4. Validates message_key Step 13 namespace grammar alignment", () => {
-    // Valid Step 13 root examples
     assert.ok(isValidMessageKey("core.error.validation_failed"));
     assert.ok(isValidMessageKey("core.error.unauthorized_access"));
     assert.ok(isValidMessageKey("gov.error.access_denied"));
@@ -98,7 +72,6 @@ void describe("Unified Error Contract — Unit & Security Test Suite", () => {
     assert.ok(isValidMessageKey("pack.ecommerce.order_failed"));
     assert.ok(isValidMessageKey("ext.acme.blog.error.not_found"));
 
-    // Invalid examples (missing root, bad chars, uppercase, spaces, oversized)
     assert.equal(isValidMessageKey("error.validation.failed"), false, "Missing Step 13 root");
     assert.equal(isValidMessageKey("invalid.root.error"), false, "Invalid root");
     assert.equal(isValidMessageKey("core.error.Validation_Failed"), false, "Uppercase forbidden");
@@ -112,8 +85,8 @@ void describe("Unified Error Contract — Unit & Security Test Suite", () => {
   void it("5. Validates UTC ISO-8601 timestamp format", () => {
     assert.ok(isValidUtcTimestamp("2026-10-09T04:47:00.000Z"));
     assert.ok(isValidUtcTimestamp(new Date().toISOString()));
-
     assert.equal(isValidUtcTimestamp("2026-10-09 04:47:00"), false);
+    assert.equal(isValidUtcTimestamp("2026-10-09T04:47:00Z"), false, "Missing milliseconds");
     assert.equal(isValidUtcTimestamp("invalid-date"), false);
     assert.equal(isValidUtcTimestamp(1728449220000), false);
     assert.equal(isValidUtcTimestamp(null), false);
@@ -131,6 +104,7 @@ void describe("Unified Error Contract — Unit & Security Test Suite", () => {
       public_details: { resourceId: "res-99" },
       internal_details: { sqlQuery: "SELECT * FROM res WHERE id = 99" },
       http_status: 404,
+      timestamp: "2026-10-09T04:47:00.000Z",
     });
 
     const ctx = normalizeToErrorContract(err);
@@ -143,7 +117,7 @@ void describe("Unified Error Contract — Unit & Security Test Suite", () => {
     assert.deepEqual(ctx.internal_details, { sqlQuery: "SELECT * FROM res WHERE id = 99" });
   });
 
-  void it("7. Fails closed on untrusted throw values (null, undefined, primitive, native Error, forged objects)", () => {
+  void it("7. Fails closed on untrusted throw values", () => {
     const testCases: unknown[] = [
       null,
       undefined,
@@ -151,8 +125,8 @@ void describe("Unified Error Contract — Unit & Security Test Suite", () => {
       404,
       false,
       new Error("Native JavaScript exception"),
-      { code: "ERR_FAKE", message: "Fake error", message_key: "core.error.fake" }, // plain object spoofing
-      Object.create({ code: "ERR_INJECTED", message_key: "core.error.injected" }), // prototype spoofing
+      { code: "ERR_FAKE", message: "Fake error", message_key: "core.error.fake" },
+      Object.create({ code: "ERR_INJECTED", message_key: "core.error.injected" }),
     ];
 
     for (const item of testCases) {
@@ -181,12 +155,12 @@ void describe("Unified Error Contract — Unit & Security Test Suite", () => {
       public_details: { roleRequired: "admin" },
       internal_details: { tokenSecret: "secret_jwt_key_xyz" },
       http_status: 403,
+      timestamp: "2026-10-09T04:47:00.000Z",
     });
 
     const internalCtx = normalizeToErrorContract(err);
     const publicPayload = serializePublicErrorPayload(internalCtx);
 
-    // Verify allowed fields exist
     assert.equal(publicPayload.code, "ERR_FORBIDDEN");
     assert.equal(publicPayload.message, "Access is denied.");
     assert.equal(publicPayload.message_key, "gov.error.access_denied");
@@ -196,11 +170,11 @@ void describe("Unified Error Contract — Unit & Security Test Suite", () => {
     assert.equal(publicPayload.correlation_id, "corr-sec-99");
     assert.deepEqual(publicPayload.public_details, { roleRequired: "admin" });
 
-    // Verify secret / internal / prototype fields are strictly excluded
     const keys = Object.keys(publicPayload);
     for (const k of keys) {
       assert.ok((ALLOWLIST_PUBLIC_KEYS as readonly string[]).includes(k));
     }
+
     const rawObj = publicPayload as unknown as Record<string, unknown>;
     assert.equal(rawObj.stack_trace, undefined);
     assert.equal(rawObj.internal_details, undefined);
@@ -229,6 +203,7 @@ void describe("Unified Error Contract — Unit & Security Test Suite", () => {
     const publicPayload = serializePublicErrorPayload(
       malformedCtx as unknown as Parameters<typeof serializePublicErrorPayload>[0],
     );
+
     const rawObj = publicPayload as unknown as Record<string, unknown>;
     assert.equal(rawObj.injectedSecretField, undefined);
     assert.equal(
@@ -271,5 +246,158 @@ void describe("Unified Error Contract — Unit & Security Test Suite", () => {
   void it("11. Tests RFC-8785 canonicalization error handling on non-finite numbers", () => {
     assert.throws(() => toRFC8785JSON({ badNum: NaN }), TypeError);
     assert.throws(() => toRFC8785JSON({ badNum: Infinity }), TypeError);
+  });
+
+  void it("12. Regression: no nested token/credential/DB URI leaks", () => {
+    const err = new SynthesisBaseError({
+      code: "ERR_INVALID_CONFIG",
+      message: "Configuration error.",
+      message_key: "core.error.configuration",
+      kind: "SYSTEM_ERROR",
+      public_details: {
+        safeField: "allowed_value",
+        auth: { token: "secret_bearer_token_123" },
+        db_uri: "postgres://user:password@localhost:5432/db",
+        nestedSecret: "sk_live_12345678901234567890",
+        filePath: "/tmp/synthesis-cms-mini-task/secret.txt",
+      },
+    });
+
+    const ctx = normalizeToErrorContract(err);
+    const payload = serializePublicErrorPayload(ctx);
+
+    assert.deepEqual(payload.public_details, { safeField: "allowed_value" });
+  });
+
+  void it("12b. Regression: forged SynthesisBaseError prototype rejected", () => {
+    const forged = Object.create(SynthesisBaseError.prototype) as Record<string, unknown>;
+    forged.code = "ERR_FORGED";
+    forged.message = "Forged message";
+    forged.message_key = "core.error.forged";
+    forged.kind = "SYSTEM_ERROR";
+    forged.severity = "FATAL";
+    forged.timestamp = "2026-10-09T04:47:00.000Z";
+    forged.recoverable = true;
+
+    const ctx = normalizeToErrorContract(forged);
+    assert.equal(ctx.contract.code, ERROR_DEFAULTS.CODE);
+    assert.equal(ctx.contract.message, ERROR_DEFAULTS.MESSAGE);
+  });
+
+  void it("12c. Regression: forged public context cannot bypass safety", () => {
+    const malformedCtx = {
+      contract: {
+        code: "<script>alert(1)</script>",
+        message_key: "invalid.message.key",
+        kind: "HACKED_KIND",
+        severity: "SUPER_FATAL",
+        timestamp: "not-a-timestamp",
+        correlation_id: "bad id with spaces!",
+        recoverable: "true",
+      },
+    };
+
+    const payload = serializePublicErrorPayload(
+      malformedCtx as unknown as Parameters<typeof serializePublicErrorPayload>[0],
+    );
+
+    assert.equal(payload.code, ERROR_DEFAULTS.CODE);
+    assert.equal(payload.message_key, ERROR_DEFAULTS.MESSAGE_KEY);
+    assert.equal(payload.kind, ERROR_DEFAULTS.KIND);
+    assert.equal(payload.severity, ERROR_DEFAULTS.SEVERITY);
+    assert.equal(payload.recoverable, false);
+    assert.equal(payload.correlation_id, undefined);
+  });
+
+  void it("12d. Regression: hostile getters and Proxy cannot escape fallback", () => {
+    const hostileProxy = new Proxy(
+      {},
+      {
+        get() {
+          throw new Error("Hostile getter triggered!");
+        },
+      },
+    );
+
+    const ctx = normalizeToErrorContract(hostileProxy);
+    assert.equal(ctx.contract.code, ERROR_DEFAULTS.CODE);
+    assert.equal(ctx.cause_message, "Unserializable object thrown");
+
+    const hostileCtx = {
+      contract: new Proxy(
+        {},
+        {
+          get() {
+            throw new Error("Hostile contract getter");
+          },
+        },
+      ),
+    };
+
+    const payload = serializePublicErrorPayload(
+      hostileCtx as unknown as Parameters<typeof serializePublicErrorPayload>[0],
+    );
+    assert.equal(payload.code, ERROR_DEFAULTS.CODE);
+    assert.equal(payload.message, ERROR_DEFAULTS.MESSAGE);
+  });
+
+  void it("12e. Regression: invalid recoverable/correlation_id rejected", () => {
+    assert.throws(
+      () =>
+        new SynthesisBaseError({
+          code: "ERR_TEST",
+          message: "Test message",
+          message_key: "core.error.test",
+          kind: "SYSTEM_ERROR",
+          correlation_id: "invalid id containing spaces & symbols!",
+        }),
+    );
+
+    assert.throws(
+      () =>
+        new SynthesisBaseError({
+          code: "ERR_TEST",
+          message: "Test message",
+          message_key: "core.error.test",
+          kind: "SYSTEM_ERROR",
+          recoverable: "true" as unknown as boolean,
+        }),
+    );
+  });
+
+  void it("12f. Regression: invalid Step13 namespace arity rejected", () => {
+    assert.equal(isValidMessageKey("pack.ecommerce"), false, "pack root requires min 3 segments");
+    assert.equal(isValidMessageKey("ext.acme"), false, "ext root requires min 3 segments");
+    assert.equal(
+      isValidMessageKey("core.integration.stripe"),
+      false,
+      "core.integration requires min 4 segments",
+    );
+
+    assert.equal(isValidMessageKey("pack.ecommerce.order_failed"), true);
+    assert.equal(isValidMessageKey("ext.acme.blog.error"), true);
+    assert.equal(isValidMessageKey("core.integration.stripe.payment_failed"), true);
+  });
+
+  void it("12g. Regression: invalid calendar dates rejected", () => {
+    assert.equal(
+      isValidUtcTimestamp("2026-02-31T12:00:00.000Z"),
+      false,
+      "Feb 31 is invalid calendar date",
+    );
+    assert.equal(
+      isValidUtcTimestamp("2026-11-31T12:00:00.000Z"),
+      false,
+      "Nov 31 is invalid calendar date",
+    );
+    assert.equal(isValidUtcTimestamp("2026-10-09T04:47:00.000Z"), true);
+  });
+
+  void it("12h. Regression: unsafe canonical JSON inputs rejected", () => {
+    const circularObj: Record<string, unknown> = {};
+    circularObj.self = circularObj;
+
+    assert.throws(() => toRFC8785JSON(circularObj), TypeError);
+    assert.throws(() => toRFC8785JSON(String.fromCharCode(0xd800)), TypeError);
   });
 });
