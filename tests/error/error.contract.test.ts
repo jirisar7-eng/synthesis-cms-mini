@@ -156,7 +156,7 @@ void describe("Unified Error Contract", () => {
     assert.equal(ctx.contract.severity, "WARNING");
     assert.equal(ctx.contract.recoverable, true);
     assert.equal(ctx.contract.correlation_id, "corr-456");
-    assert.deepEqual(ctx.contract.public_details, { resourceId: "res-99" });
+    assert.equal(ctx.contract.public_details, undefined); // Security R04: dynamic resourceId is deliberately omitted to prevent request-derived reflection
     assert.equal(ctx.contract.http_status, 404);
     assert.equal(ctx.raw_throw_value, err);
     assert.deepEqual(ctx.internal_details, { queryTimeMs: 14 });
@@ -214,7 +214,7 @@ void describe("Unified Error Contract", () => {
     assert.equal(publicPayload.kind, "SECURITY_ERROR");
     assert.equal(publicPayload.severity, "ERROR");
     assert.equal(publicPayload.recoverable, false);
-    assert.equal(publicPayload.correlation_id, "corr-sec-99");
+    assert.equal(publicPayload.correlation_id, undefined); // Security R04: public correlation_id is deliberately omitted when origin is uncertain until Step 15 trusted issuer exists
     assert.deepEqual(publicPayload.public_details, { roleRequired: "admin" });
 
     const keys = Object.keys(publicPayload);
@@ -608,7 +608,6 @@ void describe("Unified Error Contract", () => {
         role: "guest",
         roleRequired: "admin",
         field: "email",
-        resourceId: "res-99",
         safeField: "allowed_value",
         status: "active",
         count: 5,
@@ -619,19 +618,18 @@ void describe("Unified Error Contract", () => {
     const ctx = normalizeToErrorContract(safeErr);
     const payload = serializePublicErrorPayload(ctx);
 
-    assert.equal(payload.correlation_id, "corr-test-123");
+    assert.equal(payload.correlation_id, undefined); // Security R04: public correlation_id omitted when origin is uncertain
     assert.deepEqual(payload.public_details, {
       role: "guest",
       roleRequired: "admin",
       field: "email",
-      resourceId: "res-99",
       safeField: "allowed_value",
       status: "active",
       count: 5,
       limit: 100,
-    });
+    }); // Security R04: dynamic resourceId is deliberately omitted
 
-    // UUID correlation_id is also trusted
+    // UUID correlation_id is internal; public correlation_id is omitted when origin is uncertain
     const uuidErr = new SynthesisBaseError({
       code: "ERR_UNAUTHORIZED",
       message: "User is not authorized to perform this operation.",
@@ -640,7 +638,53 @@ void describe("Unified Error Contract", () => {
       correlation_id: "550e8400-e29b-41d4-a716-446655440000",
     });
     const uuidCtx = normalizeToErrorContract(uuidErr);
+    assert.equal(uuidCtx.contract.correlation_id, "550e8400-e29b-41d4-a716-446655440000");
     const uuidPayload = serializePublicErrorPayload(uuidCtx);
-    assert.equal(uuidPayload.correlation_id, "550e8400-e29b-41d4-a716-446655440000");
+    assert.equal(uuidPayload.correlation_id, undefined); // Security R04: UUID correlation_id is omitted when origin is uncertain
+  });
+
+  void it("21. Demonstration: Syntactically valid, attacker-controlled code and message_key fail closed to safe defaults", () => {
+    const err = new SynthesisBaseError({
+      code: "ERR_ATTACKER_CONTROLLED_PROBE",
+      message: "Attacker message probe",
+      message_key: "core.error.attacker_crafted_key",
+      kind: "SECURITY_ERROR",
+    });
+
+    const ctx = normalizeToErrorContract(err);
+    // Internally, error context preserves original diagnostic info
+    assert.equal(ctx.contract.code, "ERR_ATTACKER_CONTROLLED_PROBE");
+    assert.equal(ctx.contract.message_key, "core.error.attacker_crafted_key");
+
+    // Public serialization fails closed: prevents arbitrary public echo of codes and message keys
+    const publicPayload = serializePublicErrorPayload(ctx);
+    assert.equal(publicPayload.code, ERROR_DEFAULTS.CODE);
+    assert.equal(publicPayload.message_key, ERROR_DEFAULTS.MESSAGE_KEY);
+    assert.equal(publicPayload.message, ERROR_DEFAULTS.MESSAGE);
+  });
+
+  void it("22. Demonstration: Uncertain correlation_id and dynamic resourceId are omitted from public payload", () => {
+    const err = new SynthesisBaseError({
+      code: "ERR_RESOURCE_NOT_FOUND",
+      message: "Requested resource was not found.",
+      message_key: "core.error.resource_not_found",
+      kind: "DOMAIN_ERROR",
+      correlation_id: "corr-untrusted-dynamic-id",
+      public_details: {
+        resourceId: "res-attacker-probe-99",
+        role: "guest",
+      },
+    });
+
+    const ctx = normalizeToErrorContract(err);
+    // Internal context preserves correlation_id for server diagnostics
+    assert.equal(ctx.contract.correlation_id, "corr-untrusted-dynamic-id");
+
+    // Public payload strictly omits uncertain correlation_id and request-derived resourceId
+    const payload = serializePublicErrorPayload(ctx);
+    assert.equal(payload.correlation_id, undefined);
+    assert.deepEqual(payload.public_details, { role: "guest" });
+    const rawDetails = payload.public_details as unknown as Record<string, unknown>;
+    assert.equal(rawDetails.resourceId, undefined);
   });
 });

@@ -108,7 +108,6 @@ export const AUTHORIZED_PUBLIC_MESSAGES: Readonly<Record<string, string>> = Obje
  */
 export const AUTHORIZED_PUBLIC_DETAIL_KEYS = Object.freeze([
   "role",
-  "resourceId",
   "roleRequired",
   "safeField",
   "field",
@@ -120,6 +119,38 @@ export const AUTHORIZED_PUBLIC_DETAIL_KEYS = Object.freeze([
   "count",
   "status",
 ] as const);
+
+/**
+ * Known-safe authored public error codes for Step 14.
+ * In Step 16, this extension seam connects to the dynamic contract registry.
+ */
+export const AUTHORIZED_PUBLIC_CODES = Object.freeze([
+  "ERR_INTERNAL_SERVER_ERROR",
+  "ERR_VALIDATION_FAILED",
+  "ERR_UNAUTHORIZED",
+  "ERR_FORBIDDEN",
+  "ERR_RESOURCE_NOT_FOUND",
+  "ERR_CONFIG_INVALID",
+  "ERR_INVALID_CONFIG",
+  "ERR_ACCESS_DENIED",
+  "ERR_TEST",
+] as const);
+
+/**
+ * Validates whether an error code is an explicitly authored known-safe code for public emission.
+ * Future Step 16 extension seam: query dynamic contract registry for module-declared error codes.
+ */
+export function isAuthorizedPublicCode(code: string): boolean {
+  return (AUTHORIZED_PUBLIC_CODES as readonly string[]).includes(code);
+}
+
+/**
+ * Validates whether a message key is an explicitly authored known-safe key for public emission.
+ * Future Step 16 extension seam: query dynamic message registry for module-declared keys.
+ */
+export function isAuthorizedPublicMessageKey(key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(AUTHORIZED_PUBLIC_MESSAGES, key);
+}
 
 /**
  * Static enum of authorized public roles for safe detail provenance.
@@ -557,38 +588,7 @@ export function resolveSafePublicMessage(message_key: string): string {
   return ERROR_DEFAULTS.MESSAGE;
 }
 
-const FORBIDDEN_STRING_PATTERNS = [
-  /postgres(ql)?:\/\//i,
-  /mysql:\/\//i,
-  /mongodb(\+srv)?:\/\//i,
-  /redis:\/\//i,
-  /sqlite:\/\//i,
-  /bearer\s+[a-zA-Z0-9._~+/-]+=*/i,
-  /ghp_[a-zA-Z0-9]{36}/,
-  /sk_[a-zA-Z0-9]{20,}/,
-  /^(\/|[a-zA-Z]:[\/])/,
-  /node_modules/i,
-  /\.env/i,
-];
-
-const SAFE_RESOURCE_ID_REGEX =
-  /^(res|item|doc|node|user|page|post|file|media|entity)-[a-zA-Z0-9_-]{1,32}$/;
-
-/**
- * Validates whether a value is an authorized safe resourceId.
- */
-function isValidPublicResourceId(val: unknown): boolean {
-  if (typeof val !== "string") return false;
-  if (val.length < 3 || val.length > 36) return false;
-  if (!SAFE_RESOURCE_ID_REGEX.test(val) && !UUID_REGEX.test(val)) return false;
-  for (const pattern of FORBIDDEN_STRING_PATTERNS) {
-    if (pattern.test(val)) return false;
-  }
-  for (const pattern of FORBIDDEN_CORRELATION_PATTERNS) {
-    if (pattern.test(val)) return false;
-  }
-  return true;
-}
+// Dynamic resourceId is omitted from public details to prevent request-derived reflection
 
 /**
  * Positively sanitizes public_details to prevent secret, internal-path, and diagnostic leaks.
@@ -673,11 +673,6 @@ export function sanitizePublicDetails(
           typeof val === "string" &&
           (ALLOWED_PUBLIC_SAFE_VALUES as readonly string[]).includes(val)
         ) {
-          clean[key] = val;
-          keyCount++;
-        }
-      } else if (key === "resourceId") {
-        if (isValidPublicResourceId(val)) {
           clean[key] = val;
           keyCount++;
         }
@@ -901,17 +896,28 @@ export function serializePublicErrorPayload(
   let severity: ErrorSeverity = ERROR_DEFAULTS.SEVERITY;
   let timestamp = new Date().toISOString();
   let recoverable: boolean = ERROR_DEFAULTS.RECOVERABLE;
-  let correlation_id: string | undefined;
   let public_details: Readonly<Record<string, unknown>> | undefined;
 
   try {
-    if (isValidErrorCode(contract.code)) code = contract.code;
-    if (isValidMessageKey(contract.message_key)) message_key = contract.message_key;
+    if (isValidErrorCode(contract.code) && isAuthorizedPublicCode(contract.code)) {
+      code = contract.code;
+    } else {
+      code = ERROR_DEFAULTS.CODE;
+    }
+
+    if (
+      isValidMessageKey(contract.message_key) &&
+      isAuthorizedPublicMessageKey(contract.message_key)
+    ) {
+      message_key = contract.message_key;
+    } else {
+      message_key = ERROR_DEFAULTS.MESSAGE_KEY;
+    }
+
     if (ERROR_KINDS.includes(contract.kind)) kind = contract.kind;
     if (ERROR_SEVERITIES.includes(contract.severity)) severity = contract.severity;
     if (isValidUtcTimestamp(contract.timestamp)) timestamp = contract.timestamp;
     if (typeof contract.recoverable === "boolean") recoverable = contract.recoverable;
-    if (isValidCorrelationId(contract.correlation_id)) correlation_id = contract.correlation_id;
     if (contract.public_details !== undefined)
       public_details = sanitizePublicDetails(contract.public_details);
   } catch {
@@ -930,7 +936,10 @@ export function serializePublicErrorPayload(
     recoverable,
   };
 
-  if (correlation_id !== undefined) rawPayload.correlation_id = correlation_id;
+  // correlation_id: Until a trusted issuer exists (Step 15), origin is uncertain.
+  // Never infer trusted origin from prefix, UUID or lexical format alone; omit for public clients.
+  // rawPayload.correlation_id remains omitted (undefined) to prevent token reflection.
+
   if (public_details !== undefined) rawPayload.public_details = public_details;
 
   // Strict allowlist filtering pass

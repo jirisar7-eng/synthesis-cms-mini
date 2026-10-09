@@ -1,0 +1,162 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R04",
+    "task_id": "SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-003R04-CLOSE-PUBLIC-METADATA-PROVENANCE",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "14/60 — Unified error contract",
+    "actors": {
+      "command_author": "jirisar7-eng",
+      "owner": "jirisar7-eng",
+      "executor": "jirisar7-eng",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_mode": "IMPLEMENT",
+      "development_phase": "IMPLEMENT",
+      "execution_timestamp": "2026-10-09T09:44:00.000Z"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "b6a409ae1eede9f28cbc82b25e2be1f6b3e8efe8",
+      "source_branch": "task/SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-discover-plan",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R03.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R03.json",
+        "contracts/src/error/error.contract.ts",
+        "contracts/src/error/index.ts",
+        "contracts/src/namespace/index.ts",
+        "contracts/src/namespace/namespace.contract.ts",
+        "tests/error/error.contract.test.ts",
+        "tests/error/fixtures/error.contract.snapshot.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R04.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R04.json",
+        "contracts/src/error/error.contract.ts",
+        "tests/error/error.contract.test.ts"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/capabilities.json",
+        ".synthesis/registries/contracts.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 4,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R03",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-003R03-REPAIR-TRUSTED-PUBLIC-DETAIL-VALUES",
+          "payload_sha256": "ed930e6b867c2798174541c510308dbbfa0d6366218876c006befa737c89c1d4",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [
+          "CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R03"
+        ],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-CORE-UNIFIED-ERROR-001",
+        "CONTRACT-CORE-STABLE-NAMESPACE-001"
+      ],
+      "affected_capabilities": [
+        "core.error.contract",
+        "core.error.validation",
+        "core.error.normalization",
+        "core.error.serialization"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R04.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R04.json",
+        "contracts/src/error/error.contract.ts",
+        "tests/error/error.contract.test.ts"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R04.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R04.json",
+        "contracts/src/error/error.contract.ts",
+        "tests/error/error.contract.test.ts"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "OPEN",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "INDEPENDENT_STEP14_R04_SOURCE_REVIEW",
+      "stateless_recovery_context": {
+        "verified_task_head": "db9aa694f5554522534e26402b23578fc5b7bc4d",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-09T09:44:00.000Z",
+        "pull_request_number": 22,
+        "pull_request_state": "OPEN",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "step13_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step14_status": "IMPLEMENTATION_REPAIRED_R04_AWAITING_INDEPENDENT_REVIEW",
+        "deployment_status": "NOT_DEPLOYED",
+        "repair_summary": {
+          "finding_1_omit_uncertain_public_correlation_id": "Until a trusted issuer runtime exists (Step 15), optional public correlation_id is omitted when origin is uncertain; trusted origin is never inferred from prefix or format alone.",
+          "finding_2_omit_uncertain_dynamic_resource_id": "Prevented arbitrary request-derived resourceId reflection by omitting dynamic resource identifiers from public_details, ensuring only positive static enums and bounded numeric ranges are emitted.",
+          "finding_3_prevent_arbitrary_code_and_key_echo": "Prevented arbitrary public echo of code and message_key by validating against AUTHORIZED_PUBLIC_CODES and AUTHORIZED_PUBLIC_MESSAGES, failing closed to generic defaults while preserving the future Step 16 extension seam.",
+          "finding_4_preserved_approved_invariants": "Preserved static enums, module-private WeakSet authenticity tracking, safe message dictionary, RFC-8785 canonicalization, and Step 13 namespace rules.",
+          "finding_5_demonstration_and_negative_regressions": "Added regression tests demonstrating fail-closed behavior for attacker-controlled codes, keys, uncertain correlation IDs, and dynamic resource identifiers."
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "5ef60b07548cab49a00633a6c71669249308646f000a4d87ef322be238ab9226",
+    "sealed_at": "2026-10-09T09:44:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}
