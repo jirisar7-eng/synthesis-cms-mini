@@ -1,0 +1,25 @@
+{
+  "format_version": "1.0.0",
+  "record_kind": "LINKED_CAPSULE_FILE_ATTESTATION",
+  "attestation_id": "ATT-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-001R01",
+  "status": "OBSERVED_UNANCHORED",
+  "observed_at_utc": "2026-10-09T11:30:00.000Z",
+  "source_repository": "jirisar7-eng/synthesis-cms-mini",
+  "genesis_anchor_reference": {
+    "genesis_file": ".synthesis/lineage/genesis.json",
+    "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+  },
+  "parent_attestation": {
+    "attestation_id": "ATT-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-001",
+    "file_path": ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-001.json",
+    "raw_file_sha256": "bb2874015e53ed6fc903583a3834575296084e4b5b6cd9811bbc36ef728cdf4e"
+  },
+  "new_capsule": {
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-001R01",
+    "file_path": ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REQUEST-ACTOR-PROVENANCE-001-20261009-001R01.json",
+    "payload_sha256": "390f5dffc5f5c393978791417ec8cec57482d42ff3a00008b96272c46f62bb42",
+    "raw_file_sha256": "b64725a67936d9a3bd6de94aaf9ad71bed41f7f36c6c298278769d4149f3a9da",
+    "git_blob_sha": "9e4706a0a26c213cf836b4dc65fc639b85caa971",
+    "file_size_bytes": 12685
+  }
+}
