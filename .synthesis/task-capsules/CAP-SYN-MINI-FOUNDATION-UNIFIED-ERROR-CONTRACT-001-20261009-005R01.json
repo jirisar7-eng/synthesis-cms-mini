@@ -1,0 +1,170 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-005R01",
+    "task_id": "SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-005R01-REPAIR-POSTMERGE-RECOVERY-CONTEXT",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "14/60 — Unified error contract",
+    "actors": {
+      "command_author": "jirisar7-eng",
+      "owner": "jirisar7-eng",
+      "executor": "jirisar7-eng",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_mode": "GOVERNANCE",
+      "development_phase": "GOVERNANCE",
+      "execution_timestamp": "2026-10-09T10:37:00.000Z"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "97a152651a7a3d7ea6a538013e6a2c5567a88fb1",
+      "source_branch": "task/SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-post-merge-closeout",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-005.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-005.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-005R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-005R01.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/capabilities.json",
+        ".synthesis/registries/contracts.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 4,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-005",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-005-RECORD-POST-MERGE-OUTCOME",
+          "payload_sha256": "7adf9eeb33ad88d39553d8aa54a3e68106daf255e4535fcfb0ff179d5d851cfc",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [
+          "CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-005"
+        ],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-CORE-UNIFIED-ERROR-001",
+        "CONTRACT-CORE-STABLE-NAMESPACE-001"
+      ],
+      "affected_capabilities": [
+        "core.error.contract",
+        "core.error.validation",
+        "core.error.normalization",
+        "core.error.serialization"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-005R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-005R01.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-005R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-005R01.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "OPEN",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "INDEPENDENT_STEP14_CLOSEOUT_R01_REVIEW",
+      "stateless_recovery_context": {
+        "verified_task_head": "bc0bf84af6e97d28d8f8009d2d4f67cdfbc971b6",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-09T10:37:00.000Z",
+        "pull_request_number": 23,
+        "pull_request_state": "OPEN",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "step13_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step14_status": "STEP14_CLOSEOUT_PENDING",
+        "deployment_status": "NOT_DEPLOYED",
+        "repair_summary": {
+          "closeout_base_sha": "97a152651a7a3d7ea6a538013e6a2c5567a88fb1",
+          "verified_task_head": "bc0bf84af6e97d28d8f8009d2d4f67cdfbc971b6",
+          "closeout_pr_number": 23,
+          "closeout_pr_state": "OPEN",
+          "closeout_pr_merge_status": "NOT_MERGED",
+          "step14_closeout_status": "PENDING",
+          "step15_status": "NOT_AUTHORIZED",
+          "step16_status": "NOT_AUTHORIZED",
+          "historical_pr22_record": {
+            "pr_number": 22,
+            "pr_state": "CLOSED",
+            "pr_merge_status": "MERGED",
+            "merge_method": "STANDARD_MERGE_COMMIT",
+            "merge_commit_sha": "97a152651a7a3d7ea6a538013e6a2c5567a88fb1",
+            "merge_parents": [
+              "b6a409ae1eede9f28cbc82b25e2be1f6b3e8efe8",
+              "cea1c29536f23dc91f052b24278833c4eca22ea5"
+            ],
+            "merged_tree_sha": "7de642f0727ebe6e09ed7e403f7c070f03bf8aa8",
+            "merge_execution_provenance": "GitHub merge invoked via ChatGPT connected GitHub action under authorized account identity jirisar7-eng (not an AI Studio implementation command)",
+            "post_merge_main_ci_run_id": 37917124596,
+            "post_merge_main_ci_status": "completed",
+            "post_merge_main_ci_conclusion": "success"
+          },
+          "immutable_historical_correction_notice": "CAP005 is preserved verbatim as an immutable historical record. In CAP005, recovery metadata conflated implementation PR #22 (which was CLOSED/MERGED) with open PR status and listed the old branch/base. This repair capsule CAP005R01 provides authoritative disambiguation in an append-only manner: PR #22 is CLOSED/MERGED into main (97a152651a7a3d7ea6a538013e6a2c5567a88fb1); PR #23 is OPEN/NOT_MERGED on closeout branch with base 97a152651a7a3d7ea6a538013e6a2c5567a88fb1; step14 closeout remains PENDING until PR #23 is merged."
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "88614028f3ddb166b5bd3a08afe2e3e2b70131036597283b8a201171d8b1dad1",
+    "sealed_at": "2026-10-09T10:37:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}
