@@ -1,0 +1,162 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R05",
+    "task_id": "SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-003R05-ATOMIC-PUBLIC-ERROR-TRIPLET",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "14/60 — Unified error contract",
+    "actors": {
+      "command_author": "jirisar7-eng",
+      "owner": "jirisar7-eng",
+      "executor": "jirisar7-eng",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_mode": "IMPLEMENT",
+      "development_phase": "IMPLEMENT",
+      "execution_timestamp": "2026-10-09T09:58:00.000Z"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "b6a409ae1eede9f28cbc82b25e2be1f6b3e8efe8",
+      "source_branch": "task/SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-discover-plan",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R04.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R04.json",
+        "contracts/src/error/error.contract.ts",
+        "contracts/src/error/index.ts",
+        "contracts/src/namespace/index.ts",
+        "contracts/src/namespace/namespace.contract.ts",
+        "tests/error/error.contract.test.ts",
+        "tests/error/fixtures/error.contract.snapshot.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R05.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R05.json",
+        "contracts/src/error/error.contract.ts",
+        "tests/error/error.contract.test.ts"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/capabilities.json",
+        ".synthesis/registries/contracts.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 4,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R04",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-003R04-CLOSE-PUBLIC-METADATA-PROVENANCE",
+          "payload_sha256": "5ef60b07548cab49a00633a6c71669249308646f000a4d87ef322be238ab9226",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [
+          "CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R04"
+        ],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-CORE-UNIFIED-ERROR-001",
+        "CONTRACT-CORE-STABLE-NAMESPACE-001"
+      ],
+      "affected_capabilities": [
+        "core.error.contract",
+        "core.error.validation",
+        "core.error.normalization",
+        "core.error.serialization"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R05.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R05.json",
+        "contracts/src/error/error.contract.ts",
+        "tests/error/error.contract.test.ts"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R05.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R05.json",
+        "contracts/src/error/error.contract.ts",
+        "tests/error/error.contract.test.ts"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "OPEN",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "INDEPENDENT_STEP14_R05_SOURCE_REVIEW",
+      "stateless_recovery_context": {
+        "verified_task_head": "58aa68724924d9efafeb36b766fbe86ce035f398",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-09T09:58:00.000Z",
+        "pull_request_number": 22,
+        "pull_request_state": "OPEN",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "step13_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step14_status": "IMPLEMENTATION_REPAIRED_R05_AWAITING_INDEPENDENT_REVIEW",
+        "deployment_status": "NOT_DEPLOYED",
+        "repair_summary": {
+          "finding_1_atomic_triplet_consistency": "Defined minimal static approved mapping of (code, message_key, kind) tuples for Step 14 (APPROVED_PUBLIC_ERROR_TRIPLETS) and enforced atomic validation in serializePublicErrorPayload.",
+          "finding_2_fail_closed_safe_tuple": "Inconsistent or unknown (code, message_key, kind) combinations emit an entirely generic safe error tuple (ERROR_DEFAULTS) with no partial fallbacks, no mixed semantics, and no public details retained.",
+          "finding_3_demo_keys_removed": "Eliminated demo-only codes and keys (ERR_TEST, core.error.fake, core.error.test) from production mappings.",
+          "finding_4_preserved_invariants": "Preserved WeakSet instance tracking, static authorized public detail enums, omission of uncertain correlation_id and resourceId, UTC timestamp validation, and Step 13 namespace rules.",
+          "finding_5_regression_coverage": "Added comprehensive regression suite testing mismatched key, mismatched kind, unknown code, unknown key, invalid tuple detail stripping, and valid approved tuple emission."
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "d02854625b39e6b72d722d236f3a82dc63d267c1420d8dc4d931531348ab24a1",
+    "sealed_at": "2026-10-09T09:58:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}

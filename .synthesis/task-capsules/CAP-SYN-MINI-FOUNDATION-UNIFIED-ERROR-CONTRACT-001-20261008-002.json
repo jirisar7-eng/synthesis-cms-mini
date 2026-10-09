@@ -1,0 +1,211 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261008-002",
+    "task_id": "SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-002-INDEPENDENT-PLAN-REVIEW",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "14/60 \u2014 Unified error contract",
+    "actors": {
+      "owner": "Ji\u0159\u00ed \u0160\u00e1r",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-08T20:15:00.000Z",
+      "development_phase": "GOVERNANCE",
+      "execution_mode": "GOVERNANCE"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "b6a409ae1eede9f28cbc82b25e2be1f6b3e8efe8",
+      "source_branch": "task/SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-discover-plan",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261008-001.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261008-001.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261008-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261008-002.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 2,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261008-001",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-001-DISCOVER-PLAN",
+          "payload_sha256": "f20ebf39800cdde1a43522b38dd2563c2d9f14c2f84fa2239e8cc46c2856efe8",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-GOV-GENESIS-ANCHOR-001",
+        "CONTRACT-GOV-COMMAND-CAPSULE-001",
+        "CONTRACT-GOV-CAPABILITY-REGISTRY-001",
+        "CONTRACT-GOV-SCOPE-DIFF-FIREWALL-001",
+        "CONTRACT-GOV-STATELESS-WORKER-001",
+        "CONTRACT-GOV-REMOTE-CHECKPOINT-001"
+      ],
+      "affected_capabilities": [
+        "gov.capsule.persistence",
+        "gov.capsule.lineage",
+        "gov.capsule.cryptographic_seal",
+        "gov.scope.diff_firewall",
+        "gov.checkpoint.remote_protocol"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261008-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261008-002.json"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261008-002.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261008-002.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "OPEN",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "WAIT_FOR_OWNER_APPROVAL_OF_STEP14_PLAN",
+      "stateless_recovery_context": {
+        "verified_task_head": "66751c9ac19deab7a13e2b37d3c883b907b98c4e",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-08T20:15:00.000Z",
+        "pull_request_number": 22,
+        "pull_request_state": "OPEN",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "step13_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step14_status": "PLAN_REVIEWED_AND_APPROVED_FOR_OWNER",
+        "deployment_status": "NOT_DEPLOYED",
+        "independent_adversarial_review_evaluation": {
+          "review_verdict": "APPROVED_FOR_OWNER_REVIEW",
+          "criteria_evaluations": [
+            {
+              "point": 1,
+              "title": "Stale next_safe_step reference correction",
+              "evaluation": "RESOLVED. Stale references to Step 13 in recovery metadata corrected to Step 14. Next safe step explicitly set to WAIT_FOR_OWNER_APPROVAL_OF_STEP14_PLAN.",
+              "status": "PASS"
+            },
+            {
+              "point": 2,
+              "title": "Transport neutrality of core error contract",
+              "evaluation": "RESOLVED. Core ErrorContract interface is transport-neutral (code, message, kind, severity, details, timestamp, recoverable). Property http_status is classified as optional projection metadata for HTTP transport adapters.",
+              "status": "PASS"
+            },
+            {
+              "point": 3,
+              "title": "Deferred Step15 context and correlation_id handling",
+              "evaluation": "RESOLVED. Parameter correlation_id is retained strictly as optional string trace identifier in Step 14 payload. Full actor/provenance context, session identity, and authorization tokens remain deferred to Step 15.",
+              "status": "PASS"
+            },
+            {
+              "point": 4,
+              "title": "Deterministic serialization for timestamp and context fields",
+              "evaluation": "RESOLVED. All timestamp values are required to be ISO-8601 UTC string format (YYYY-MM-DDTHH:mm:ss.sssZ). Payload serialization follows RFC-8785 JSON canonicalization rules.",
+              "status": "PASS"
+            },
+            {
+              "point": 5,
+              "title": "Strict separation between INTERNAL diagnostic data and PUBLIC client payload",
+              "evaluation": "RESOLVED. Internal error context (stack traces, root cause exception, internal component paths, query arguments) is isolated in InternalErrorContext. Public error payload is strictly limited to PublicErrorPayload.",
+              "status": "PASS"
+            },
+            {
+              "point": 6,
+              "title": "Fail-closed PUBLIC ALLOWLIST serialization",
+              "evaluation": "RESOLVED. Public serialization enforces an explicit allowlist (code, message, kind, severity, correlation_id, timestamp, recoverable, public_details). Any key not explicitly allowlisted is dropped fail-closed. Secret-stripping is treated purely as secondary defense-in-depth.",
+              "status": "PASS"
+            },
+            {
+              "point": 7,
+              "title": "Standardized 9-kind error taxonomy validation",
+              "evaluation": "RESOLVED. Confirmed 9 core error categories (DOMAIN_ERROR, SYSTEM_ERROR, SECURITY_ERROR, VALIDATION_ERROR, GOVERNANCE_ERROR, MODULE_ERROR, INTEGRATION_ERROR, LICENSE_ERROR, INFRASTRUCTURE_ERROR) as the minimal, complete taxonomy.",
+              "status": "PASS"
+            },
+            {
+              "point": 8,
+              "title": "Stable error-code grammar without pre-implementing Step 16 registry",
+              "evaluation": "RESOLVED. Error code format rule enforced via regex ERR_[A-Z0-9_]+ (uppercase ASCII snake_case). Registry framework for dynamic registration, tombstoning, and cross-module collision checks is deferred to Step 16.",
+              "status": "PASS"
+            },
+            {
+              "point": 9,
+              "title": "Fail-closed mapping of unhandled/unknown exceptions",
+              "evaluation": "RESOLVED. Native Error objects, unhandled rejections, or unknown throw values normalize fail-closed to ERR_INTERNAL_SERVER_ERROR / ERR_SYSTEM_UNHANDLED_EXCEPTION (HTTP 500) with generic public message \"An internal server error occurred.\" Stack traces and details are logged internally only.",
+              "status": "PASS"
+            },
+            {
+              "point": 10,
+              "title": "Step 14 scope boundary preservation",
+              "evaluation": "RESOLVED. Step 14 is strictly limited to: TypeScript contract definition (contracts/src/error/error.contract.ts), error normalizer/validator function, contract snapshot, and unit/contract test suite. Excludes API routes, DB migrations, UI, provider runtimes, Step 15 actor context, and Step 16 registry engine.",
+              "status": "PASS"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "ea7e07036229a377db7dd4eff7ce7e1445a3bc921325219b0983607d15bd318c",
+    "sealed_at": "2026-10-08T20:15:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}

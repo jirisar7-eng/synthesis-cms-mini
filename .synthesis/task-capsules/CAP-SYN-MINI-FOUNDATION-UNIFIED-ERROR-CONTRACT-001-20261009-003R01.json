@@ -1,0 +1,165 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R01",
+    "task_id": "SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-003R01-REPAIR-ERROR-PUBLIC-BOUNDARY",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "14/60 — Unified error contract",
+    "actors": {
+      "command_author": "jirisar7-eng",
+      "owner": "jirisar7-eng",
+      "executor": "jirisar7-eng",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_mode": "IMPLEMENT",
+      "development_phase": "IMPLEMENT",
+      "execution_timestamp": "2026-10-09T08:35:00.000Z"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "b6a409ae1eede9f28cbc82b25e2be1f6b3e8efe8",
+      "source_branch": "task/SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-discover-plan",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003.json",
+        "contracts/src/error/error.contract.ts",
+        "contracts/src/error/index.ts",
+        "contracts/src/namespace/index.ts",
+        "contracts/src/namespace/namespace.contract.ts",
+        "tests/error/error.contract.test.ts",
+        "tests/error/fixtures/error.contract.snapshot.json"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R01.json",
+        "contracts/src/error/error.contract.ts",
+        "tests/error/error.contract.test.ts"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/capabilities.json",
+        ".synthesis/registries/contracts.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 4,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-003-IMPLEMENT",
+          "payload_sha256": "633277c719b1f414223f550e8c9527258f398c7655c2cfcd1c9c969cf09127a6",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [
+          "CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003"
+        ],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-CORE-UNIFIED-ERROR-001",
+        "CONTRACT-CORE-STABLE-NAMESPACE-001"
+      ],
+      "affected_capabilities": [
+        "core.error.contract",
+        "core.error.validation",
+        "core.error.normalization",
+        "core.error.serialization"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R01.json",
+        "contracts/src/error/error.contract.ts",
+        "tests/error/error.contract.test.ts"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-UNIFIED-ERROR-CONTRACT-001-20261009-003R01.json",
+        "contracts/src/error/error.contract.ts",
+        "tests/error/error.contract.test.ts"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "OPEN",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "INDEPENDENT_STEP14_R01_SOURCE_REVIEW",
+      "stateless_recovery_context": {
+        "verified_task_head": "d595c13f72d77344a2232a87f8d62f4965450be4",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-09T08:35:00.000Z",
+        "pull_request_number": 22,
+        "pull_request_state": "OPEN",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "step13_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step14_status": "IMPLEMENTATION_REPAIRED_AWAITING_INDEPENDENT_REVIEW",
+        "deployment_status": "NOT_DEPLOYED",
+        "repair_summary": {
+          "finding_1_bounded_public_details": "Replaced shallow public_details copying with recursive bounded sanitization up to depth 3, max 20 keys, stripping secret keywords, tokens, DB URIs, and filesystem paths.",
+          "finding_2_no_instanceof_only_trust": "Enforced non-forgeable internal symbol brand SYNTHESIS_ERROR_BRAND and complete runtime validation of all fields before trusting error instances.",
+          "finding_3_validate_public_message_corr_recoverable": "Added strict validation for message, correlation_id, and boolean recoverable, safely falling back to defaults on untrusted inputs.",
+          "finding_4_fail_closed_hostile_proxy": "Wrapped property inspection in fail-closed try/catch protecting against hostile proxies and throwing getters.",
+          "finding_5_step13_namespace_arity": "Aligned isValidMessageKey with Step 13 root arity rules including pack (min 3), ext (min 3), and core.integration (min 4).",
+          "finding_6_exact_utc_timestamp": "Enforced exact ISO-8601 UTC timestamp format with 3 decimal milliseconds and calendar round-trip validation.",
+          "finding_7_hardened_rfc8785": "Hardened RFC-8785 canonicalization against circular references, lone surrogates, and sparse arrays.",
+          "finding_8_adversarial_regression_suite": "Added comprehensive adversarial regression tests proving no secret/path leaks, forged prototype rejection, hostile proxy handling, and canonical input safety."
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "2db7d6372a288e9c65e7bbe768cca32f2e1fffc46b59a77f366ab8518bb1554d",
+    "sealed_at": "2026-10-09T08:35:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}
