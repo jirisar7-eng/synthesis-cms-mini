@@ -7,6 +7,7 @@ import {
   REGISTRY_CATEGORIES,
   type RegistryCategory,
   type RegistryEntryInput,
+  type RegistrySnapshot,
   isValidRegistryCategory,
   isValidRegistryStatus,
   isValidRegistryDescription,
@@ -283,7 +284,7 @@ void describe("Step 16: Registry Framework Contract", () => {
       assert.throws(
         () =>
           createRegistrySnapshot([
-            { category: "module", id: "invalid..id", description: "Double dot" },
+            { category: "event", id: "core.invalid..id", description: "Double dot" },
           ]),
         /INVALID_REGISTRY_ID/,
       );
@@ -291,7 +292,7 @@ void describe("Step 16: Registry Framework Contract", () => {
       assert.throws(
         () =>
           createRegistrySnapshot([
-            { category: "module", id: "UPPERCASE.NOT.ALLOWED", description: "Uppercase" },
+            { category: "event", id: "core.UPPERCASE.NOT.ALLOWED", description: "Uppercase" },
           ]),
         /INVALID_REGISTRY_ID/,
       );
@@ -509,6 +510,118 @@ void describe("Step 16: Registry Framework Contract", () => {
         "provider",
       ]);
       assert.deepStrictEqual(snapshotData.statuses, ["ACTIVE", "DEPRECATED", "RETIRED"]);
+    });
+
+    void it("N15: Reject unauthorized roots and malformed pack/ext namespace arity", () => {
+      // Unapproved root
+      assert.throws(
+        () =>
+          createRegistrySnapshot([{ category: "event", id: "badroot.app.e", description: "Desc" }]),
+        /INVALID_REGISTRY_ID/,
+      );
+      // Malformed core.integration (arity < 4)
+      assert.throws(
+        () =>
+          createRegistrySnapshot([
+            { category: "event", id: "core.integration.e", description: "Desc" },
+          ]),
+        /INVALID_REGISTRY_ID/,
+      );
+    });
+
+    void it("N16: Converting untrusted validation exceptions into safe static error codes without reflecting input", () => {
+      const invalidId = "core.app.INVALID_id_with_secret_value_12345";
+      try {
+        createRegistrySnapshot([{ category: "event", id: invalidId, description: "Desc" }]);
+        assert.fail("Should have thrown");
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "";
+        assert.ok(!msg.includes("secret_value"));
+        assert.ok(msg.includes("INVALID_REGISTRY_ID"));
+      }
+    });
+
+    void it("N17: ext.* registration requires explicit owner_module_id with self-ownership for modules", () => {
+      // ext.* without owner
+      assert.throws(
+        () =>
+          createRegistrySnapshot([
+            { category: "event", id: "ext.publisher.module.entry", description: "Desc" },
+          ]),
+        /OWNER_MODULE_REQUIRED/,
+      );
+      // module without owner (missing owner)
+      assert.throws(
+        () =>
+          createRegistrySnapshot([
+            { category: "module", id: "core.app.module", description: "Desc" },
+          ]),
+        /OWNER_MODULE_REQUIRED/,
+      );
+      // module with mismatching owner
+      assert.throws(
+        () =>
+          createRegistrySnapshot([
+            {
+              category: "module",
+              id: "core.app.module",
+              description: "Desc",
+              owner_module_id: "core.app.other",
+            },
+          ]),
+        /MODULE_PREFIX_MISMATCH/,
+      );
+    });
+
+    void it("N18: Reject forged {length: 0} objects in createRegistrySnapshot", () => {
+      const forged = { length: 0 } as unknown as readonly RegistryEntryInput[];
+      assert.throws(() => createRegistrySnapshot(forged), TypeError);
+    });
+
+    void it("N19: Reject unexpected accessor properties and proxy descriptors fail-closed", () => {
+      // Accessor property
+      const badInput = {} as unknown as RegistryEntryInput;
+      Object.defineProperty(badInput, "category", {
+        get() {
+          throw new Error("Trap triggered!");
+        },
+      });
+      assert.throws(() => createRegistrySnapshot([badInput]), /HOSTILE_|MALFORMED_ENTRY/);
+
+      // Hostile proxy
+      const handler = {
+        getOwnPropertyDescriptor() {
+          throw new Error("Trap triggered!");
+        },
+      };
+      const proxyInput = new Proxy(
+        { category: "event", id: "core.app.e", description: "Desc" },
+        handler,
+      ) as unknown as RegistryEntryInput;
+      assert.throws(() => createRegistrySnapshot([proxyInput]), /HOSTILE_|MALFORMED_ENTRY/);
+    });
+
+    void it("N20: Enforces snapshot immutability and rejects forged snapshots with unsafe revisions", () => {
+      const snap = createRegistrySnapshot([]);
+      assert.throws(() => {
+        // @ts-expect-error Intentionally writing to frozen property to verify TypeError
+        snap.revision = 999;
+      }, TypeError);
+
+      const forgedSnap = {
+        revision: Number.MAX_SAFE_INTEGER + 10,
+        snapshot_id: "reg-snap-forged",
+        created_at: new Date().toISOString(),
+        entries: [],
+      } as unknown as RegistrySnapshot;
+
+      assert.throws(
+        () =>
+          registerEntries(forgedSnap, [
+            { category: "event", id: "core.app.e", description: "Desc" },
+          ]),
+        /UNAUTHENTIC_REGISTRY_SNAPSHOT/,
+      );
     });
   });
 });

@@ -14,7 +14,7 @@
  *    RETIRED entries are permanent tombstones; their IDs cannot be reused.
  */
 
-import { validateNamespaceIdentifier, validateNamespaceRoot } from "../namespace/index.ts";
+import { validateNamespaceRoot, validateLifecycleTransition } from "../namespace/index.ts";
 
 export const REGISTRY_CONTRACT_ID = "CONTRACT-CORE-REGISTRY-FRAMEWORK-001" as const;
 
@@ -107,36 +107,86 @@ export function isValidRegistryDescription(desc: unknown): desc is string {
 export function validateRegistryOwnership(
   id: string,
   category: RegistryCategory,
-  ownerModuleId: string,
+  ownerModuleId: string | undefined,
 ): void {
-  validateNamespaceIdentifier(ownerModuleId);
-  validateNamespaceIdentifier(id);
-
-  const { root: ownerRoot, segments: ownerSegments } = validateNamespaceRoot(ownerModuleId);
-  if (ownerRoot === "ext" && ownerSegments.length !== 3) {
-    throw new Error(
-      "INVALID_OWNER_MODULE_ID: Third-party owner module ID must have arity 3 (ext.<publisher>.<module>)",
-    );
-  }
-
+  // If category is module, ownerModuleId MUST be defined and equal id.
   if (category === "module") {
+    if (ownerModuleId === undefined) {
+      throw new Error(
+        "OWNER_MODULE_REQUIRED: Module declarations must have unambiguous self-ownership",
+      );
+    }
     if (id !== ownerModuleId) {
       throw new Error("MODULE_PREFIX_MISMATCH: Module category ID must equal owner_module_id");
     }
-    return;
   }
 
-  const requiredPrefix = ownerModuleId + ".";
-  if (!id.startsWith(requiredPrefix)) {
-    throw new Error("MODULE_PREFIX_MISMATCH: Registry ID must start with owner module prefix");
-  }
-
-  if (ownerModuleId.startsWith("ext.")) {
-    if (!id.startsWith("ext.")) {
+  // If id starts with ext., ownerModuleId MUST be defined.
+  if (id.startsWith("ext.")) {
+    if (ownerModuleId === undefined) {
       throw new Error(
-        "THIRD_PARTY_ESCAPE: Third-party module cannot declare identifiers outside ext.* namespace",
+        "OWNER_MODULE_REQUIRED: Every ext.* registration requires explicit owner_module_id",
       );
     }
+  }
+
+  // If ownerModuleId is defined, perform full validation
+  if (ownerModuleId !== undefined) {
+    let ownerRoot: string;
+    let ownerSegments: readonly string[];
+    try {
+      const parsed = validateNamespaceRoot(ownerModuleId);
+      ownerRoot = parsed.root;
+      ownerSegments = parsed.segments;
+    } catch (err: unknown) {
+      const code =
+        err &&
+        typeof err === "object" &&
+        "code" in err &&
+        typeof (err as Record<string, unknown>).code === "string"
+          ? (err as Record<string, unknown>).code
+          : "INVALID_OWNER_MODULE_ID";
+      throw new Error(
+        `INVALID_OWNER_MODULE_ID: Owner module ID failed namespace validation with code ${String(code)}`,
+      );
+    }
+
+    if (ownerRoot === "ext" && ownerSegments.length !== 3) {
+      throw new Error(
+        "INVALID_OWNER_MODULE_ID: Third-party owner module ID must have arity 3 (ext.<publisher>.<module>)",
+      );
+    }
+
+    if (category !== "module") {
+      const requiredPrefix = ownerModuleId + ".";
+      if (!id.startsWith(requiredPrefix)) {
+        throw new Error("MODULE_PREFIX_MISMATCH: Registry ID must start with owner module prefix");
+      }
+    }
+
+    if (ownerModuleId.startsWith("ext.")) {
+      if (!id.startsWith("ext.")) {
+        throw new Error(
+          "THIRD_PARTY_ESCAPE: Third-party module cannot declare identifiers outside ext.* namespace",
+        );
+      }
+    }
+  }
+
+  // Always validate ID's namespace root and arity
+  try {
+    validateNamespaceRoot(id);
+  } catch (err: unknown) {
+    const code =
+      err &&
+      typeof err === "object" &&
+      "code" in err &&
+      typeof (err as Record<string, unknown>).code === "string"
+        ? (err as Record<string, unknown>).code
+        : "INVALID_REGISTRY_ID";
+    throw new Error(
+      `INVALID_REGISTRY_ID: Registry ID failed namespace validation with code ${String(code)}`,
+    );
   }
 }
 
@@ -152,14 +202,6 @@ export function validateRegistryLifecycleTransition(
     throw new Error("NOOP_STATUS_TRANSITION: Target status is identical to current status");
   }
 
-  if (currentStatus === "ACTIVE" && targetStatus === "DEPRECATED") {
-    return; // Valid
-  }
-
-  if (currentStatus === "DEPRECATED" && targetStatus === "RETIRED") {
-    return; // Valid
-  }
-
   if (currentStatus === "ACTIVE" && targetStatus === "RETIRED") {
     throw new Error(
       "INVALID_LIFECYCLE_TRANSITION: Cannot transition directly from ACTIVE to RETIRED",
@@ -172,7 +214,11 @@ export function validateRegistryLifecycleTransition(
     );
   }
 
-  throw new Error(
-    "INVALID_LIFECYCLE_TRANSITION: Reverse or invalid lifecycle transition forbidden",
-  );
+  try {
+    validateLifecycleTransition(currentStatus, targetStatus);
+  } catch {
+    throw new Error(
+      "INVALID_LIFECYCLE_TRANSITION: Reverse or invalid lifecycle transition forbidden",
+    );
+  }
 }

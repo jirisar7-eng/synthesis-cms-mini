@@ -45,35 +45,51 @@ function assertStrictPlainObject(
   allowedKeys: readonly string[],
   label: string,
 ): asserts obj is Record<string, unknown> {
-  if (obj === null || typeof obj !== "object" || Array.isArray(obj)) {
-    throw new TypeError(
-      `INVALID_${label.toUpperCase()}: Expected plain non-null object for ${label}`,
+  try {
+    if (obj === null || typeof obj !== "object" || Array.isArray(obj)) {
+      throw new TypeError(
+        `INVALID_${label.toUpperCase()}: Expected plain non-null object for ${label}`,
+      );
+    }
+
+    // Reject objects with non-standard prototypes
+    const proto: unknown = Object.getPrototypeOf(obj);
+    if (proto !== Object.prototype && proto !== null) {
+      throw new Error(`HOSTILE_OBJECT_DETECTED: Object for ${label} must have plain prototype`);
+    }
+
+    // Reject symbol properties
+    if (Object.getOwnPropertySymbols(obj).length > 0) {
+      throw new Error(`FORBIDDEN_PROPERTY_DETECTED: Symbol properties forbidden in ${label}`);
+    }
+
+    const ownKeys = Object.getOwnPropertyNames(obj);
+    const allowedSet = new Set(allowedKeys);
+
+    for (const key of ownKeys) {
+      if (!allowedSet.has(key)) {
+        throw new Error(`UNKNOWN_PROPERTY_DETECTED: Forbidden or unexpected property in ${label}`);
+      }
+
+      const desc = Object.getOwnPropertyDescriptor(obj, key);
+      if (!desc || desc.get !== undefined || desc.set !== undefined) {
+        throw new Error(`HOSTILE_PROPERTY_DETECTED: Accessor properties forbidden in ${label}`);
+      }
+    }
+  } catch (err: unknown) {
+    if (
+      err instanceof TypeError ||
+      (err instanceof Error &&
+        (err.message.startsWith("HOSTILE_") ||
+          err.message.startsWith("FORBIDDEN_") ||
+          err.message.startsWith("UNKNOWN_") ||
+          err.message.startsWith("INVALID_")))
+    ) {
+      throw err;
+    }
+    throw new Error(
+      `HOSTILE_INPUT_ERROR: Malformed or hostile object descriptor detected in ${label}`,
     );
-  }
-
-  // Reject objects with non-standard prototypes
-  const proto: unknown = Object.getPrototypeOf(obj);
-  if (proto !== Object.prototype && proto !== null) {
-    throw new Error(`HOSTILE_OBJECT_DETECTED: Object for ${label} must have plain prototype`);
-  }
-
-  // Reject symbol properties
-  if (Object.getOwnPropertySymbols(obj).length > 0) {
-    throw new Error(`FORBIDDEN_PROPERTY_DETECTED: Symbol properties forbidden in ${label}`);
-  }
-
-  const ownKeys = Object.getOwnPropertyNames(obj);
-  const allowedSet = new Set(allowedKeys);
-
-  for (const key of ownKeys) {
-    if (!allowedSet.has(key)) {
-      throw new Error(`UNKNOWN_PROPERTY_DETECTED: Forbidden or unexpected property in ${label}`);
-    }
-
-    const desc = Object.getOwnPropertyDescriptor(obj, key);
-    if (!desc || desc.get !== undefined || desc.set !== undefined) {
-      throw new Error(`HOSTILE_PROPERTY_DETECTED: Accessor properties forbidden in ${label}`);
-    }
   }
 }
 
@@ -90,41 +106,56 @@ export function isGenuineRegistrySnapshot(val: unknown): val is RegistrySnapshot
  * Validates an individual RegistryEntryInput descriptor.
  */
 function validateEntryInput(rawInput: RegistryEntryInput): RegistryEntryInput {
-  assertStrictPlainObject(
-    rawInput,
-    ["category", "id", "description", "owner_module_id"],
-    "RegistryEntryInput",
-  );
+  try {
+    assertStrictPlainObject(
+      rawInput,
+      ["category", "id", "description", "owner_module_id"],
+      "RegistryEntryInput",
+    );
 
-  const { category, id, description, owner_module_id } = rawInput;
+    const { category, id, description, owner_module_id } = rawInput;
 
-  if (!isValidRegistryCategory(category)) {
-    throw new Error("INVALID_REGISTRY_CATEGORY: Unrecognized or invalid registry category");
-  }
-
-  if (!isCanonicalNamespaceIdentifier(id)) {
-    throw new Error("INVALID_REGISTRY_ID: Registry ID must be a canonical namespace identifier");
-  }
-
-  if (!isValidRegistryDescription(description)) {
-    throw new Error("INVALID_REGISTRY_DESCRIPTION: Invalid or oversized description");
-  }
-
-  if (owner_module_id !== undefined) {
-    if (!isCanonicalNamespaceIdentifier(owner_module_id)) {
-      throw new Error(
-        "INVALID_OWNER_MODULE_ID: owner_module_id must be a canonical namespace identifier",
-      );
+    if (!isValidRegistryCategory(category)) {
+      throw new Error("INVALID_REGISTRY_CATEGORY: Unrecognized or invalid registry category");
     }
-    validateRegistryOwnership(id, category, owner_module_id);
-  }
 
-  return {
-    category,
-    id,
-    description,
-    ...(owner_module_id !== undefined ? { owner_module_id } : {}),
-  };
+    if (!isValidRegistryDescription(description)) {
+      throw new Error("INVALID_REGISTRY_DESCRIPTION: Invalid or oversized description");
+    }
+
+    if (owner_module_id !== undefined) {
+      if (!isCanonicalNamespaceIdentifier(owner_module_id)) {
+        throw new Error(
+          "INVALID_OWNER_MODULE_ID: owner_module_id must be a canonical namespace identifier",
+        );
+      }
+    }
+
+    validateRegistryOwnership(id, category, owner_module_id);
+
+    return {
+      category,
+      id,
+      description,
+      ...(owner_module_id !== undefined ? { owner_module_id } : {}),
+    };
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      const msg = err.message;
+      if (
+        msg.startsWith("INVALID_") ||
+        msg.startsWith("MODULE_") ||
+        msg.startsWith("THIRD_") ||
+        msg.startsWith("HOSTILE_") ||
+        msg.startsWith("FORBIDDEN_") ||
+        msg.startsWith("UNKNOWN_") ||
+        msg.startsWith("OWNER_")
+      ) {
+        throw err;
+      }
+    }
+    throw new Error("MALFORMED_ENTRY: Malformed or hostile entry properties detected");
+  }
 }
 
 /**
@@ -132,15 +163,22 @@ function validateEntryInput(rawInput: RegistryEntryInput): RegistryEntryInput {
  */
 function compareEntries(a: RegistryEntry, b: RegistryEntry): number {
   if (a.category !== b.category) {
-    return a.category.localeCompare(b.category);
+    return a.category < b.category ? -1 : 1;
   }
-  return a.id.localeCompare(b.id);
+  if (a.id !== b.id) {
+    return a.id < b.id ? -1 : 1;
+  }
+  return 0;
 }
 
 /**
  * Helper to construct and freeze a brand-new RegistrySnapshot.
  */
 function makeSnapshot(revision: number, entries: readonly RegistryEntry[]): RegistrySnapshot {
+  if (!Number.isSafeInteger(revision) || revision < 0) {
+    throw new Error("REVISION_OVERFLOW: Registry snapshot revision overflow or out of safe range");
+  }
+
   const sorted = [...entries].sort(compareEntries);
   const frozenEntries = Object.freeze(sorted.map((e) => Object.freeze({ ...e })));
 
@@ -161,12 +199,16 @@ function makeSnapshot(revision: number, entries: readonly RegistryEntry[]): Regi
 export function createRegistrySnapshot(
   initialEntries?: readonly RegistryEntryInput[],
 ): RegistrySnapshot {
-  if (initialEntries === undefined || initialEntries.length === 0) {
+  if (initialEntries === undefined) {
     return makeSnapshot(0, []);
   }
 
   if (!Array.isArray(initialEntries)) {
     throw new TypeError("INVALID_INITIAL_ENTRIES: Expected array of RegistryEntryInput");
+  }
+
+  if (initialEntries.length === 0) {
+    return makeSnapshot(0, []);
   }
 
   // Validate initial entries atomically
