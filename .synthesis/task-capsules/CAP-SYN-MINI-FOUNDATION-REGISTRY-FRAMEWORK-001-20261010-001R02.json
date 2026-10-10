@@ -1,0 +1,221 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261010-001R02",
+    "task_id": "SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-001R02-REPAIR-UNTRUSTED-ERROR-BOUNDARIES",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "16/60",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-10T10:15:00.000Z",
+      "development_phase": "SECURITY_REVIEW",
+      "execution_mode": "REVIEW"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "7204b07e227b7f0827a1c58ce340f433133fe1bc",
+      "source_branch": "task/SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261009-001R01.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261009-001R01.json",
+        "core/src/registry/registry.framework.ts",
+        "tests/registry/registry.framework.test.ts"
+      ],
+      "permitted_write_paths": [
+        "core/src/registry/registry.framework.ts",
+        "tests/registry/registry.framework.test.ts",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261010-001R02.json",
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261010-001R02.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 4,
+      "max_read_files_limit": 10
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261009-001R01",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-001R01-REPAIR-REGISTRY-BOUNDARIES",
+          "payload_sha256": "3e9ccb68a89082b67eab61c93bf9577113f8413d2aef7b28d90d735be28b1f6e",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [
+          "CAP-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261009-001R01"
+        ],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-CONTEXT-REQUEST-ACTOR-PROVENANCE-001"
+      ],
+      "affected_capabilities": [
+        "core.context.request",
+        "core.context.provenance"
+      ],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        "core/src/registry/registry.framework.ts",
+        "tests/registry/registry.framework.test.ts",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261010-001R02.json",
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261010-001R02.json"
+      ],
+      "actual_changed_files": [
+        "core/src/registry/registry.framework.ts",
+        "tests/registry/registry.framework.test.ts",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261010-001R02.json",
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261010-001R02.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {}
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "INDEPENDENT_STEP16_R02_SECURITY_REVIEW",
+      "stateless_recovery_context": {
+        "verified_task_head": "7204b07e227b7f0827a1c58ce340f433133fe1bc",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-09T13:40:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_OPEN",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step8_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step9_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step10_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step11_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step12_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step13_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step14_status": "COMPLETED_AND_MERGED_ON_MAIN",
+        "deployment_status": "NOT_DEPLOYED",
+        "step14_plan": {
+          "discovery_summary": {
+            "objective": "Establish a standardized, unified error contract across Synthesis CMS mini Core, Contracts, Runtimes, Modules, and API responses.",
+            "error_handling_necessity": "Without a unified error contract, modules and services throw heterogeneous, untyped errors, exposing stack traces or raw internal exceptions to public clients."
+          },
+          "error_contract_specification": {
+            "contract_id": "CONTRACT-CORE-UNIFIED-ERROR-001",
+            "version": "1.0.0",
+            "error_kinds": [
+              "DOMAIN_ERROR",
+              "SYSTEM_ERROR",
+              "SECURITY_ERROR",
+              "VALIDATION_ERROR",
+              "GOVERNANCE_ERROR",
+              "MODULE_ERROR",
+              "INTEGRATION_ERROR",
+              "LICENSE_ERROR",
+              "INFRASTRUCTURE_ERROR"
+            ],
+            "severity_levels": [
+              "FATAL",
+              "ERROR",
+              "WARNING",
+              "INFO"
+            ],
+            "canonical_payload_fields": [
+              "code",
+              "message",
+              "kind",
+              "severity",
+              "http_status",
+              "details",
+              "correlation_id",
+              "timestamp",
+              "recoverable"
+            ],
+            "code_formatting_rule": "UPPERCASE_SNAKE_CASE prefixed with ERR_"
+          },
+          "security_and_privacy_invariants": [
+            "INV-ERROR-NO-STACK-LEAK: Stack traces and internal frame details must never be serialized into public/client error payloads.",
+            "INV-ERROR-NO-SECRET-LEAK: DB credentials, JWT tokens, private keys, and internal system paths must be stripped before error emission.",
+            "INV-ERROR-STRICT-TYPING: All system and module errors must derive from or serialize to Unified Error Contract format.",
+            "INV-ERROR-FAIL-CLOSED: Unhandled internal exceptions map to ERR_INTERNAL_SERVER_ERROR (HTTP 500) with sanitized client message."
+          ],
+          "step14_boundaries": {
+            "owned_by_step14": [
+              "Specification of Unified Error Contract schema and TypeScript interface",
+              "Error code taxonomy, error categories, and severity levels",
+              "Minimal contract definition file (contracts/src/error/error.contract.ts)",
+              "Comprehensive positive and negative test suite for error normalization"
+            ],
+            "forbidden_in_step14": [
+              "Step15 Actor/Provenance Context",
+              "Step16 Registry Framework",
+              "Step17 Provider Contracts",
+              "Application HTTP routes or UI error pages",
+              "Database schema migrations or backend implementation"
+            ]
+          }
+        },
+        "step15_status": "COMPLETED_AND_MERGED_ON_MAIN",
+        "repair_summary": {
+          "step16_summary": "Repaired SEC16-R01-001 untrusted error boundary vulnerability in Step 16 Registry Framework: eliminated all message prefix inspection, isolated proxy trap exceptions in assertStrictPlainObject, validateEntryInput, createRegistrySnapshot, and registerEntries to throw static, trusted error codes without exposing untrusted error messages or secrets."
+        },
+        "step16_status": "REPAIR_R02_COMPLETE_AWAITING_REVIEW",
+        "step17_status": "NOT_AUTHORIZED"
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "b81c1986593def41c7dcf6164651e9b5f8a11eef12b2d42948a4430bd49c28cc",
+    "sealed_at": "2026-10-10T10:15:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}

@@ -623,5 +623,134 @@ void describe("Step 16: Registry Framework Contract", () => {
         /UNAUTHENTIC_REGISTRY_SNAPSHOT/,
       );
     });
+
+    void it("N21 (SEC16-R02-A): Proxy getPrototypeOf trap throwing TypeError with forged prefix is safely handled without message leak", () => {
+      const secret = "SECRET_TOKEN_A_98765";
+      const hostile = new Proxy(
+        {},
+        {
+          getPrototypeOf() {
+            throw new TypeError(`INVALID_FORGED_PREFIX_${secret}`);
+          },
+        },
+      ) as unknown as RegistryEntryInput;
+
+      try {
+        createRegistrySnapshot([hostile]);
+        assert.fail("Should have thrown");
+      } catch (err: unknown) {
+        assert.ok(err instanceof Error);
+        assert.strictEqual(err.message.includes(secret), false);
+        assert.match(err.message, /^HOSTILE_OBJECT_DETECTED:/);
+      }
+    });
+
+    void it("N22 (SEC16-R02-B): Proxy descriptor trap throwing forged HOSTILE_ or INVALID_ Error does not propagate forged message", () => {
+      const secret = "SECRET_TOKEN_B_54321";
+      const hostile = new Proxy(
+        { category: "event" },
+        {
+          getOwnPropertyDescriptor() {
+            throw new Error(`HOSTILE_FORGED_DESCRIPTOR_${secret}`);
+          },
+        },
+      ) as unknown as RegistryEntryInput;
+
+      try {
+        createRegistrySnapshot([hostile]);
+        assert.fail("Should have thrown");
+      } catch (err: unknown) {
+        assert.ok(err instanceof Error);
+        assert.strictEqual(err.message.includes(secret), false);
+        assert.match(err.message, /^HOSTILE_INPUT_ERROR:/);
+      }
+    });
+
+    void it("N23 (SEC16-R02-C): Proxy property get trap throwing during entry access is caught fail-closed without message leak", () => {
+      const secret = "SECRET_TOKEN_C_11223";
+      const hostile = new Proxy(
+        { category: "event", id: "core.test.e", description: "valid" },
+        {
+          get(target, prop, receiver) {
+            if (prop === "id") {
+              throw new Error(`INVALID_FORGED_GET_${secret}`);
+            }
+            return Reflect.get(target, prop, receiver) as unknown;
+          },
+        },
+      ) as unknown as RegistryEntryInput;
+
+      try {
+        createRegistrySnapshot([hostile]);
+        assert.fail("Should have thrown");
+      } catch (err: unknown) {
+        assert.ok(err instanceof Error);
+        assert.strictEqual(err.message.includes(secret), false);
+        assert.match(err.message, /^MALFORMED_ENTRY:/);
+      }
+    });
+
+    void it("N24 (SEC16-R02-D): Proxy-wrapped array throwing during length access or iteration is caught fail-closed without message leak", () => {
+      const secretLen = "SECRET_TOKEN_D1_33445";
+      const hostileArrayLen = new Proxy([], {
+        get(target, prop, receiver) {
+          if (prop === "length") {
+            throw new Error(`HOSTILE_FORGED_LENGTH_${secretLen}`);
+          }
+          return Reflect.get(target, prop, receiver) as unknown;
+        },
+      }) as unknown as readonly RegistryEntryInput[];
+
+      try {
+        createRegistrySnapshot(hostileArrayLen);
+        assert.fail("Should have thrown");
+      } catch (err: unknown) {
+        assert.ok(err instanceof Error);
+        assert.strictEqual(err.message.includes(secretLen), false);
+        assert.match(err.message, /^HOSTILE_INPUT_ERROR:/);
+      }
+
+      const secretIter = "SECRET_TOKEN_D2_55667";
+      const base = [{ category: "event", id: "core.test.e", description: "desc" }];
+      const hostileArrayIter = new Proxy(base, {
+        get(target, prop, receiver) {
+          if (prop === Symbol.iterator) {
+            throw new Error(`HOSTILE_FORGED_ITERATOR_${secretIter}`);
+          }
+          return Reflect.get(target, prop, receiver) as unknown;
+        },
+      }) as unknown as readonly RegistryEntryInput[];
+
+      try {
+        createRegistrySnapshot(hostileArrayIter);
+        assert.fail("Should have thrown");
+      } catch (err: unknown) {
+        assert.ok(err instanceof Error);
+        assert.strictEqual(err.message.includes(secretIter), false);
+        assert.match(err.message, /^HOSTILE_INPUT_ERROR:/);
+      }
+    });
+
+    void it("N25 (SEC16-R02-E): Error messages containing a unique secret marker must never expose that marker across batch registration", () => {
+      const secret = "ULTRA_CONFIDENTIAL_MARKER_998877";
+      const snap = createRegistrySnapshot([]);
+      const hostileBatch = new Proxy([], {
+        get(target, prop, receiver) {
+          if (prop === "length") {
+            throw new Error(`INVALID_SECRET_${secret}`);
+          }
+          return Reflect.get(target, prop, receiver) as unknown;
+        },
+      }) as unknown as readonly RegistryEntryInput[];
+
+      try {
+        registerEntries(snap, hostileBatch);
+        assert.fail("Should have thrown");
+      } catch (err: unknown) {
+        assert.ok(err instanceof Error);
+        assert.strictEqual(err.message.includes(secret), false);
+        assert.match(err.message, /^HOSTILE_INPUT_ERROR:/);
+      }
+    });
   });
 });

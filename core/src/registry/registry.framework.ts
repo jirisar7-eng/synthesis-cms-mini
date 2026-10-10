@@ -45,51 +45,64 @@ function assertStrictPlainObject(
   allowedKeys: readonly string[],
   label: string,
 ): asserts obj is Record<string, unknown> {
+  if (obj === null || typeof obj !== "object" || Array.isArray(obj)) {
+    throw new TypeError(
+      `INVALID_${label.toUpperCase()}: Expected plain non-null object for ${label}`,
+    );
+  }
+
+  // Reject objects with non-standard prototypes
+  let proto: unknown;
   try {
-    if (obj === null || typeof obj !== "object" || Array.isArray(obj)) {
-      throw new TypeError(
-        `INVALID_${label.toUpperCase()}: Expected plain non-null object for ${label}`,
-      );
-    }
+    proto = Object.getPrototypeOf(obj);
+  } catch {
+    throw new Error(`HOSTILE_OBJECT_DETECTED: Object for ${label} must have plain prototype`);
+  }
+  if (proto !== Object.prototype && proto !== null) {
+    throw new Error(`HOSTILE_OBJECT_DETECTED: Object for ${label} must have plain prototype`);
+  }
 
-    // Reject objects with non-standard prototypes
-    const proto: unknown = Object.getPrototypeOf(obj);
-    if (proto !== Object.prototype && proto !== null) {
-      throw new Error(`HOSTILE_OBJECT_DETECTED: Object for ${label} must have plain prototype`);
-    }
-
-    // Reject symbol properties
-    if (Object.getOwnPropertySymbols(obj).length > 0) {
-      throw new Error(`FORBIDDEN_PROPERTY_DETECTED: Symbol properties forbidden in ${label}`);
-    }
-
-    const ownKeys = Object.getOwnPropertyNames(obj);
-    const allowedSet = new Set(allowedKeys);
-
-    for (const key of ownKeys) {
-      if (!allowedSet.has(key)) {
-        throw new Error(`UNKNOWN_PROPERTY_DETECTED: Forbidden or unexpected property in ${label}`);
-      }
-
-      const desc = Object.getOwnPropertyDescriptor(obj, key);
-      if (!desc || desc.get !== undefined || desc.set !== undefined) {
-        throw new Error(`HOSTILE_PROPERTY_DETECTED: Accessor properties forbidden in ${label}`);
-      }
-    }
-  } catch (err: unknown) {
-    if (
-      err instanceof TypeError ||
-      (err instanceof Error &&
-        (err.message.startsWith("HOSTILE_") ||
-          err.message.startsWith("FORBIDDEN_") ||
-          err.message.startsWith("UNKNOWN_") ||
-          err.message.startsWith("INVALID_")))
-    ) {
-      throw err;
-    }
+  // Reject symbol properties
+  let symbols: (string | symbol)[];
+  try {
+    symbols = Object.getOwnPropertySymbols(obj);
+  } catch {
     throw new Error(
       `HOSTILE_INPUT_ERROR: Malformed or hostile object descriptor detected in ${label}`,
     );
+  }
+  if (symbols.length > 0) {
+    throw new Error(`FORBIDDEN_PROPERTY_DETECTED: Symbol properties forbidden in ${label}`);
+  }
+
+  let ownKeys: string[];
+  try {
+    ownKeys = Object.getOwnPropertyNames(obj);
+  } catch {
+    throw new Error(
+      `HOSTILE_INPUT_ERROR: Malformed or hostile object descriptor detected in ${label}`,
+    );
+  }
+
+  const allowedSet = new Set(allowedKeys);
+
+  for (const key of ownKeys) {
+    if (!allowedSet.has(key)) {
+      throw new Error(`UNKNOWN_PROPERTY_DETECTED: Forbidden or unexpected property in ${label}`);
+    }
+
+    let desc: PropertyDescriptor | undefined;
+    try {
+      desc = Object.getOwnPropertyDescriptor(obj, key);
+    } catch {
+      throw new Error(
+        `HOSTILE_INPUT_ERROR: Malformed or hostile object descriptor detected in ${label}`,
+      );
+    }
+
+    if (!desc || desc.get !== undefined || desc.set !== undefined) {
+      throw new Error(`HOSTILE_PROPERTY_DETECTED: Accessor properties forbidden in ${label}`);
+    }
   }
 }
 
@@ -106,56 +119,54 @@ export function isGenuineRegistrySnapshot(val: unknown): val is RegistrySnapshot
  * Validates an individual RegistryEntryInput descriptor.
  */
 function validateEntryInput(rawInput: RegistryEntryInput): RegistryEntryInput {
+  assertStrictPlainObject(
+    rawInput,
+    ["category", "id", "description", "owner_module_id"],
+    "RegistryEntryInput",
+  );
+
+  let category: unknown;
+  let id: unknown;
+  let description: unknown;
+  let owner_module_id: unknown;
+
   try {
-    assertStrictPlainObject(
-      rawInput,
-      ["category", "id", "description", "owner_module_id"],
-      "RegistryEntryInput",
-    );
-
-    const { category, id, description, owner_module_id } = rawInput;
-
-    if (!isValidRegistryCategory(category)) {
-      throw new Error("INVALID_REGISTRY_CATEGORY: Unrecognized or invalid registry category");
-    }
-
-    if (!isValidRegistryDescription(description)) {
-      throw new Error("INVALID_REGISTRY_DESCRIPTION: Invalid or oversized description");
-    }
-
-    if (owner_module_id !== undefined) {
-      if (!isCanonicalNamespaceIdentifier(owner_module_id)) {
-        throw new Error(
-          "INVALID_OWNER_MODULE_ID: owner_module_id must be a canonical namespace identifier",
-        );
-      }
-    }
-
-    validateRegistryOwnership(id, category, owner_module_id);
-
-    return {
-      category,
-      id,
-      description,
-      ...(owner_module_id !== undefined ? { owner_module_id } : {}),
-    };
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      const msg = err.message;
-      if (
-        msg.startsWith("INVALID_") ||
-        msg.startsWith("MODULE_") ||
-        msg.startsWith("THIRD_") ||
-        msg.startsWith("HOSTILE_") ||
-        msg.startsWith("FORBIDDEN_") ||
-        msg.startsWith("UNKNOWN_") ||
-        msg.startsWith("OWNER_")
-      ) {
-        throw err;
-      }
-    }
+    category = rawInput.category;
+    id = rawInput.id;
+    description = rawInput.description;
+    owner_module_id = rawInput.owner_module_id;
+  } catch {
     throw new Error("MALFORMED_ENTRY: Malformed or hostile entry properties detected");
   }
+
+  if (!isValidRegistryCategory(category)) {
+    throw new Error("INVALID_REGISTRY_CATEGORY: Unrecognized or invalid registry category");
+  }
+
+  if (typeof id !== "string" || !isCanonicalNamespaceIdentifier(id)) {
+    throw new Error("INVALID_REGISTRY_ID: Registry ID must be a canonical namespace identifier");
+  }
+
+  if (!isValidRegistryDescription(description)) {
+    throw new Error("INVALID_REGISTRY_DESCRIPTION: Invalid or oversized description");
+  }
+
+  if (owner_module_id !== undefined) {
+    if (typeof owner_module_id !== "string" || !isCanonicalNamespaceIdentifier(owner_module_id)) {
+      throw new Error(
+        "INVALID_OWNER_MODULE_ID: owner_module_id must be a canonical namespace identifier",
+      );
+    }
+  }
+
+  validateRegistryOwnership(id, category, owner_module_id);
+
+  return {
+    category,
+    id,
+    description,
+    ...(owner_module_id !== undefined ? { owner_module_id } : {}),
+  };
 }
 
 /**
@@ -207,8 +218,28 @@ export function createRegistrySnapshot(
     throw new TypeError("INVALID_INITIAL_ENTRIES: Expected array of RegistryEntryInput");
   }
 
-  if (initialEntries.length === 0) {
+  let rawLen: unknown;
+  try {
+    rawLen = initialEntries.length;
+  } catch {
+    throw new Error("HOSTILE_INPUT_ERROR: Malformed or hostile array access in initialEntries");
+  }
+
+  if (typeof rawLen !== "number" || !Number.isSafeInteger(rawLen) || rawLen < 0) {
+    throw new TypeError("INVALID_INITIAL_ENTRIES: Expected array of RegistryEntryInput");
+  }
+
+  if (rawLen === 0) {
     return makeSnapshot(0, []);
+  }
+
+  const rawElements: unknown[] = [];
+  try {
+    for (const raw of initialEntries) {
+      rawElements.push(raw);
+    }
+  } catch {
+    throw new Error("HOSTILE_INPUT_ERROR: Malformed or hostile array access in initialEntries");
   }
 
   // Validate initial entries atomically
@@ -216,7 +247,7 @@ export function createRegistrySnapshot(
   const seenKeys = new Set<string>();
   const createdEntries: RegistryEntry[] = [];
 
-  for (const raw of initialEntries) {
+  for (const raw of rawElements) {
     const validated = validateEntryInput(raw as RegistryEntryInput);
     const key = `${validated.category}:${validated.id}`;
 
@@ -256,8 +287,32 @@ export function registerEntries(
     );
   }
 
-  if (!Array.isArray(entries) || entries.length === 0) {
+  if (!Array.isArray(entries)) {
     throw new TypeError("INVALID_ENTRY_BATCH: Expected non-empty array of RegistryEntryInput");
+  }
+
+  let rawLen: unknown;
+  try {
+    rawLen = entries.length;
+  } catch {
+    throw new Error("HOSTILE_INPUT_ERROR: Malformed or hostile array access in entries");
+  }
+
+  if (typeof rawLen !== "number" || !Number.isSafeInteger(rawLen) || rawLen < 0) {
+    throw new TypeError("INVALID_ENTRY_BATCH: Expected non-empty array of RegistryEntryInput");
+  }
+
+  if (rawLen === 0) {
+    throw new TypeError("INVALID_ENTRY_BATCH: Expected non-empty array of RegistryEntryInput");
+  }
+
+  const rawElements: unknown[] = [];
+  try {
+    for (const raw of entries) {
+      rawElements.push(raw);
+    }
+  } catch {
+    throw new Error("HOSTILE_INPUT_ERROR: Malformed or hostile array access in entries");
   }
 
   // Build key map of existing snapshot entries
@@ -277,7 +332,7 @@ export function registerEntries(
   const newEntries: RegistryEntry[] = [];
 
   // Validate entire batch atomically
-  for (const raw of entries) {
+  for (const raw of rawElements) {
     const validated = validateEntryInput(raw as RegistryEntryInput);
     const key = `${validated.category}:${validated.id}`;
 
