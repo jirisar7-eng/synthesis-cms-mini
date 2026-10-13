@@ -665,6 +665,93 @@ void describe("Step 16: Registry Framework Contract", () => {
         assert.match(err.message, /^HOSTILE_INPUT_ERROR:/);
       }
     });
+    void it("N26 (SEC16-R04-A): Cardinality and iterator mismatch detection across custom proxies and hostile iterators", () => {
+      // 1. length 1 / yields 0
+      const len1Yields0 = new Proxy([1], {
+        get(target, prop, receiver) {
+          if (prop === Symbol.iterator) {
+            return function* () {};
+          }
+          return Reflect.get(target, prop, receiver) as unknown;
+        },
+      }) as unknown as readonly RegistryEntryInput[];
+
+      assert.throws(
+        () => createRegistrySnapshot(len1Yields0),
+        /HOSTILE_INPUT_ERROR: Array length and iterator cardinality mismatch in initialEntries/,
+      );
+
+      // 2. Fewer elements yielded than length
+      const len3Yields1 = new Proxy([1, 2, 3], {
+        get(target, prop, receiver) {
+          if (prop === Symbol.iterator) {
+            return function* () {
+              yield { category: "event", id: "core.test.a", description: "desc" };
+            };
+          }
+          return Reflect.get(target, prop, receiver) as unknown;
+        },
+      }) as unknown as readonly RegistryEntryInput[];
+
+      assert.throws(
+        () => createRegistrySnapshot(len3Yields1),
+        /HOSTILE_INPUT_ERROR: Array length and iterator cardinality mismatch in initialEntries/,
+      );
+
+      // 3. length 0 with hostile iterator
+      const len0Yields1 = new Proxy([], {
+        get(target, prop, receiver) {
+          if (prop === Symbol.iterator) {
+            return function* () {
+              yield { category: "event", id: "core.test.b", description: "desc" };
+            };
+          }
+          return Reflect.get(target, prop, receiver) as unknown;
+        },
+      }) as unknown as readonly RegistryEntryInput[];
+
+      assert.throws(
+        () => createRegistrySnapshot(len0Yields1),
+        /HOSTILE_INPUT_ERROR: Array length and iterator cardinality mismatch in initialEntries/,
+      );
+
+      // 4. length 1 / yields 2+
+      const len1Yields2 = new Proxy([1], {
+        get(target, prop, receiver) {
+          if (prop === Symbol.iterator) {
+            return function* () {
+              yield { category: "event", id: "core.test.c1", description: "desc" };
+              yield { category: "event", id: "core.test.c2", description: "desc" };
+            };
+          }
+          return Reflect.get(target, prop, receiver) as unknown;
+        },
+      }) as unknown as readonly RegistryEntryInput[];
+
+      assert.throws(
+        () => createRegistrySnapshot(len1Yields2),
+        /HOSTILE_INPUT_ERROR: Array length and iterator cardinality mismatch in initialEntries/,
+      );
+
+      // 5. Custom iterator proxy in registerEntries
+      const snap = createRegistrySnapshot([]);
+      const batchLen2Yields1 = new Proxy([1, 2], {
+        get(target, prop, receiver) {
+          if (prop === Symbol.iterator) {
+            return function* () {
+              yield { category: "event", id: "core.test.d", description: "desc" };
+            };
+          }
+          return Reflect.get(target, prop, receiver) as unknown;
+        },
+      }) as unknown as readonly RegistryEntryInput[];
+
+      assert.throws(
+        () => registerEntries(snap, batchLen2Yields1),
+        /HOSTILE_INPUT_ERROR: Array length and iterator cardinality mismatch in entries/,
+      );
+    });
+
 
     void it("N23 (SEC16-R02-C): Proxy property get trap throwing during entry access is caught fail-closed without message leak", () => {
       const secret = "SECRET_TOKEN_C_11223";

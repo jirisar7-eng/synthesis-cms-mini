@@ -207,55 +207,82 @@ function makeSnapshot(revision: number, entries: readonly RegistryEntry[]): Regi
 /**
  * Creates an initial RegistrySnapshot (revision 0), optionally registering initial entries.
  */
+function captureBoundedArrayElements(
+  input: readonly unknown[],
+  rawLen: number,
+  errorMessageContext: string,
+): unknown[] {
+  const rawElements: unknown[] = [];
+  try {
+    const iterator = (input as Iterable<unknown>)[Symbol.iterator]();
+    let yieldedCount = 0;
+    while (yieldedCount < rawLen + 1) {
+      const res = iterator.next();
+      if (res.done) {
+        break;
+      }
+      if (rawElements.length >= rawLen) {
+        throw new Error(
+          `HOSTILE_INPUT_ERROR: Array length and iterator cardinality mismatch in ${errorMessageContext}`,
+        );
+      }
+      rawElements.push(res.value);
+      yieldedCount++;
+    }
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message.startsWith("HOSTILE_INPUT_ERROR")) {
+      throw err;
+    }
+    throw new Error(
+      `HOSTILE_INPUT_ERROR: Malformed or hostile array access in ${errorMessageContext}`,
+    );
+  }
+
+  if (rawElements.length !== rawLen) {
+    throw new Error(
+      `HOSTILE_INPUT_ERROR: Array length and iterator cardinality mismatch in ${errorMessageContext}`,
+    );
+  }
+
+  return rawElements;
+}
+
 export function createRegistrySnapshot(
   initialEntries?: readonly RegistryEntryInput[],
 ): RegistrySnapshot {
   if (initialEntries === undefined) {
     return makeSnapshot(0, []);
   }
-
   if (!Array.isArray(initialEntries)) {
     throw new TypeError("INVALID_INITIAL_ENTRIES: Expected array of RegistryEntryInput");
   }
-
   let rawLen: unknown;
   try {
     rawLen = initialEntries.length;
   } catch {
     throw new Error("HOSTILE_INPUT_ERROR: Malformed or hostile array access in initialEntries");
   }
-
   if (typeof rawLen !== "number" || !Number.isSafeInteger(rawLen) || rawLen < 0) {
     throw new TypeError("INVALID_INITIAL_ENTRIES: Expected array of RegistryEntryInput");
   }
 
+  const rawElements = captureBoundedArrayElements(initialEntries, rawLen, "initialEntries");
+
   if (rawLen === 0) {
     return makeSnapshot(0, []);
-  }
-
-  const rawElements: unknown[] = [];
-  try {
-    for (const raw of initialEntries) {
-      rawElements.push(raw);
-    }
-  } catch {
-    throw new Error("HOSTILE_INPUT_ERROR: Malformed or hostile array access in initialEntries");
   }
 
   // Validate initial entries atomically
   const now = new Date().toISOString();
   const seenKeys = new Set<string>();
   const createdEntries: RegistryEntry[] = [];
-
   for (const raw of rawElements) {
     const validated = validateEntryInput(raw as RegistryEntryInput);
     const key = `${validated.category}:${validated.id}`;
-
     if (seenKeys.has(key)) {
       throw new Error("DUPLICATE_ENTRY_IN_BATCH: Duplicate composite key within entry batch");
     }
     seenKeys.add(key);
-
     createdEntries.push({
       category: validated.category,
       id: validated.id,
@@ -268,15 +295,9 @@ export function createRegistrySnapshot(
       updated_at: now,
     });
   }
-
   return makeSnapshot(0, createdEntries);
 }
 
-/**
- * Registers a batch of new entries into a registry snapshot using copy-on-write semantics.
- * Returns a new frozen RegistrySnapshot with incremented revision.
- * Batch registration is atomic: if any entry is invalid or conflicts, throws error without mutating.
- */
 export function registerEntries(
   snapshot: RegistrySnapshot,
   entries: readonly RegistryEntryInput[],
@@ -286,39 +307,28 @@ export function registerEntries(
       "UNAUTHENTIC_REGISTRY_SNAPSHOT: Function requires a genuine platform-issued RegistrySnapshot",
     );
   }
-
   if (!Array.isArray(entries)) {
     throw new TypeError("INVALID_ENTRY_BATCH: Expected non-empty array of RegistryEntryInput");
   }
-
   let rawLen: unknown;
   try {
     rawLen = entries.length;
   } catch {
     throw new Error("HOSTILE_INPUT_ERROR: Malformed or hostile array access in entries");
   }
-
   if (typeof rawLen !== "number" || !Number.isSafeInteger(rawLen) || rawLen < 0) {
     throw new TypeError("INVALID_ENTRY_BATCH: Expected non-empty array of RegistryEntryInput");
   }
+
+  const rawElements = captureBoundedArrayElements(entries, rawLen, "entries");
 
   if (rawLen === 0) {
     throw new TypeError("INVALID_ENTRY_BATCH: Expected non-empty array of RegistryEntryInput");
   }
 
-  const rawElements: unknown[] = [];
-  try {
-    for (const raw of entries) {
-      rawElements.push(raw);
-    }
-  } catch {
-    throw new Error("HOSTILE_INPUT_ERROR: Malformed or hostile array access in entries");
-  }
-
   // Build key map of existing snapshot entries
   const existingMap = new Map<string, RegistryEntry>();
   const retiredIdsInSnapshot = new Set<string>();
-
   for (const entry of snapshot.entries) {
     const key = `${entry.category}:${entry.id}`;
     existingMap.set(key, entry);
@@ -326,31 +336,25 @@ export function registerEntries(
       retiredIdsInSnapshot.add(`${entry.category}:${entry.id}`);
     }
   }
-
   const now = new Date().toISOString();
   const batchKeys = new Set<string>();
   const newEntries: RegistryEntry[] = [];
-
   // Validate entire batch atomically
   for (const raw of rawElements) {
     const validated = validateEntryInput(raw as RegistryEntryInput);
     const key = `${validated.category}:${validated.id}`;
-
     if (batchKeys.has(key)) {
       throw new Error("DUPLICATE_ENTRY_IN_BATCH: Duplicate composite key within entry batch");
     }
     batchKeys.add(key);
-
     if (retiredIdsInSnapshot.has(key)) {
       throw new Error(
         "RETIRED_IDENTITY_REUSE_FORBIDDEN: Cannot re-register a RETIRED entry identity",
       );
     }
-
     if (existingMap.has(key)) {
       throw new Error("DUPLICATE_ENTRY_DETECTED: Composite key already exists in registry");
     }
-
     newEntries.push({
       category: validated.category,
       id: validated.id,
@@ -363,14 +367,10 @@ export function registerEntries(
       updated_at: now,
     });
   }
-
   const allEntries = [...snapshot.entries, ...newEntries];
   return makeSnapshot(snapshot.revision + 1, allEntries);
 }
 
-/**
- * Retrieves a single registry entry by category and id from a snapshot.
- */
 export function getRegistryEntry(
   snapshot: RegistrySnapshot,
   category: RegistryCategory,
