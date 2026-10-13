@@ -752,5 +752,55 @@ void describe("Step 16: Registry Framework Contract", () => {
         assert.match(err.message, /^HOSTILE_INPUT_ERROR:/);
       }
     });
+
+    void it("N26 (SEC16-R03-A): Array length and iterator cardinality mismatch in initialEntries or entries batch throws HOSTILE_INPUT_ERROR", () => {
+      const entryA = { category: "event", id: "core.test.a", description: "desc A" };
+      const hostileMismatchInit = new Proxy([entryA], {
+        get(target, prop, receiver) {
+          if (prop === "length") {
+            return 3;
+          }
+          if (prop === Symbol.iterator) {
+            return function* () {
+              yield entryA;
+            };
+          }
+          return Reflect.get(target, prop, receiver) as unknown;
+        },
+      }) as unknown as readonly RegistryEntryInput[];
+
+      assert.throws(
+        () => createRegistrySnapshot(hostileMismatchInit),
+        (err: unknown) => {
+          assert.ok(err instanceof Error);
+          assert.match(err.message, /^HOSTILE_INPUT_ERROR: Array length and iterator cardinality mismatch/);
+          return true;
+        },
+      );
+
+      const snap = createRegistrySnapshot([]);
+      const hostileMismatchBatch = new Proxy([entryA], {
+        get(target, prop, receiver) {
+          if (prop === "length") {
+            return 3;
+          }
+          if (prop === Symbol.iterator) {
+            return function* () {
+              yield entryA;
+            };
+          }
+          return Reflect.get(target, prop, receiver) as unknown;
+        },
+      }) as unknown as readonly RegistryEntryInput[];
+
+      assert.throws(
+        () => registerEntries(snap, hostileMismatchBatch),
+        (err: unknown) => {
+          assert.ok(err instanceof Error);
+          assert.match(err.message, /^HOSTILE_INPUT_ERROR: Array length and iterator cardinality mismatch/);
+          return true;
+        },
+      );
+    });
   });
 });

@@ -242,6 +242,10 @@ export function createRegistrySnapshot(
     throw new Error("HOSTILE_INPUT_ERROR: Malformed or hostile array access in initialEntries");
   }
 
+  if (rawElements.length !== rawLen) {
+    throw new Error("HOSTILE_INPUT_ERROR: Array length and iterator cardinality mismatch in initialEntries");
+  }
+
   // Validate initial entries atomically
   const now = new Date().toISOString();
   const seenKeys = new Set<string>();
@@ -313,6 +317,10 @@ export function registerEntries(
     }
   } catch {
     throw new Error("HOSTILE_INPUT_ERROR: Malformed or hostile array access in entries");
+  }
+
+  if (rawElements.length !== rawLen) {
+    throw new Error("HOSTILE_INPUT_ERROR: Array length and iterator cardinality mismatch in entries");
   }
 
   // Build key map of existing snapshot entries
