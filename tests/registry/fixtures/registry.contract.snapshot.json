@@ -1,0 +1,10 @@
+{
+  "contract_id": "CONTRACT-CORE-REGISTRY-FRAMEWORK-001",
+  "categories": ["module", "event", "permission", "settings", "route", "ui_extension", "provider"],
+  "statuses": ["ACTIVE", "DEPRECATED", "RETIRED"],
+  "invariants": {
+    "max_description_length": 512,
+    "copy_on_write": true,
+    "tombstone_permanent": true
+  }
+}
