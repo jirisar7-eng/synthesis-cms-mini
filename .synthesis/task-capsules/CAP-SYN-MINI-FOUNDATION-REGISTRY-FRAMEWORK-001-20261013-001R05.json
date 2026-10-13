@@ -1,0 +1,162 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261013-001R05",
+    "task_id": "SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-001R05-REPAIR-ITERATOR-ERROR-BOUNDARY-AND-FORMAT",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "16/60",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "AI Studio Engineer",
+      "executor": "AI Studio Engineer",
+      "verifier": "AI Studio Engineer"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-13T16:15:00.000Z",
+      "development_phase": "IMPLEMENT",
+      "execution_mode": "IMPLEMENT"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "7204b07e227b7f0827a1c58ce340f433133fe1bc",
+      "source_branch": "task/SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-r04-recovery",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261013-001R04.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261013-001R04.json",
+        "core/src/registry/registry.framework.ts",
+        "tests/registry/registry.framework.test.ts"
+      ],
+      "permitted_write_paths": [
+        "core/src/registry/registry.framework.ts",
+        "tests/registry/registry.framework.test.ts",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261013-001R05.json",
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261013-001R05.json"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/contracts.json",
+        ".synthesis/registries/capabilities.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 4,
+      "max_read_files_limit": 20
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261013-001R04",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-001R04-RECOVER-CARDINALITY-AND-PROVENANCE",
+          "payload_sha256": "34129c8663a7296093feaa8299d9548071f1fec42a7515fe784d879ed5e2af03",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [
+          "CAP-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261013-001R04"
+        ],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-CORE-REGISTRY-FRAMEWORK-001"
+      ],
+      "affected_capabilities": [],
+      "declared_dependencies": [
+        "CONTRACT-CORE-STABLE-NAMESPACE-001"
+      ]
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        "core/src/registry/registry.framework.ts",
+        "tests/registry/registry.framework.test.ts",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261013-001R05.json",
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261013-001R05.json"
+      ],
+      "actual_changed_files": [
+        "core/src/registry/registry.framework.ts",
+        "tests/registry/registry.framework.test.ts",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261013-001R05.json",
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261013-001R05.json"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {
+        "core/src/registry/registry.framework.ts": "13857acc3929c7b7efaa7e884ed43175df90ed9a",
+        "tests/registry/registry.framework.test.ts": "b4b20be68d892fda11e751b12c4122bce3a56a1a"
+      }
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "NEEDS_REVIEW",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [],
+      "next_safe_step": "INDEPENDENT_STEP16_R05_SECURITY_REVIEW",
+      "stateless_recovery_context": {
+        "verified_task_head": "5a674bb639f70c8130ad1bb16f06082423769cfe",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-13T16:09:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_OPEN",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "UNCONDITIONALLY_DISABLED",
+        "milestone_a_status": "COMPLETE",
+        "step7_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step8_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step9_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step10_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step11_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step12_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step13_status": "COMPLETE_ON_PROTECTED_MAIN",
+        "step14_status": "COMPLETED_AND_MERGED_ON_MAIN",
+        "step15_status": "COMPLETED_AND_MERGED_ON_MAIN",
+        "step16_status": "REPAIR_R05_ITERATOR_ERROR_BOUNDARY_COMPLETE",
+        "step17_status": "NOT_AUTHORIZED",
+        "repair_summary": {
+          "step16_summary": "Repaired Step 16 Registry Framework untrusted iterator error boundary in captureBoundedArrayElements: caught iterator values treated strictly as opaque without message inspection, property access or coercion; separated trusted cardinality bounds from untrusted iteration; formatted test suite with repo-pinned Prettier 3.9.9; fixed TypeScript Object is possibly undefined errors in regression tests."
+        }
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "0d287e3544f5c22f7e80264cc179e0dd1a9dc80d6a541887fd56a65113041e26",
+    "sealed_at": "2026-10-13T16:15:00.000Z",
+    "sealed_by": "jirisar7-eng",
+    "seal_signature": null
+  }
+}

@@ -213,6 +213,7 @@ function captureBoundedArrayElements(
   errorMessageContext: string,
 ): unknown[] {
   const rawElements: unknown[] = [];
+  let exceeded = false;
   try {
     const iterator = (input as Iterable<unknown>)[Symbol.iterator]();
     let yieldedCount = 0;
@@ -222,23 +223,19 @@ function captureBoundedArrayElements(
         break;
       }
       if (rawElements.length >= rawLen) {
-        throw new Error(
-          `HOSTILE_INPUT_ERROR: Array length and iterator cardinality mismatch in ${errorMessageContext}`,
-        );
+        exceeded = true;
+        break;
       }
       rawElements.push(res.value);
       yieldedCount++;
     }
-  } catch (err: unknown) {
-    if (err instanceof Error && err.message.startsWith("HOSTILE_INPUT_ERROR")) {
-      throw err;
-    }
+  } catch {
     throw new Error(
       `HOSTILE_INPUT_ERROR: Malformed or hostile array access in ${errorMessageContext}`,
     );
   }
 
-  if (rawElements.length !== rawLen) {
+  if (exceeded || rawElements.length !== rawLen) {
     throw new Error(
       `HOSTILE_INPUT_ERROR: Array length and iterator cardinality mismatch in ${errorMessageContext}`,
     );

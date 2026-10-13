@@ -752,7 +752,6 @@ void describe("Step 16: Registry Framework Contract", () => {
       );
     });
 
-
     void it("N23 (SEC16-R02-C): Proxy property get trap throwing during entry access is caught fail-closed without message leak", () => {
       const secret = "SECRET_TOKEN_C_11223";
       const hostile = new Proxy(
@@ -837,6 +836,146 @@ void describe("Step 16: Registry Framework Contract", () => {
         assert.ok(err instanceof Error);
         assert.strictEqual(err.message.includes(secret), false);
         assert.match(err.message, /^HOSTILE_INPUT_ERROR:/);
+      }
+    });
+
+    void it("N27 (SEC16-R05-A): Forged HOSTILE_INPUT_ERROR prefix from untrusted iterator is treated as opaque across createRegistrySnapshot and registerEntries without leaking synthetic marker", () => {
+      // 1. createRegistrySnapshot with forged HOSTILE_INPUT_ERROR prefix
+      const markerSnap = "SYNTHETIC_LEAK_MARKER_SNAPSHOT_R05_88192";
+      const hostileInput = new Proxy([1], {
+        get(target, prop, receiver) {
+          if (prop === Symbol.iterator) {
+            return function* () {
+              throw new Error(`HOSTILE_INPUT_ERROR: ${markerSnap}`);
+            };
+          }
+          return Reflect.get(target, prop, receiver) as unknown;
+        },
+      }) as unknown as readonly RegistryEntryInput[];
+
+      try {
+        createRegistrySnapshot(hostileInput);
+        assert.fail("createRegistrySnapshot should have thrown");
+      } catch (err: unknown) {
+        assert.ok(err instanceof Error);
+        assert.strictEqual(err.message.includes(markerSnap), false);
+        assert.strictEqual(
+          err.message,
+          "HOSTILE_INPUT_ERROR: Malformed or hostile array access in initialEntries",
+        );
+      }
+
+      // 2. registerEntries with forged HOSTILE_INPUT_ERROR prefix
+      const markerBatch = "SYNTHETIC_LEAK_MARKER_BATCH_R05_99381";
+      const initialSnap = createRegistrySnapshot([
+        { category: "event", id: "core.test.init", description: "initial" },
+      ]);
+      const originalRev = initialSnap.revision;
+      const originalCount = initialSnap.entries.length;
+
+      const hostileBatch = new Proxy([1], {
+        get(target, prop, receiver) {
+          if (prop === Symbol.iterator) {
+            return function* () {
+              throw new Error(`HOSTILE_INPUT_ERROR: ${markerBatch}`);
+            };
+          }
+          return Reflect.get(target, prop, receiver) as unknown;
+        },
+      }) as unknown as readonly RegistryEntryInput[];
+
+      try {
+        registerEntries(initialSnap, hostileBatch);
+        assert.fail("registerEntries should have thrown");
+      } catch (err: unknown) {
+        assert.ok(err instanceof Error);
+        assert.strictEqual(err.message.includes(markerBatch), false);
+        assert.strictEqual(
+          err.message,
+          "HOSTILE_INPUT_ERROR: Malformed or hostile array access in entries",
+        );
+        assert.strictEqual(initialSnap.revision, originalRev);
+        assert.strictEqual(initialSnap.entries.length, originalCount);
+        assert.strictEqual(initialSnap.entries[0]?.id, "core.test.init");
+      }
+    });
+
+    void it("N28 (SEC16-R05-B): Throwing Error.message getter from untrusted iterator does not escape normalization and has zero reads across createRegistrySnapshot and registerEntries", () => {
+      // 1. createRegistrySnapshot with throwing Error.message getter
+      let getterReadsSnap = 0;
+      const hostileErrSnap = new Error();
+      Object.defineProperty(hostileErrSnap, "message", {
+        get() {
+          getterReadsSnap++;
+          throw new Error("EXPLOSIVE_GETTER_SNAP");
+        },
+      });
+
+      const hostileInputSnap = new Proxy([1], {
+        get(target, prop, receiver) {
+          if (prop === Symbol.iterator) {
+            return function* () {
+              throw hostileErrSnap;
+            };
+          }
+          return Reflect.get(target, prop, receiver) as unknown;
+        },
+      }) as unknown as readonly RegistryEntryInput[];
+
+      try {
+        createRegistrySnapshot(hostileInputSnap);
+        assert.fail("createRegistrySnapshot should have thrown");
+      } catch (err: unknown) {
+        assert.ok(err instanceof Error);
+        assert.strictEqual(getterReadsSnap, 0);
+        assert.strictEqual(err.message.includes("EXPLOSIVE_GETTER_SNAP"), false);
+        assert.strictEqual(
+          err.message,
+          "HOSTILE_INPUT_ERROR: Malformed or hostile array access in initialEntries",
+        );
+      }
+
+      // 2. registerEntries with throwing Error.message getter
+      let getterReadsBatch = 0;
+      const hostileErrBatch = new Error();
+      Object.defineProperty(hostileErrBatch, "message", {
+        get() {
+          getterReadsBatch++;
+          throw new Error("EXPLOSIVE_GETTER_BATCH");
+        },
+      });
+
+      const initialSnap = createRegistrySnapshot([
+        { category: "event", id: "core.test.init", description: "initial" },
+      ]);
+      const originalRev = initialSnap.revision;
+      const originalCount = initialSnap.entries.length;
+
+      const hostileBatch = new Proxy([1], {
+        get(target, prop, receiver) {
+          if (prop === Symbol.iterator) {
+            return function* () {
+              throw hostileErrBatch;
+            };
+          }
+          return Reflect.get(target, prop, receiver) as unknown;
+        },
+      }) as unknown as readonly RegistryEntryInput[];
+
+      try {
+        registerEntries(initialSnap, hostileBatch);
+        assert.fail("registerEntries should have thrown");
+      } catch (err: unknown) {
+        assert.ok(err instanceof Error);
+        assert.strictEqual(getterReadsBatch, 0);
+        assert.strictEqual(err.message.includes("EXPLOSIVE_GETTER_BATCH"), false);
+        assert.strictEqual(
+          err.message,
+          "HOSTILE_INPUT_ERROR: Malformed or hostile array access in entries",
+        );
+        assert.strictEqual(initialSnap.revision, originalRev);
+        assert.strictEqual(initialSnap.entries.length, originalCount);
+        assert.strictEqual(initialSnap.entries[0]?.id, "core.test.init");
       }
     });
   });
