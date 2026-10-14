@@ -1,0 +1,25 @@
+{
+  "format_version": "1.0.0",
+  "record_kind": "LINKED_CAPSULE_FILE_ATTESTATION",
+  "attestation_id": "ATT-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261014-002-IMPLEMENT-SHARED-PRIMITIVES",
+  "status": "OBSERVED_UNANCHORED",
+  "observed_at_utc": "2026-10-14T09:25:00.000Z",
+  "source_repository": "jirisar7-eng/synthesis-cms-mini",
+  "genesis_anchor_reference": {
+    "genesis_file": ".synthesis/lineage/genesis.json",
+    "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+  },
+  "parent_attestation": {
+    "attestation_id": "ATT-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261013-001R05",
+    "file_path": ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-REGISTRY-FRAMEWORK-001-20261013-001R05.json",
+    "raw_file_sha256": "f050b4d2f550e425cd4b03a01eafa1a767fe0df19e7fb926a1a619ffb3cea87b"
+  },
+  "new_capsule": {
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261014-002-IMPLEMENT-SHARED-PRIMITIVES",
+    "file_path": ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261014-002-IMPLEMENT-SHARED-PRIMITIVES.json",
+    "payload_sha256": "7d684486467d52624a228236fc2afa445ab641e4f8c4bb45046bdde35bcbb68f",
+    "raw_file_sha256": "cb8532b3945e807836c1a73e27a75b21b06df7ddba4598994434c50a4a536506",
+    "git_blob_sha": "5f483e74ce493002a85e2947e9964d5fdee0451a",
+    "file_size_bytes": 6980
+  }
+}
