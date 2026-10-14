@@ -1,0 +1,25 @@
+{
+  "format_version": "1.0.0",
+  "record_kind": "LINKED_CAPSULE_FILE_ATTESTATION",
+  "attestation_id": "ATT-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261014-023-FORMAT-REPAIR",
+  "status": "OBSERVED_UNANCHORED",
+  "observed_at_utc": "2026-10-14T17:20:42.262Z",
+  "source_repository": "jirisar7-eng/synthesis-cms-mini",
+  "genesis_anchor_reference": {
+    "genesis_file": ".synthesis/lineage/genesis.json",
+    "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+  },
+  "parent_attestation": {
+    "attestation_id": "ATT-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261014-006R02-NONDESTRUCTIVE-RECOVERY",
+    "file_path": ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261014-006R02-NONDESTRUCTIVE-RECOVERY.json",
+    "raw_file_sha256": "9efdb13173c40bb662e3a4869f15b601b1e1ccb6954c3c4b94442c6df48c9cd3"
+  },
+  "new_capsule": {
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261014-023-FORMAT-REPAIR",
+    "file_path": ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261014-023-FORMAT-REPAIR.json",
+    "payload_sha256": "0f6628bc024ddfa76823b7ae199edab27b74e220748772231be53fe3031818c3",
+    "raw_file_sha256": "0c78c77605223fb6f27a708aa23f1c1acc54a52c29cb3a53bdf3dfd39c90339e",
+    "git_blob_sha": "d0e890f5b97eb20c0a8b435c01259ab1f249523a",
+    "file_size_bytes": 6838
+  }
+}

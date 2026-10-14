@@ -90,7 +90,8 @@ void describe("Shared Provider Contracts", () => {
 
     void it("3. Confirms provider failure categories are distinct from public error codes", () => {
       // ProviderFailureReason are operational failure states, NOT transport codes
-      for (const reason of PROVIDER_FAILURE_REASONS) {        assert.ok(!reason.startsWith("ERR_"));
+      for (const reason of PROVIDER_FAILURE_REASONS) {
+        assert.ok(!reason.startsWith("ERR_"));
       }
     });
   });
@@ -175,7 +176,10 @@ void describe("Shared Provider Contracts", () => {
 
       const dateRes = validatePaginationParams(new Date());
       assert.ok(!dateRes.valid);
-      assert.equal(dateRes.reason, "Pagination parameters must not be a specialized object instance");
+      assert.equal(
+        dateRes.reason,
+        "Pagination parameters must not be a specialized object instance",
+      );
 
       class CustomClass {
         pageSize = 10;
@@ -206,7 +210,10 @@ void describe("Shared Provider Contracts", () => {
 
       const revokedRes = validatePaginationParams(proxy);
       assert.ok(!revokedRes.valid);
-      assert.equal(revokedRes.reason, "Failed to safely read properties from untrusted pagination input");
+      assert.equal(
+        revokedRes.reason,
+        "Failed to safely read properties from untrusted pagination input",
+      );
 
       // Throwing getter test
       const hostileObj = {
@@ -217,7 +224,10 @@ void describe("Shared Provider Contracts", () => {
 
       const hostileRes = validatePaginationParams(hostileObj);
       assert.ok(!hostileRes.valid);
-      assert.equal(hostileRes.reason, "Failed to safely read properties from untrusted pagination input");
+      assert.equal(
+        hostileRes.reason,
+        "Failed to safely read properties from untrusted pagination input",
+      );
     });
 
     void it("11. Reads accessor properties exactly once into snapshots", () => {
@@ -327,8 +337,12 @@ void describe("Shared Provider Contracts", () => {
             chunkIndex++;
             return { done: false, value: nextChunk };
           },
-          return: async (value?: void | PromiseLike<void>): Promise<IteratorResult<Uint8Array, void>> => {
-            if (value) { await value; }
+          return: async (
+            value?: void | PromiseLike<void>,
+          ): Promise<IteratorResult<Uint8Array, void>> => {
+            if (value) {
+              await value;
+            }
             this.returnCalled = true;
             await this.cancel("Early iterator return");
             return { done: true, value: undefined };
@@ -419,19 +433,21 @@ void describe("Shared Provider Contracts", () => {
       const controller = new AbortController();
       controller.abort();
 
-      const stream = new MockBoundedByteStream(
-        { maxBytes: 100, signal: controller.signal },
-        [new Uint8Array([1, 2, 3])],
-      );
+      const stream = new MockBoundedByteStream({ maxBytes: 100, signal: controller.signal }, [
+        new Uint8Array([1, 2, 3]),
+      ]);
 
-      await assert.rejects(async () => {
-        for await (const chunk of stream) {
-          assert.ok(chunk.byteLength > 0);
-        }
-      }, {
-        name: "Error",
-        message: "STREAM_CANCELED",
-      });
+      await assert.rejects(
+        async () => {
+          for await (const chunk of stream) {
+            assert.ok(chunk.byteLength > 0);
+          }
+        },
+        {
+          name: "Error",
+          message: "STREAM_CANCELED",
+        },
+      );
 
       assert.ok(stream.isClosed);
       assert.ok(stream.cancelCalled);

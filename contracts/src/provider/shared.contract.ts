@@ -207,7 +207,8 @@ export function validatePaginationParams(input: unknown): PaginationValidationRe
     if (proto !== null && proto !== Object.prototype) {
       return Object.freeze({
         valid: false,
-        reason: "Pagination parameters must be a plain object with Object.prototype or null prototype",
+        reason:
+          "Pagination parameters must be a plain object with Object.prototype or null prototype",
       });
     }
 
