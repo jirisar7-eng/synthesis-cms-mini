@@ -1,0 +1,25 @@
+{
+  "format_version": "1.0.0",
+  "record_kind": "LINKED_CAPSULE_FILE_ATTESTATION",
+  "attestation_id": "ATT-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261015-009-RESTORE-AND-IMPLEMENT-R03",
+  "status": "OBSERVED_UNANCHORED",
+  "observed_at_utc": "2026-10-15T18:44:00.000Z",
+  "source_repository": "jirisar7-eng/synthesis-cms-mini",
+  "genesis_anchor_reference": {
+    "genesis_file": ".synthesis/lineage/genesis.json",
+    "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+  },
+  "parent_attestation": {
+    "attestation_id": "ATT-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261014-023-FORMAT-REPAIR",
+    "file_path": ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261014-023-FORMAT-REPAIR.json",
+    "raw_file_sha256": "d8ea4b31e6af4f59c371fceb918b700a73ac9c812ab4258770fe3913ce6c6781"
+  },
+  "new_capsule": {
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261015-009-RESTORE-AND-IMPLEMENT-R03",
+    "file_path": ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261015-009-RESTORE-AND-IMPLEMENT-R03.json",
+    "payload_sha256": "26fef5dd18be79303bdb41837d0d5792ab06586fcf7d85339a53ec1871dff424",
+    "raw_file_sha256": "a72dfa1d8b6dbab00ec55cf9c517aa2a827c98463a004492a27fdf18678a4772",
+    "git_blob_sha": "2aa04e74ca912db95f760fe3bd87da3940700358",
+    "file_size_bytes": 6970
+  }
+}
