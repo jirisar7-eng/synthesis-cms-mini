@@ -1,0 +1,165 @@
+{
+  "payload": {
+    "schema_version": "1.0.0",
+    "capsule_type": "COMMAND_CAPSULE",
+    "capsule_id": "CAP-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261015-009-RESTORE-AND-IMPLEMENT-R03",
+    "command_id": "CMD-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261015-009-RESTORE-AND-IMPLEMENT-R03",
+    "task_id": "SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001",
+    "project_id": "SYNTHESIS_CMS_MINI",
+    "roadmap_step": "17/60 — Provider Contracts / Storage R03",
+    "actors": {
+      "owner": "Jiří Šár",
+      "command_author": "ChatGPT/Codex",
+      "executor": "AI_STUDIO_ENGINEER",
+      "verifier": "AI_STUDIO_ENGINEER"
+    },
+    "execution_metadata": {
+      "execution_timestamp": "2026-10-15T18:44:00.000Z",
+      "development_phase": "IMPLEMENT",
+      "execution_mode": "IMPLEMENT"
+    },
+    "repository_baseline": {
+      "repository_name": "jirisar7-eng/synthesis-cms-mini",
+      "repository_id": 1401215700,
+      "base_main_sha": "9b0281172cf1f0df344b9a8de1c01d3647b1e756",
+      "source_branch": "task/step17-storage-provider",
+      "expected_target_branch": "main"
+    },
+    "scope_boundary": {
+      "permitted_read_paths": [
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261014-023-FORMAT-REPAIR.json",
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261014-023-FORMAT-REPAIR.json",
+        ".synthesis/schemas/command-capsule.schema.json",
+        "scripts/governance/validate_command_capsule.mjs",
+        "scripts/governance/verify_capsule_seal.mjs",
+        "scripts/governance/verify_capsule_lineage.mjs",
+        "scripts/governance/verify_capsule_attestation_chain.mjs",
+        "scripts/governance/verify_scope_diff_firewall.mjs",
+        "scripts/governance/verify_source_blob_provenance.mjs",
+        "package.json",
+        "package-lock.json",
+        ".npmrc",
+        ".prettierrc",
+        "contracts/src/provider/shared.contract.ts",
+        "contracts/src/provider/index.ts",
+        "contracts/src/provider/storage.contract.ts",
+        "tests/provider/shared.contract.test.ts",
+        "tests/provider/storage.contract.test.ts"
+      ],
+      "permitted_write_paths": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261015-009-RESTORE-AND-IMPLEMENT-R03.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261015-009-RESTORE-AND-IMPLEMENT-R03.json",
+        "contracts/src/provider/index.ts",
+        "contracts/src/provider/storage.contract.ts",
+        "tests/provider/storage.contract.test.ts"
+      ],
+      "protected_paths": [
+        ".synthesis/contracts",
+        ".synthesis/lineage/genesis.json",
+        ".synthesis/registries/capabilities.json",
+        ".synthesis/registries/contracts.json"
+      ],
+      "forbidden_operations": [
+        "NO_HISTORICAL_CAPSULE_MUTATION",
+        "NO_IN_PLACE_CONTRACT_MUTATION",
+        "NO_UNAUTHORISED_APP_MUTATION",
+        "NO_UNLOCKED_ACTIVE_PROMOTION"
+      ],
+      "max_write_files_limit": 5,
+      "max_read_files_limit": 40
+    },
+    "lineage": {
+      "genesis_anchor_reference": {
+        "path": ".synthesis/lineage/genesis.json",
+        "pinned_sha256": "b3d47a6f732512a9f5b19668a07bb4d2c662adf316f5a1d33a6d52c57860ec60"
+      },
+      "parent_capsules": [
+        {
+          "capsule_id": "CAP-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261014-023-FORMAT-REPAIR",
+          "command_id": "CMD-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-023-FORMAT-REPAIR-EVIDENCE",
+          "payload_sha256": "0f6628bc024ddfa76823b7ae199edab27b74e220748772231be53fe3031818c3",
+          "relationship_type": "LINEAR_PARENT"
+        }
+      ],
+      "typed_lineage_references": {
+        "superseded_capsules": [],
+        "repaired_capsules": [],
+        "diagnostic_predecessors": []
+      }
+    },
+    "contracts_and_dependencies": {
+      "affected_contracts": [
+        "CONTRACT-CORE-PROVIDER-STORAGE-001"
+      ],
+      "affected_capabilities": [],
+      "declared_dependencies": []
+    },
+    "changes_and_evidence": {
+      "expected_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261015-009-RESTORE-AND-IMPLEMENT-R03.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261015-009-RESTORE-AND-IMPLEMENT-R03.json",
+        "contracts/src/provider/index.ts",
+        "contracts/src/provider/storage.contract.ts",
+        "tests/provider/storage.contract.test.ts"
+      ],
+      "actual_changed_files": [
+        ".synthesis/attestations/ATT-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261015-009-RESTORE-AND-IMPLEMENT-R03.json",
+        ".synthesis/task-capsules/CAP-SYN-MINI-FOUNDATION-PROVIDER-CONTRACTS-001-20261015-009-RESTORE-AND-IMPLEMENT-R03.json",
+        "contracts/src/provider/index.ts",
+        "contracts/src/provider/storage.contract.ts",
+        "tests/provider/storage.contract.test.ts"
+      ],
+      "commit_sha": null,
+      "source_blob_shas": {
+        "contracts/src/provider/index.ts": "21b3b1209b9a7fb622ec0a2e48523f37cc8d8770"
+      }
+    },
+    "verification_states": {
+      "syntax_verification": "PASS",
+      "behavioral_test_verification": "PASS",
+      "security_review": "PASS",
+      "remote_sha_verification": "PENDING",
+      "ci_verification": "PENDING",
+      "pull_request_status": "NOT_CREATED",
+      "merge_status": "NOT_MERGED",
+      "deployment_status": "NOT_DEPLOYED"
+    },
+    "recovery_and_next_steps": {
+      "global_governance_health": "PASS",
+      "blockers": [],
+      "incomplete_work": [
+        "TASK_BRANCH_PUSH",
+        "REMOTE_CI_VERIFICATION"
+      ],
+      "next_safe_step": "PRE_COMMIT_FIREWALL_VERIFICATION_AND_TASK_COMMIT",
+      "stateless_recovery_context": {
+        "verified_task_head": "9b0281172cf1f0df344b9a8de1c01d3647b1e756",
+        "expected_clean_worktree": true,
+        "last_authoritative_remote_sync": "2026-10-15T18:44:00.000Z",
+        "pull_request_number": null,
+        "pull_request_state": "NOT_OPEN",
+        "pull_request_merge_status": "NOT_MERGED",
+        "contract_registry_status": "ACTIVE",
+        "contract_registry_staged_count": 0,
+        "contract_registry_active_count": 6,
+        "capability_registry_status": "ACTIVE",
+        "proposed_capabilities_count": 0,
+        "active_capabilities_count": 5,
+        "global_governance_health": "PASS",
+        "ready_to_mutate": "MUTATION_RESTRICTED_TO_EXPLICIT_FIVE_FILES",
+        "milestone_a_status": "COMPLETE",
+        "step16_status": "MERGED_ON_MAIN",
+        "step17_status": "STORAGE_R03_IMPLEMENTED_LOCAL_TESTS_PASS"
+      }
+    }
+  },
+  "seal": {
+    "status": "SEALED",
+    "hash_algorithm": "SHA-256",
+    "canonicalization_algorithm": "RFC-8785",
+    "payload_sha256": "26fef5dd18be79303bdb41837d0d5792ab06586fcf7d85339a53ec1871dff424",
+    "sealed_at": "2026-10-15T18:44:00.000Z",
+    "sealed_by": "AI_STUDIO_ENGINEER",
+    "seal_signature": null
+  }
+}
