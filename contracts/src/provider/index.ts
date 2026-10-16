@@ -4,3 +4,4 @@
 
 export * from "./shared.contract.ts";
 export * from "./storage.contract.ts";
+export * from "./secrets.contract.ts";
